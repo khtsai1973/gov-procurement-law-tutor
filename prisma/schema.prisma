@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum RegulationTier {
+  LAW
+  REGULATION
+  ADMIN_RULE
+  INTERPRETATION
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  questions     UserQuestion[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Regulation {
+  id             String         @id @default(cuid())
+  slug           String         @unique
+  title          String
+  tier           RegulationTier
+  /// 同位階內排序：數字越小越前面（常用於施行日/文號）
+  sortOrder      Int            @default(0)
+  lastModifiedAt DateTime?
+  sourceUrl      String?
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  chunks         DocChunk[]
+}
+
+model DocChunk {
+  id           String     @id @default(cuid())
+  regulationId String
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  content      String
+  chunkIndex   Int
+  /// OpenAI embedding JSON 陣列；有值時啟用語意檢索（較接近 NotebookLM）
+  embedding    String?
+  createdAt    DateTime   @default(now())
+
+  @@index([regulationId])
+}
+
+model UserQuestion {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String?
+  sources   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model KnowledgeSync {
+  id          String   @id @default(cuid())
+  triggeredBy String
+  status      String
+  message     String?
+  createdAt   DateTime @default(now())
+}
+
+/// 題庫：常見提問與關鍵詞，供 RAG 查詢擴展與法規 slug 加權（非條文原文）
+model QuestionBankItem {
+  id           String   @id @default(cuid())
+  /// 匯入用穩定鍵（對應 JSON `key`）
+  key          String   @unique
+  question     String
+  keywords     String[]
+  relatedSlugs String[]
+  hintAnswer   String?
+  category     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([category])
+}

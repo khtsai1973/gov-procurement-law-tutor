@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "key": "threshold-audit-vs-announce",
+      "category": "金額門檻",
+      "question": "查核金額、公告金額、巨額採購有什麼差別？",
+      "keywords": ["查核金額", "公告金額", "巨額", "金額級距", "金額門檻", "採購金額"],
+      "relatedSlugs": [
+        "government-procurement-act",
+        "gpa-enforcement-rules",
+        "pcc-procurement-amount-thresholds"
+      ],
+      "hintAnswer": "先釐清本案「採購金額」落在哪一級距，再對照《政府採購法》與施行細則中關於公告、查核、巨額之規定，以及知識庫內工程會門檻彙整。實際金額數字以工程會最新公告為準。"
+    },
+    {
+      "key": "threshold-current-figures",
+      "category": "金額門檻",
+      "question": "今年的查核金額、公告金額各是多少？",
+      "keywords": ["查核金額", "公告金額", "多少", "數字", "門檻", "本年度"],
+      "relatedSlugs": ["pcc-procurement-amount-thresholds"],
+      "hintAnswer": "請檢索知識庫《工程會採購金額門檻（函釋／公告彙整）》並註明資料來源日期；勿自行背誦數字，應引述彙整內容並提醒以工程會最新公告為準。"
+    },
+    {
+      "key": "threshold-procurement-amount",
+      "category": "金額門檻",
+      "question": "採購金額如何認定？是否含稅、後續擴充或選購？",
+      "keywords": ["採購金額", "認定", "含稅", "後續擴充", "選購", "預算"],
+      "relatedSlugs": ["government-procurement-act", "gpa-enforcement-rules"],
+      "hintAnswer": "依使用者說明的標的與契約結構，對照採購法及施行細則關於採購金額計算、後續擴充、選購併計之條文；必要時請使用者提供預算科目與契約架構。"
+    },
+    {
+      "key": "threshold-small-purchase",
+      "category": "金額門檻",
+      "question": "小額採購的金額門檻是多少？",
+      "keywords": ["小額採購", "小額", "門檻", "公告金額", "查核金額"],
+      "relatedSlugs": [
+        "government-procurement-act",
+        "pcc-procurement-amount-thresholds",
+        "below-threshold-bidding-rules"
+      ],
+      "hintAnswer": "小額採購與「未達公告金額」等概念可能並存但適用規範不同；請對照門檻彙整與未達公告金額相關辦法，並依本案採購金額級距判斷。"
+    },
+    {
+      "key": "threshold-mega-procurement",
+      "category": "金額門檻",
+      "question": "達巨額採購門檻時，機關還要注意哪些程序？",
+      "keywords": ["巨額", "巨額採購", "特殊採購", "門檻"],
+      "relatedSlugs": [
+        "government-procurement-act",
+        "vendor-qualification-standards",
+        "mega-procurement-reporting-rules",
+        "pcc-procurement-amount-thresholds"
+      ],
+      "hintAnswer": "巨額門檻認定後，除一般招標規定外，可能涉及特殊／巨額認定標準、評選或提報等；請從採購法、認定標準及工程會相關規定檢索，並依標的類型（工程／財物／勞務）分別說明。"
+    },
+    {
+      "key": "threshold-pcc-source",
+      "category": "金額門檻",
+      "question": "工程會公告的採購金額門檻要去哪裡查？",
+      "keywords": ["工程會", "門檻", "函釋", "公告", "金額標準"],
+      "relatedSlugs": ["pcc-procurement-amount-thresholds"],
+      "hintAnswer": "優先引用知識庫內工程會門檻彙整與其註記之來源；回答時應標示彙整日期，並建議使用者至工程會官網核對最新公告。"
+    },
+    {
+      "key": "bargaining-restricted-times",
+      "category": "議價比減",
+      "question": "限制性招標可以議價（比減價格）幾次？",
+      "keywords": ["議價", "議價次數", "比減價格", "限制性招標", "減價", "洽減"],
+      "relatedSlugs": ["government-procurement-act", "gpa-enforcement-rules"],
+      "hintAnswer": "請依招標方式（如限制性招標）及是否屬比減價格、減價或協商等不同程序，檢索採購法與施行細則對應條文；勿混用不同程序的名詞與次數限制。"
+    },
+    {
+      "key": "bargaining-compare-vs-reduce",
+      "category": "議價比減",
+      "question": "比減價格、減價、協商、洽減價格差在哪裡？次數怎麼算？",
+      "keywords": ["比減價格", "減價", "協商", "洽減", "議價次數", "底價"],
+      "relatedSlugs": ["government-procurement-act", "gpa-enforcement-rules"],
+      "hintAnswer": "先確認機關採用的招標／決標程序類型，再對照各程序在法條中的定義與次數規定；回答時應分程序說明，避免將不同用語一概稱為「議價」。"
+    },
+    {
+      "key": "bargaining-negotiation-count",
+      "category": "議價比減",
+      "question": "廠商報價後機關還能再議價嗎？有沒有次數上限？",
+      "keywords": ["議價", "次數", "上限", "報價", "再議"],
+      "relatedSlugs": ["government-procurement-act", "gpa-enforcement-rules"],
+      "hintAnswer": "需依本案招標方式、是否訂底價、是否進入比減或減價程序判斷；請引用相關條文並說明程序階段，而非僅給一概而論的次數。"
+    },
+    {
+      "key": "below-threshold-need-bidding",
+      "category": "未達公告金額",
+      "question": "未達公告金額的採購還需要辦理招標嗎？",
+      "keywords": ["未達公告金額", "招標", "公開取得", "報價單", "小額"],
+      "relatedSlugs": [
+        "below-threshold-bidding-rules",
+        "government-procurement-act",
+        "gpa-enforcement-rules"
+      ],
+      "hintAnswer": "未達公告金額仍有辦理採購之義務，但適用《中央機關未達公告金額採購招標辦法》等規定，可能包含公開取得報價單等程序；請依金額級距與標的類型檢索對應條文。"
+    },
+    {
+      "key": "below-threshold-supervision",
+      "category": "未達公告金額",
+      "question": "未達公告金額採購什麼時候要會同監辦？",
+      "keywords": ["未達公告金額", "監辦", "會同", "主計"],
+      "relatedSlugs": [
+        "below-threshold-supervision-rules",
+        "joint-procurement-supervision-rules"
+      ],
+      "hintAnswer": "請對照《中央機關未達公告金額採購監辦辦法》及相關會同監辦規定，依採購金額、性質與是否屬應監辦案件逐項說明。"
+    },
+    {
+      "key": "below-threshold-rfq",
+      "category": "未達公告金額",
+      "question": "公開取得報價單適用於哪些情形？",
+      "keywords": ["公開取得報價單", "報價單", "未達公告金額", "詢價"],
+      "relatedSlugs": ["below-threshold-bidding-rules", "government-procurement-act"],
+      "hintAnswer": "請從未達公告金額招標辦法與採購法相關條文，說明得採公開取得報價單之條件與程序重點，並提醒仍須符合該辦法其他規定。"
+    },
+    {
+      "key": "below-threshold-vs-small",
+      "category": "未達公告金額",
+      "question": "未達公告金額和小額採購是一樣的嗎？",
+      "keywords": ["未達公告金額", "小額採購", "差別", "門檻"],
+      "relatedSlugs": [
+        "below-threshold-bidding-rules",
+        "pcc-procurement-amount-thresholds",
+        "government-procurement-act"
+      ],
+      "hintAnswer": "兩者常與不同金額級距及適用法規相關；請分別說明定義來源條文，並依本案金額判斷適用哪一套規範，避免混為一談。"
+    },
+    {
+      "key": "mat-vs-lowest",
+      "category": "最有利標",
+      "question": "最有利標和最低標有什麼不同？",
+      "keywords": ["最有利標", "最低標", "評選", "決標原則"],
+      "relatedSlugs": [
+        "government-procurement-act",
+        "most-advantageous-tender-selection-rules"
+      ],
+      "hintAnswer": "請對照採購法關於決標原則之條文，說明最低標與最有利標之適用情境、評選與價格權重等概念，並引用《最有利標評選辦法》作程序補充。"
+    },
+    {
+      "key": "mat-when-required",
+      "category": "最有利標",
+      "question": "什麼情況下必須（或得）採最有利標？",
+      "keywords": ["最有利標", "必須", "得採", "決標", "特殊需求"],
+      "relatedSlugs": ["government-procurement-act", "gpa-enforcement-rules"],
+      "hintAnswer": "依標的性質、採購金額與法條授權，檢索採購法及施行細則中關於應採／得採最有利標之規定；若涉及專業服務等，另注意是否另有專屬評選辦法。"
+    },
+    {
+      "key": "mat-selection-rules-scope",
+      "category": "最有利標",
+      "question": "《最有利標評選辦法》適用哪些採購？",
+      "keywords": ["最有利標評選辦法", "適用", "評選辦法", "範圍"],
+      "relatedSlugs": [
+        "most-advantageous-tender-selection-rules",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "hintAnswer": "請從該辦法總則及採購法第56條等授權條文說明適用範圍，並區分與各類「評選及計費辦法」之關係；實務細節可參考工程會最有利標作業手冊（若已匯入）。"
+    },
+    {
+      "key": "mat-committee",
+      "category": "最有利標",
+      "question": "辦理最有利標一定要組評選委員會嗎？",
+      "keywords": ["評選委員會", "最有利標", "委員", "評選"],
+      "relatedSlugs": [
+        "most-advantageous-tender-selection-rules",
+        "procurement-work-review-team-rules",
+        "review-committee-panel-points"
+      ],
+      "hintAnswer": "請依評選辦法與採購法相關條文，說明評選委員會組成、召集及與審查小組之區別；若手冊已匯入，可作程序性補充但須標示非法規條文。"
+    },
+    {
+      "key": "deadline-standards",
+      "category": "招標期限",
+      "question": "等標期／招標期限怎麼算？和公告金額有關嗎？",
+      "keywords": ["等標期", "招標期限", "公告金額", "查核金額", "巨額"],
+      "relatedSlugs": ["bidding-deadline-standards", "government-procurement-act"],
+      "hintAnswer": "招標期限常依採購金額級距及標的類型而異；請檢索《招標期限標準》與採購法相關條文，並先確認本案金額級距。"
+    },
+    {
+      "key": "deadline-below-threshold",
+      "category": "招標期限",
+      "question": "未達公告金額案件的招標期限有沒有比較短？",
+      "keywords": ["未達公告金額", "招標期限", "等標期", "期限"],
+      "relatedSlugs": [
+        "bidding-deadline-standards",
+        "below-threshold-bidding-rules"
+      ],
+      "hintAnswer": "請同時檢索招標期限標準與未達公告金額招標辦法，依本案是否屬公開招標、公開取得報價單等程序分別說明。"
+    },
+    {
+      "key": "threshold-special-procurement",
+      "category": "金額門檻",
+      "question": "特殊採購、巨額採購怎麼認定？",
+      "keywords": ["特殊採購", "巨額採購", "認定", "門檻"],
+      "relatedSlugs": ["vendor-qualification-standards", "government-procurement-act"],
+      "hintAnswer": "請引用《投標廠商資格與特殊或巨額採購認定標準》及採購法相關條文，分別說明特殊採購與巨額採購之定義與後續程序差異。"
+    }
+  ]
+}

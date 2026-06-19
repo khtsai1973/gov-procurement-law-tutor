@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>政府採購法互動教學平台 — 專案簡介</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --fg: #111827;
+      --muted: #6b7280;
+      --accent: #1d4ed8;
+      --accent-light: #dbeafe;
+      --green: #10b981;
+      --card: #ffffff;
+      --border: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .deck { height: 100vh; position: relative; }
+
+    .slide {
+      display: none;
+      height: 100vh;
+      padding: 3rem 4rem 5rem;
+      flex-direction: column;
+      justify-content: center;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .slide.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-cover {
+      background: linear-gradient(145deg, #eff6ff 0%, #f6f7fb 45%, #ecfdf5 100%);
+      text-align: center;
+      align-items: center;
+    }
+
+    .logo {
+      width: 88px;
+      height: 88px;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 3px solid var(--accent-light);
+    }
+
+    .subtitle {
+      font-size: 1.15rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    .tagline {
+      margin-top: 2rem;
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.7;
+    }
+
+    ul, ol { margin-left: 1.25rem; line-height: 1.85; font-size: 1.05rem; }
+    li { margin-bottom: 0.45rem; }
+    li strong { color: var(--accent); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.4rem;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+
+    .card p, .card li { font-size: 0.95rem; color: #374151; }
+
+    .timeline { position: relative; padding-left: 1.5rem; }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      background: var(--accent-light);
+      border-radius: 2px;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1.1rem;
+      padding-left: 1rem;
+    }
+
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -1.15rem;
+      top: 0.45rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px var(--accent-light);
+    }
+
+    .timeline-item .phase {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 0.95rem;
+    }
+
+    .timeline-item .desc {
+      font-size: 0.92rem;
+      color: #374151;
+      margin-top: 0.15rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin-top: 0.5rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.75rem;
+      text-align: left;
+    }
+
+    th { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+
+    .arch-box {
+      background: var(--card);
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .arch-arrow { color: var(--muted); font-size: 1.2rem; }
+
+    .stats {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      flex: 1;
+      min-width: 140px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat .num {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat .label { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
+
+    .nav-hint {
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.95);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.45rem 1.2rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      z-index: 10;
+    }
+
+    .progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: var(--accent);
+      transition: width 0.3s ease;
+      z-index: 10;
+    }
+
+    .page-num {
+      position: fixed;
+      bottom: 1rem;
+      right: 2rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      z-index: 10;
+    }
+
+    @media print {
+      body { overflow: visible; }
+      .slide {
+        display: flex !important;
+        page-break-after: always;
+        height: auto;
+        min-height: 100vh;
+      }
+      .nav-hint, .page-num, .progress { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      .slide { padding: 2rem 1.5rem 4rem; }
+      h1 { font-size: 1.75rem; }
+      h2 { font-size: 1.35rem; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <div class="deck" id="deck">
+
+    <!-- 1 封面 -->
+    <section class="slide slide-cover active">
+      <svg class="logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g" x1="6" y1="4" x2="42" y2="44">
+            <stop stop-color="#2563eb"/><stop offset="1" stop-color="#1d4ed8"/>
+          </linearGradient>
+        </defs>
+        <rect x="4" y="4" width="40" height="40" rx="11" fill="url(#g)"/>
+        <path d="M15 13.5h13.5c1.1 0 2 .9 2 2V31.5c0 1.1-.9 2-2 2H15c-1.1 0-2-.9-2-2V15.5c0-1.1.9-2 2-2Z" fill="white" fill-opacity="0.96"/>
+        <rect x="17" y="19" width="10" height="1.6" rx="0.8" fill="#1d4ed8" fill-opacity="0.75"/>
+        <rect x="17" y="22.5" width="8.5" height="1.6" rx="0.8" fill="#1d4ed8" fill-opacity="0.55"/>
+        <circle cx="33.5" cy="33.5" r="7.5" fill="#10b981"/>
+        <path d="M30.2 33.6l2.1 2.1 4.4-4.6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h1>政府採購法互動教學平台</h1>
+      <p class="subtitle">Gov Procurement Law Tutor</p>
+      <p class="tagline">
+        以 Google 帳號登入的交談式教學網站，在已匯入之法規／函釋與題庫知識庫範圍內，
+        透過 RAG 檢索與 AI 生成，提供有依據的採購法規問答服務。
+      </p>
+      <p class="tagline" style="margin-top:1rem;font-size:0.9rem;">專案簡介投影片 · 2026</p>
+    </section>
+
+    <!-- 2 背景 -->
+    <section class="slide">
+      <h2>專案背景與動機</h2>
+      <ul>
+        <li>政府採購法及相關子法、行政規則、工程會函釋<strong>條文繁多、位階複雜</strong>，實務人員與學習者不易快速找到正確依據。</li>
+        <li>一般聊天機器人容易<strong>幻覺捏造法條</strong>，不適合作為法規諮詢工具。</li>
+        <li>需要一個<strong>限定知識庫範圍</strong>、可追蹤提問紀錄、並區分管理者與一般使用者的教學平台。</li>
+        <li>參考 NotebookLM 等「文件導向問答」思路，但聚焦於<strong>台灣政府採購法規領域</strong>。</li>
+      </ul>
+    </section>
+
+    <!-- 3 目標 -->
+    <section class="slide">
+      <h2>專案目標</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>🎯 教學導向</h3>
+          <ul>
+            <li>提供情境模板與常見問題範例</li>
+            <li>引導使用者以正確方式提問</li>
+            <li>回答附帶參考法規來源</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>📚 知識庫限定</h3>
+          <ul>
+            <li>僅引用已匯入之法規全文與函釋</li>
+            <li>搭配題庫擴展檢索與加權</li>
+            <li>無依據時明確告知，不臆測作答</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🔐 身分與紀錄</h3>
+          <ul>
+            <li>Google OAuth 登入</li>
+            <li>區分管理者／一般使用者</li>
+            <li>保存個人提問與回答紀錄</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🚀 可部署維運</h3>
+          <ul>
+            <li>Next.js + PostgreSQL 架構</li>
+            <li>支援 Vercel + Neon 雲端部署</li>
+            <li>管理者可更新知識庫</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 功能 -->
+    <section class="slide">
+      <h2>核心功能一覽</h2>
+      <table>
+        <thead>
+          <tr><th>功能</th><th>說明</th><th>對象</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>互動提問</td><td>情境模板、常見問題、RAG 檢索 + AI 回答</td><td>登入使用者</td></tr>
+          <tr><td>法規／函釋清單</td><td>依法規位階排序，標示最後修改日期</td><td>所有人</td></tr>
+          <tr><td>我的提問紀錄</td><td>查閱過往問題與系統回答</td><td>登入使用者</td></tr>
+          <tr><td>知識庫管理</td><td>載入／更新 corpus、embedding、題庫</td><td>管理者</td></tr>
+          <tr><td>Google 登入</td><td>NextAuth v5 OAuth，支援測試與正式環境</td><td>所有人</td></tr>
+        </tbody>
+      </table>
+      <div class="stats">
+        <div class="stat"><div class="num">40+</div><div class="label">法規／要點項目</div></div>
+        <div class="stat"><div class="num">40+</div><div class="label">Corpus 文本檔</div></div>
+        <div class="stat"><div class="num">2</div><div class="label">題庫 JSON 來源</div></div>
+        <div class="stat"><div class="num">6</div><div class="label">主要頁面</div></div>
+      </div>
+    </section>
+
+    <!-- 5 架構 -->
+    <section class="slide">
+      <h2>系統架構</h2>
+      <div class="arch-flow">
+        <span class="arch-box">使用者瀏覽器</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-box">Next.js 15 App Router</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-box">NextAuth (Google)</span>
+      </div>
+      <div class="arch-flow">
+        <span class="arch-box">Chat API</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-box">RAG 檢索引擎</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-box">PostgreSQL + Prisma</span>
+      </div>
+      <div class="arch-flow">
+        <span class="arch-box">OpenAI Embedding</span>
+        <span class="arch-arrow">+</span>
+        <span class="arch-box">OpenAI Chat</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-box">有依據的回答</span>
+      </div>
+      <div class="grid-2" style="margin-top:1.5rem">
+        <div class="card">
+          <h3>前端</h3>
+          <p>React 19、Tailwind CSS、Noto Sans TC 字型</p>
+        </div>
+        <div class="card">
+          <h3>後端資料</h3>
+          <p>User、Regulation、DocChunk、UserQuestion、QuestionBankItem、KnowledgeSync</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 RAG -->
+    <section class="slide">
+      <h2>知識庫與 RAG 回答流程</h2>
+      <ol>
+        <li><strong>語料匯入</strong>：從 <code>data/corpus/</code> Markdown 或全國法規資料庫 API 下載法規全文</li>
+        <li><strong>分塊與向量化</strong>：條文切分為 DocChunk，選用 OpenAI 產生 embedding</li>
+        <li><strong>題庫輔助</strong>：QuestionBankItem 提供關鍵詞擴展與相關法規 slug 加權</li>
+        <li><strong>混合檢索</strong>：語意相似度 + 關鍵字比對；無匹配時不回傳無關片段</li>
+        <li><strong>生成回答</strong>：將檢索片段作為 context，要求模型僅依片段作答並標註來源</li>
+        <li><strong>降級機制</strong>：OpenAI 不可用時，改以關鍵字摘錄 fallback 回覆</li>
+      </ol>
+    </section>
+
+    <!-- 7 法規 -->
+    <section class="slide">
+      <h2>法規涵蓋範圍（節錄）</h2>
+      <div class="grid-2">
+        <ul>
+          <li>政府採購法、施行細則</li>
+          <li>未達公告金額採購招標／監辦辦法</li>
+          <li>最有利標評選辦法、採購評選委員會組織準則</li>
+          <li>投標廠商資格與特殊或巨額採購認定標準</li>
+          <li>採購契約要項、採購申訴審議規則</li>
+          <li>各類型採購錯誤行為態樣</li>
+        </ul>
+        <ul>
+          <li>公共工程招標文件公開閱覽制度實施要點</li>
+          <li>統包作業須知、國際競圖注意事項</li>
+          <li>專業／技術／資訊服務評選及計費辦法</li>
+          <li>工程會採購金額門檻、保證金作業規定等</li>
+          <li>資源回收再利用法（相關採購）</li>
+          <li>評選委員會專家學者名單資料庫相關要點</li>
+        </ul>
+      </div>
+      <p style="margin-top:1rem;font-size:0.9rem;color:var(--muted)">
+        完整清單見網站「法規／函釋清單」頁面，依法律 → 法規命令 → 行政規則 → 函釋位階排序。
+      </p>
+    </section>
+
+    <!-- 8 角色 -->
+    <section class="slide">
+      <h2>使用者角色與權限</h2>
+      <table>
+        <thead>
+          <tr><th>角色</th><th>權限</th><th>判定方式</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>訪客</td>
+            <td>瀏覽法規清單、查看登入提示</td>
+            <td>未登入</td>
+          </tr>
+          <tr>
+            <td>一般使用者 (USER)</td>
+            <td>提問、查看個人提問紀錄</td>
+            <td>Google 登入</td>
+          </tr>
+          <tr>
+            <td>管理者 (ADMIN)</td>
+            <td>上述全部 + 知識庫載入／更新、同步紀錄</td>
+            <td><code>ADMIN_EMAILS</code> 環境變數</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 9 頁面 -->
+    <section class="slide">
+      <h2>主要頁面導覽</h2>
+      <div class="grid-2">
+        <div class="card"><h3>/ 首頁</h3><p>互動提問面板：情境模板、問題輸入、等待動畫、回答與來源</p></div>
+        <div class="card"><h3>/regulations</h3><p>法規／函釋清單，位階排序與修改日期</p></div>
+        <div class="card"><h3>/my-questions</h3><p>登入使用者的歷史提問紀錄</p></div>
+        <div class="card"><h3>/admin</h3><p>管理者：觸發知識庫 ingest／embedding 同步</p></div>
+        <div class="card"><h3>/auth/setup</h3><p>Google OAuth 尚未設定時的引導頁</p></div>
+        <div class="card"><h3>文件</h3><p>README、DEPLOY.md、GOOGLE-OAUTH.md、題庫說明</p></div>
+      </div>
+    </section>
+
+    <!-- 10 歷史沿革 -->
+    <section class="slide">
+      <h2>歷史沿革</h2>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="phase">第一階段｜專案啟動</div>
+          <div class="desc">确立「交談式政府採購法教學網站」需求，建立 Next.js + Prisma + PostgreSQL 基礎架構。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="phase">第二階段｜身分與權限</div>
+          <div class="desc">整合 Google OAuth 登入（NextAuth v5），實作 ADMIN／USER 角色與提問紀錄儲存。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="phase">第三階段｜知識庫建置</div>
+          <div class="desc">匯入政府採購法相關法規清單與 corpus 文本，建立法規位階排序與清單頁面。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="phase">第四階段｜RAG 問答</div>
+          <div class="desc">實作條文分塊、embedding 語意檢索、OpenAI 生成回答與來源引用機制。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="phase">第五階段｜語料擴充</div>
+          <div class="desc">串接全國法規資料庫 API、工程會要點匯入、PDF 題庫解析與 question-bank 整合。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="phase">第六階段｜品質與體驗</div>
+          <div class="desc">檢索精準度優化、OAuth／驗證修正、UI 區塊配色、等待動畫、LOGO 與部署文件完善。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 修改歷程 -->
+    <section class="slide">
+      <h2>重要修改歷程</h2>
+      <table>
+        <thead>
+          <tr><th>項目</th><th>修改內容</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>認證系統</td><td>NextAuth v5 + Prisma Adapter；JWT session；trustHost 支援 Vercel</td></tr>
+          <tr><td>提問 API</td><td>前後端 trim 驗證、明確錯誤訊息、email 補查 userId</td></tr>
+          <tr><td>檢索引擎</td><td>中文 n-gram、無匹配不回傳無關片段、題庫 slug 加權</td></tr>
+          <tr><td>語意檢索</td><td>OpenAI embedding + cosine 相似度，接近 NotebookLM 體驗</td></tr>
+          <tr><td>語料管道</td><td>corpus:fetch-moj、corpus:build-core-laws、corpus:rag-init 等腳本</td></tr>
+          <tr><td>題庫</td><td>starter.json + PDF 全題庫匯入、hintAnswer 檢索導引</td></tr>
+          <tr><td>UI/UX</td><td>區塊色彩區分、三點等待動畫、回答後自動捲動、品牌 LOGO</td></tr>
+          <tr><td>部署</td><td>Vercel + Neon PostgreSQL 指南、Google OAuth 正式版說明</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 12 技術棧 -->
+    <section class="slide">
+      <h2>技術棧與工具鏈</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>應用層</h3>
+          <ul>
+            <li>Next.js 15（App Router、Turbopack）</li>
+            <li>React 19、TypeScript</li>
+            <li>Tailwind CSS 3</li>
+            <li>Zod 請求驗證</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>資料與 AI</h3>
+          <ul>
+            <li>Prisma 6 + PostgreSQL</li>
+            <li>OpenAI API（embedding + chat）</li>
+            <li>pdf-parse 題庫 PDF 解析</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>常用指令</h3>
+          <ul>
+            <li><code>npm run dev</code> — 本機開發</li>
+            <li><code>npm run db:init</code> — 初始化資料庫</li>
+            <li><code>npm run corpus:rag-init</code> — 匯入並向量化</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>部署目標</h3>
+          <ul>
+            <li>Vercel（前端 + API）</li>
+            <li>Neon（託管 Postgres）</li>
+            <li>Google Cloud OAuth</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13 近期 UI -->
+    <section class="slide">
+      <h2>近期 UI／UX 優化</h2>
+      <ul>
+        <li><strong>區塊色彩底圖</strong>：標題（淡藍）、情境模板（天藍）、提問（淡綠）、範例（淡紫）、等待（淡黃）、回答（綠色）</li>
+        <li><strong>等待動畫</strong>：送出問題後顯示三點跳動動畫與「正在檢索法規並產生回答」提示</li>
+        <li><strong>自動捲動</strong>：答案產生後平滑捲動至回答區塊</li>
+        <li><strong>品牌 LOGO</strong>：法規文件 + 綠色勾選徽章，套用於導覽列與 favicon</li>
+        <li><strong>科技感背景</strong>：首頁提問面板網格光暈底圖，提升視覺層次</li>
+      </ul>
+    </section>
+
+    <!-- 14 展望 -->
+    <section class="slide">
+      <h2>未來展望</h2>
+      <ul>
+        <li>持續補齊工程會最新函釋與要點全文，縮短語料與實務落差</li>
+        <li>強化檢索評測（Recall / 正確引用率）與管理後台監控</li>
+        <li>支援更多題庫來源與自動更新排程</li>
+        <li>多輪對話與追問脈絡（在現有 RAG 基礎上擴展）</li>
+        <li>正式環境 OAuth 發布與機關內部試用推廣</li>
+      </ul>
+    </section>
+
+    <!-- 15 結尾 -->
+    <section class="slide slide-cover">
+      <h1>謝謝聆聽</h1>
+      <p class="subtitle">政府採購法互動教學平台</p>
+      <p class="tagline">
+        本機開發：<code>http://localhost:3000</code><br>
+        專案路徑：<code>gov-procurement-law-tutor</code><br>
+        詳見 README.md、DEPLOY.md
+      </p>
+    </section>
+
+  </div>
+
+  <div class="nav-hint">← → 或空白鍵切換投影片 · 按 P 列印／存 PDF</div>
+  <div class="page-num" id="pageNum">1 / 15</div>
+
+  <script>
+    const slides = document.querySelectorAll(".slide");
+    const progress = document.getElementById("progress");
+    const pageNum = document.getElementById("pageNum");
+    let current = 0;
+
+    function show(i) {
+      current = Math.max(0, Math.min(i, slides.length - 1));
+      slides.forEach((s, idx) => s.classList.toggle("active", idx === current));
+      progress.style.width = ((current + 1) / slides.length * 100) + "%";
+      pageNum.textContent = (current + 1) + " / " + slides.length;
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+        e.preventDefault();
+        show(current + 1);
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        show(current - 1);
+      } else if (e.key === "Home") {
+        show(0);
+      } else if (e.key === "End") {
+        show(slides.length - 1);
+      }
+    });
+
+    let touchX = 0;
+    document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; });
+    document.addEventListener("touchend", (e) => {
+      const dx = e.changedTouches[0].clientX - touchX;
+      if (dx < -50) show(current + 1);
+      if (dx > 50) show(current - 1);
+    });
+
+    show(0);
+  </script>
+</body>
+</html>

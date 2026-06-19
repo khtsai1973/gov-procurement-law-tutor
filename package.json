@@ -1,0 +1,57 @@
+{
+  "name": "gov-procurement-law-tutor",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "npx next dev --turbopack",
+    "postinstall": "node scripts/postinstall.mjs",
+    "build": "node scripts/vercel-build.mjs",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "node --env-file=.env ./node_modules/prisma/build/index.js generate",
+    "db:push": "node --env-file=.env ./node_modules/prisma/build/index.js db push",
+    "db:seed": "node --env-file=.env ./node_modules/prisma/build/index.js db seed",
+    "db:init": "node scripts/run-db-init.mjs",
+    "corpus:ingest": "tsx scripts/ingest-corpus.ts",
+    "corpus:embed": "tsx scripts/embed-corpus.ts",
+    "corpus:rag-init": "npm run corpus:ingest && npm run corpus:embed",
+    "corpus:fetch-moj": "tsx scripts/fetch-moj-laws.ts",
+    "corpus:fetch-github": "tsx scripts/fetch-moj-github.ts",
+    "corpus:build-core-laws": "node scripts/build-core-laws.mjs",
+    "corpus:refresh": "npm run corpus:fetch-moj && npm run corpus:ingest",
+    "corpus:import-question-bank": "tsx scripts/import-question-bank.ts",
+    "corpus:parse-question-bank-pdf": "tsx scripts/parse-question-bank-pdf.ts",
+    "corpus:question-bank-from-pdf": "npm run corpus:parse-question-bank-pdf && npm run corpus:import-question-bank",
+    "corpus:parse-question-bank-text": "tsx scripts/parse-question-bank-from-text.ts",
+    "presentation:generate": "node scripts/generate-presentation.mjs"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.7.2",
+    "@prisma/client": "^6.19.0",
+    "next": "^15.1.0",
+    "next-auth": "^5.0.0-beta.25",
+    "openai": "^4.77.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "adm-zip": "^0.5.16",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.0",
+    "pdf-parse": "^1.1.1",
+    "postcss": "^8.4.49",
+    "prisma": "^6.19.0",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

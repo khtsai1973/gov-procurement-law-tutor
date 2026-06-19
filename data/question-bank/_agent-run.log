@@ -1,0 +1,26 @@
+﻿2026-05-24T06:05:54.6451587+08:00 npm install
+2026-05-24T06:06:15.4434124+08:00 
+2026-05-24T06:06:15.4490350+08:00 up to date, audited 420 packages in 18s
+2026-05-24T06:06:15.4530434+08:00 
+2026-05-24T06:06:15.4560492+08:00 152 packages are looking for funding
+2026-05-24T06:06:15.4580956+08:00   run `npm fund` for details
+2026-05-24T06:06:15.4741112+08:00 
+2026-05-24T06:06:15.4771100+08:00 3 moderate severity vulnerabilities
+2026-05-24T06:06:15.4812760+08:00 
+2026-05-24T06:06:15.4855574+08:00 To address all issues (including breaking changes), run:
+2026-05-24T06:06:15.4880780+08:00   npm audit fix --force
+2026-05-24T06:06:15.4936701+08:00 
+2026-05-24T06:06:15.5036698+08:00 Run `npm audit` for details.
+2026-05-24T06:06:15.5156595+08:00 parser unit test
+2026-05-24T06:06:17.9670973+08:00 parse-question-bank-text: ok
+2026-05-24T06:06:18.0470442+08:00 WARN: no *憿澈*.pdf in project root; using Node default path resolver
+2026-05-24T06:06:18.0530830+08:00 parse PDF
+2026-05-24T06:06:21.1870562+08:00 [parse-question-bank-pdf] parsedQuestions=0; first 2000 chars written to C:\Users\sport\gov-procurement-law-tutor\data\question-bank\_parse-pdf-text-sample.txt
+2026-05-24T06:06:21.1928447+08:00 {"ok":true,"pdfPath":"C:\\Users\\sport\\gov-procurement-law-tutor\\政府採購法規全部題庫.pdf","sizeBytes":916067,"method":"pdf-parse","rawChars":314237,"parsedQuestions":0,"entries":0,"withHintAnswer":0,"outFile":"C:\\Users\\sport\\gov-procurement-law-tutor\\data\\question-bank\\gpa-full-question-bank.json"}
+2026-05-24T06:06:21.2544630+08:00 import to DB
+2026-05-24T06:06:23.3679741+08:00 [question-bank] Skipping gpa-full-question-bank.json: items array is empty
+2026-05-24T06:06:23.3795197+08:00 TypeError: Cannot read properties of undefined (reading 'upsert')
+2026-05-24T06:06:23.3829468+08:00     at <anonymous> (C:\Users\sport\gov-procurement-law-tutor\src\lib\import-question-bank.ts:60:33)
+2026-05-24T06:06:23.3859858+08:00     at Array.map (<anonymous>)
+2026-05-24T06:06:23.3910629+08:00     at importQuestionBank (C:\Users\sport\gov-procurement-law-tutor\src\lib\import-question-bank.ts:59:13)
+2026-05-24T06:06:23.3950658+08:00     at async main (C:\Users\sport\gov-procurement-law-tutor\scripts\import-question-bank.ts:9:18)

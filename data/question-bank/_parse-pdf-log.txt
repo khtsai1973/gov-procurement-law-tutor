@@ -1,0 +1,8 @@
+pdf=C:\Users\sport\gov-procurement-law-tutor\政府採購法規全部題庫.pdf
+started=2026-05-24T15:56:20.137Z
+size_bytes=916067
+extract_method=pdf-parse
+raw_chars=314237
+parsed_raw=920
+entries=920
+with_hint_answer=920
