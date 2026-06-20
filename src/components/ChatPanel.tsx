@@ -17,11 +17,17 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!answer) return;
     answerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [answer]);
+
+  useEffect(() => {
+    if (!loading) return;
+    loadingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loading]);
 
   const suggestionsByCategory = useMemo(() => getPromptSuggestionsByCategory(), []);
 
@@ -146,9 +152,16 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-md bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "處理中…" : "送出"}
+              {loading ? (
+                <>
+                  <span className="chat-submit-spinner" aria-hidden="true" />
+                  處理中…
+                </>
+              ) : (
+                "送出"
+              )}
             </button>
             {error ? <span className="text-sm text-red-600">{error}</span> : null}
           </div>
@@ -184,18 +197,31 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
 
       {loading ? (
         <div
+          ref={loadingRef}
           className="chat-block-loading mt-6 rounded-lg p-5"
           role="status"
           aria-live="polite"
           aria-label="正在產生回答"
         >
-          <div className="flex items-center gap-3">
-            <span className="chat-loading-dots" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </span>
-            <p className="text-sm font-medium text-amber-900">正在檢索法規並產生回答，請稍候…</p>
+          <div className="flex items-start gap-4">
+            <div className="chat-loading-icon" aria-hidden="true">
+              <span className="chat-loading-icon-doc" />
+              <span className="chat-loading-icon-scan" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="chat-loading-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <p className="text-sm font-semibold text-amber-900">正在檢索法規並產生回答</p>
+              </div>
+              <p className="mt-2 text-xs text-amber-800/80">比對法規／函釋與題庫中，請稍候…</p>
+              <div className="chat-loading-bar mt-3" aria-hidden="true">
+                <span className="chat-loading-bar-fill" />
+              </div>
+            </div>
           </div>
         </div>
       ) : null}

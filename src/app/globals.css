@@ -117,3 +117,103 @@ a {
 .chat-loading-dots span:nth-child(3) {
   animation-delay: 0.3s;
 }
+
+/* 送出按鈕小 spinner */
+@keyframes chat-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.chat-submit-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: chat-spin 0.7s linear infinite;
+}
+
+/* 等待區：文件 + 掃描線 */
+.chat-loading-icon {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 48px;
+}
+
+.chat-loading-icon-doc {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  border: 2px solid rgba(217, 119, 6, 0.45);
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.chat-loading-icon-doc::before,
+.chat-loading-icon-doc::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(217, 119, 6, 0.35);
+}
+
+.chat-loading-icon-doc::before {
+  top: 12px;
+  width: 20px;
+}
+
+.chat-loading-icon-doc::after {
+  top: 20px;
+  width: 14px;
+}
+
+.chat-loading-icon-scan {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+  animation: chat-scan 1.4s ease-in-out infinite;
+}
+
+@keyframes chat-scan {
+  0%,
+  100% {
+    top: 8px;
+    opacity: 0.4;
+  }
+  50% {
+    top: 36px;
+    opacity: 1;
+  }
+}
+
+/* 等待區：進度條 indeterminate */
+.chat-loading-bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(252, 211, 77, 0.35);
+}
+
+.chat-loading-bar-fill {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  animation: chat-bar-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes chat-bar-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
