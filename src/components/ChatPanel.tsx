@@ -105,7 +105,7 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
             <p className="mt-2 text-sm text-[var(--muted)]">
               提問送出後，系統會自
               <Link href="/regulations" className="no-underline hover:underline">
-                「法規／函釋清單」
+                「法規／函釋／題庫清單」
               </Link>
               及題庫 檢索整合分析全文（非摘要）以找出解答（仍須有檢索依據）。
             </p>

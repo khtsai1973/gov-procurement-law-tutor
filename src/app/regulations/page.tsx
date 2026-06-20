@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { RegulationTier } from "@prisma/client";
+
 import { isDatabaseReady } from "@/lib/ensure-db";
 import prisma from "@/lib/prisma";
 import { tierLabel, tierSortKey } from "@/lib/tier-order";
@@ -34,13 +36,21 @@ npm run corpus:rag-init   # 選填，語意檢索需 OPENAI_API_KEY`}
   const rows = await prisma.regulation.findMany();
   rows.sort((a, b) => tierSortKey(a.tier, a.sortOrder) - tierSortKey(b.tier, b.sortOrder));
 
+  const questionBankCount = rows.filter((r) => r.tier === RegulationTier.QUESTION_BANK).length;
+  const lawCount = rows.length - questionBankCount;
+
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">法規／函釋清單</h1>
+          <h1 className="text-xl font-semibold">法規／函釋／題庫清單</h1>
           <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-            依「位階」由高到低排列（法律 → 法規命令 → 行政規則／要點 → 函釋）；同一位階內再以管理用的排序欄位排列。
+            依「位階」由高到低排列（法律 → 法規命令 → 行政規則／要點 → 函釋 → 題庫）；同一位階內再以管理用的排序欄位排列。
+            題庫為常見試題整理，供檢索參考，非條文原文。
+          </p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            共 {lawCount} 部法規／函釋
+            {questionBankCount > 0 ? `、${questionBankCount} 類題庫` : ""}
           </p>
         </div>
         <Link href="/" className="text-sm no-underline hover:underline">
@@ -72,9 +82,15 @@ npm run corpus:rag-init   # 選填，語意檢索需 OPENAI_API_KEY`}
                     : "—"}
                 </td>
                 <td className="py-3 pr-4">
-                  <a href={r.sourceUrl ?? "#"} className="break-all" target="_blank" rel="noreferrer">
-                    來源
-                  </a>
+                  {r.sourceUrl ? (
+                    <a href={r.sourceUrl} className="break-all" target="_blank" rel="noreferrer">
+                      來源
+                    </a>
+                  ) : r.tier === RegulationTier.QUESTION_BANK ? (
+                    <span className="text-[var(--muted)]">題庫</span>
+                  ) : (
+                    <span className="text-[var(--muted)]">—</span>
+                  )}
                 </td>
               </tr>
             ))}

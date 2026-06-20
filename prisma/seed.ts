@@ -382,6 +382,8 @@ async function main() {
       const qb = await importQuestionBank(prisma, "seed");
       clearQuestionBankCache();
       console.log("Imported question bank:", qb);
+      const qbIngested = await ingestCorpus("seed-question-bank");
+      console.log("Ingested question bank into RAG:", qbIngested);
     } catch (e) {
       console.warn(
         "[seed] Question bank import skipped (login/regulations still OK). Run: npm run corpus:import-question-bank",

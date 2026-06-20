@@ -79,10 +79,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (dbUser) {
             token.sub = dbUser.id;
             token.role = dbUser.role;
+            token.nickname = dbUser.nickname;
           }
         } else if (token.sub) {
           const dbUser = await prisma.user.findUnique({ where: { id: token.sub } });
-          if (dbUser) token.role = dbUser.role;
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.nickname = dbUser.nickname;
+          }
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -97,10 +101,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (!userId && session.user.email) {
             const dbUser = await prisma.user.findUnique({
               where: { email: session.user.email },
-              select: { id: true, role: true },
+              select: { id: true, role: true, nickname: true },
             });
             userId = dbUser?.id ?? "";
-            if (dbUser) token.role = dbUser.role;
+            if (dbUser) {
+              token.role = dbUser.role;
+              token.nickname = dbUser.nickname;
+            }
           }
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
@@ -108,6 +115,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         session.user.id = userId;
         session.user.role = (token.role as Role | undefined) ?? "USER";
+        session.user.nickname = (token.nickname as string | null | undefined) ?? null;
       }
       return session;
     },

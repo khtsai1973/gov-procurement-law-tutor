@@ -19,7 +19,10 @@ export async function Nav() {
       </div>
       <nav className="flex flex-wrap items-center gap-3 text-sm">
         <Link href="/regulations" className="no-underline hover:underline">
-          法規／函釋清單
+          法規／函釋／題庫清單
+        </Link>
+        <Link href="/mock-exam" className="no-underline hover:underline">
+          模擬考試
         </Link>
         {session?.user ? (
           <>
@@ -31,7 +34,7 @@ export async function Nav() {
                 管理者
               </Link>
             ) : null}
-            <span className="text-[var(--muted)]">{session.user.email}</span>
+            <span className="text-[var(--muted)]">{session.user.nickname ?? session.user.email}</span>
             <form action={logout}>
               <button
                 type="submit"

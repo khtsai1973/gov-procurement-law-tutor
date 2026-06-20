@@ -4,6 +4,7 @@ import path from "node:path";
 import type { PrismaClient } from "@prisma/client";
 
 import { questionBankFileSchema, type QuestionBankEntry } from "@/lib/question-bank-types";
+import { syncQuestionBankRegulations } from "@/lib/question-bank-corpus";
 
 const DATA_DIR = path.join(process.cwd(), "data", "question-bank");
 
@@ -48,7 +49,7 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
 export async function importQuestionBank(
   prisma: PrismaClient,
   source = "import",
-): Promise<{ imported: number; files: number }> {
+): Promise<{ imported: number; files: number; synced?: { categories: number; items: number; slugs: string[] } }> {
   let fileCount = 0;
   try {
     const names = await readdir(DATA_DIR);
@@ -95,5 +96,11 @@ export async function importQuestionBank(
   console.log(
     `[question-bank] ${source}: upserted ${entries.length} item(s) from ${fileCount} file(s)`,
   );
-  return { imported: entries.length, files: fileCount };
+
+  const synced = await syncQuestionBankRegulations(prisma);
+  console.log(
+    `[question-bank] synced ${synced.categories} category/categories (${synced.items} items) to regulations list`,
+  );
+
+  return { imported: entries.length, files: fileCount, synced };
 }

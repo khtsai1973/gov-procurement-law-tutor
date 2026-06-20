@@ -1,9 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { RegulationTier } from "@prisma/client";
+
 import { canUseEmbeddings, embedTexts } from "@/lib/embeddings";
 import { chunkMarkdownForRag } from "@/lib/chunk-text";
 import { prisma } from "@/lib/prisma";
+import { loadQuestionBankMarkdownForRegulation } from "@/lib/question-bank-corpus";
 
 const CORPUS_DIR = path.join(process.cwd(), "data", "corpus");
 const EMBED_BATCH = 40;
@@ -61,10 +64,17 @@ export async function ingestCorpus(triggeredBy: string) {
   for (const reg of regulations) {
     const filePath = path.join(CORPUS_DIR, `${reg.slug}.md`);
     let raw: string;
-    try {
-      raw = await fs.readFile(filePath, "utf8");
-    } catch {
-      raw = STUB_TEMPLATE(reg.title);
+
+    if (reg.tier === RegulationTier.QUESTION_BANK) {
+      raw =
+        (await loadQuestionBankMarkdownForRegulation(prisma, reg.slug, reg.title)) ??
+        STUB_TEMPLATE(reg.title);
+    } else {
+      try {
+        raw = await fs.readFile(filePath, "utf8");
+      } catch {
+        raw = STUB_TEMPLATE(reg.title);
+      }
     }
 
     const chunks = chunkMarkdownForRag(raw, reg.title);

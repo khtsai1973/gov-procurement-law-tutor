@@ -40,6 +40,7 @@ const TIER_BOOST: Record<string, number> = {
   REGULATION: 3,
   INTERPRETATION: 1,
   ADMIN_RULE: 0,
+  QUESTION_BANK: 0,
 };
 
 const CORE_LAW_SLUGS = new Set(["government-procurement-act", "gpa-enforcement-rules"]);
