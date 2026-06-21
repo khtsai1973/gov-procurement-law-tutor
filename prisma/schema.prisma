@@ -143,6 +143,8 @@ model MockExamSupplement {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   itemKey    String
   supplement String
+  /// 使用者註記的解答來源（法條、函釋等）
+  sourceNote String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -182,6 +184,8 @@ model MockExamSessionAnswer {
   referenceAnswer String?
   isCorrect       Boolean?
   revealed        Boolean         @default(false)
+  /// 該場測驗中使用者註記的解答來源
+  sourceNote      String?
 
   @@index([sessionId])
 }

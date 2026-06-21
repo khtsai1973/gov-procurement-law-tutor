@@ -29,6 +29,7 @@ export type MockExamRevealResult = {
   hintAnswer: string | null;
   regulations: MockExamRegulationLink[];
   supplement: string | null;
+  sourceNote: string | null;
 };
 
 const MC_OPTION_RE = /\(\s*([1-4])\s*\)\s*([^()]+?)(?=\(\s*[1-4]\s*\)|$)/g;

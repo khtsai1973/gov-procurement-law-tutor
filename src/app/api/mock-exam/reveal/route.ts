@@ -72,5 +72,6 @@ export async function POST(req: Request) {
       sourceUrl: r.sourceUrl,
     })),
     supplement: supplementRow?.supplement ?? null,
+    sourceNote: supplementRow?.sourceNote ?? null,
   });
 }

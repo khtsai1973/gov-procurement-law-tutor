@@ -29,6 +29,7 @@ type QuestionState = MockExamQuestionPayload & {
   userAnswer: string;
   revealed: MockExamRevealResult | null;
   revealError: string | null;
+  sourceNoteDraft: string;
   supplementDraft: string;
   supplementSaving: boolean;
   supplementSaved: boolean;
@@ -90,6 +91,7 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
         referenceAnswer: q.revealed?.referenceAnswer ?? null,
         isCorrect: q.revealed?.isCorrect ?? null,
         revealed: !!q.revealed,
+        sourceNote: q.sourceNoteDraft.trim() || null,
       }));
 
       const res = await fetch("/api/mock-exam/finish", {
@@ -199,6 +201,7 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
         userAnswer: "",
         revealed: null,
         revealError: null,
+        sourceNoteDraft: "",
         supplementDraft: "",
         supplementSaving: false,
         supplementSaved: false,
@@ -266,6 +269,7 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
         next[currentIndex] = {
           ...next[currentIndex]!,
           revealed: data as MockExamRevealResult,
+          sourceNoteDraft: (data.sourceNote as string | null) ?? "",
           supplementDraft: (data.supplement as string | null) ?? "",
         };
         return next;
@@ -281,7 +285,7 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
 
   async function saveSupplement(index: number) {
     const q = questions[index];
-    if (!q?.supplementDraft.trim()) return;
+    if (!q?.supplementDraft.trim() && !q?.sourceNoteDraft.trim()) return;
 
     setQuestions((prev) => {
       const next = [...prev];
@@ -293,7 +297,11 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
       const res = await fetch("/api/mock-exam/supplement", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: q.key, supplement: q.supplementDraft }),
+        body: JSON.stringify({
+          key: q.key,
+          supplement: q.supplementDraft,
+          sourceNote: q.sourceNoteDraft,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       setQuestions((prev) => {
@@ -332,10 +340,18 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
     });
   }
 
+  function updateSourceNoteDraft(value: string) {
+    setQuestions((prev) => {
+      const next = [...prev];
+      next[currentIndex] = { ...next[currentIndex]!, sourceNoteDraft: value, supplementSaved: false };
+      return next;
+    });
+  }
+
   function updateSupplementDraft(value: string) {
     setQuestions((prev) => {
       const next = [...prev];
-      next[currentIndex] = { ...next[currentIndex]!, supplementDraft: value };
+      next[currentIndex] = { ...next[currentIndex]!, supplementDraft: value, supplementSaved: false };
       return next;
     });
   }
@@ -353,7 +369,7 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
           <div>
             <h1 className="text-xl font-semibold">題庫模擬考試</h1>
             <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-              自題庫隨機抽題，支援計時模式與測驗紀錄；作答後顯示參考答案、法規來源連結。
+              自題庫隨機抽題，支援計時模式與測驗紀錄；作答後顯示參考答案、法規來源，並可為每題註記解答來源。
             </p>
           </div>
           <Link href="/" className="text-sm no-underline hover:underline">
@@ -591,7 +607,7 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
 
                 {current.revealed.regulations.length > 0 ? (
                   <div>
-                    <p className="text-sm font-semibold">法規／函釋來源</p>
+                    <p className="text-sm font-semibold">系統法規／函釋來源</p>
                     <ul className="mt-2 space-y-2 text-sm">
                       {current.revealed.regulations.map((reg: MockExamRegulationLink) => (
                         <li key={reg.slug} className="rounded-lg border border-[var(--border)] p-3">
@@ -618,8 +634,25 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
                 ) : null}
 
                 <div>
+                  <label className="block text-sm font-medium" htmlFor="source-note">
+                    解答來源註記
+                  </label>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">
+                    註記此題答案所依據的法條、函釋或參考資料，交卷時一併保存至測驗紀錄。
+                  </p>
+                  <textarea
+                    id="source-note"
+                    value={current.sourceNoteDraft}
+                    onChange={(e) => updateSourceNoteDraft(e.target.value)}
+                    rows={2}
+                    className="mt-2 w-full rounded-lg border border-[var(--border)] p-3 text-sm"
+                    placeholder="例：政府採購法第22條第1項、工程會90年3月15日函釋…"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium" htmlFor="supplement">
-                    {current.revealed.hintAnswer ? "我的補充筆記（選填）" : "我的補充說明"}
+                    {current.revealed.hintAnswer ? "我的補充筆記（選填）" : "我的補充說明（選填）"}
                   </label>
                   <textarea
                     id="supplement"
@@ -632,14 +665,17 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
                   <button
                     type="button"
                     onClick={() => saveSupplement(currentIndex)}
-                    disabled={current.supplementSaving || !current.supplementDraft.trim()}
+                    disabled={
+                      current.supplementSaving ||
+                      (!current.supplementDraft.trim() && !current.sourceNoteDraft.trim())
+                    }
                     className="mt-2 rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
                   >
                     {current.supplementSaving
                       ? "儲存中…"
                       : current.supplementSaved
                         ? "已儲存"
-                        : "儲存補充"}
+                        : "儲存註記與補充"}
                   </button>
                 </div>
 

@@ -17,6 +17,7 @@ const answerSchema = z.object({
   referenceAnswer: z.string().max(16).optional().nullable(),
   isCorrect: z.boolean().nullable().optional(),
   revealed: z.boolean(),
+  sourceNote: z.string().max(500).optional().nullable(),
 });
 
 const bodySchema = z.object({
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
       referenceAnswer: a.referenceAnswer ?? null,
       isCorrect: a.isCorrect ?? null,
       revealed: a.revealed,
+      sourceNote: a.sourceNote?.trim() || null,
     };
   });
 
