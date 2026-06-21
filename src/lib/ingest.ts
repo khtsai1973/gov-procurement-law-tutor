@@ -56,45 +56,86 @@ async function attachEmbeddings(chunkIds: string[], contents: string[]) {
   return done;
 }
 
+async function ingestOneRegulation(
+  reg: Awaited<ReturnType<typeof prisma.regulation.findMany>>[number],
+): Promise<{ chunks: number; embedded: number }> {
+  const filePath = path.join(CORPUS_DIR, `${reg.slug}.md`);
+  let raw: string;
+
+  if (reg.tier === RegulationTier.QUESTION_BANK) {
+    raw =
+      (await loadQuestionBankMarkdownForRegulation(prisma, reg.slug, reg.title)) ??
+      STUB_TEMPLATE(reg.title);
+  } else {
+    try {
+      raw = await fs.readFile(filePath, "utf8");
+    } catch {
+      raw = STUB_TEMPLATE(reg.title);
+    }
+  }
+
+  const chunks = chunkMarkdownForRag(raw, reg.title);
+  await prisma.docChunk.deleteMany({ where: { regulationId: reg.id } });
+
+  if (chunks.length === 0) return { chunks: 0, embedded: 0 };
+
+  const created = await prisma.docChunk.createManyAndReturn({
+    data: chunks.map((content, chunkIndex) => ({
+      regulationId: reg.id,
+      content,
+      chunkIndex,
+    })),
+  });
+
+  const embedded = await attachEmbeddings(
+    created.map((c) => c.id),
+    created.map((c) => c.content),
+  );
+
+  return { chunks: created.length, embedded };
+}
+
+/** 僅重新 ingest 指定 slug（NotebookLM 匯入後常用） */
+export async function ingestRegulationSlugs(slugs: string[], triggeredBy: string) {
+  const unique = [...new Set(slugs)];
+  const regulations = await prisma.regulation.findMany({
+    where: { slug: { in: unique } },
+    orderBy: { slug: "asc" },
+  });
+
+  let chunkTotal = 0;
+  let embeddedTotal = 0;
+
+  for (const reg of regulations) {
+    const result = await ingestOneRegulation(reg);
+    chunkTotal += result.chunks;
+    embeddedTotal += result.embedded;
+  }
+
+  const embedNote = canUseEmbeddings()
+    ? `, embeddings=${embeddedTotal}`
+    : ", embeddings=skipped(no OPENAI_API_KEY)";
+
+  await prisma.knowledgeSync.create({
+    data: {
+      triggeredBy,
+      status: "ok",
+      message: `ingested slugs=${unique.join(",")}, chunks=${chunkTotal}${embedNote}`,
+    },
+  });
+
+  return { chunkTotal, regulationCount: regulations.length, embeddedTotal, slugs: unique };
+}
+
 export async function ingestCorpus(triggeredBy: string) {
   const regulations = await prisma.regulation.findMany({ orderBy: { slug: "asc" } });
   let chunkTotal = 0;
   let embeddedTotal = 0;
 
   for (const reg of regulations) {
-    const filePath = path.join(CORPUS_DIR, `${reg.slug}.md`);
-    let raw: string;
-
-    if (reg.tier === RegulationTier.QUESTION_BANK) {
-      raw =
-        (await loadQuestionBankMarkdownForRegulation(prisma, reg.slug, reg.title)) ??
-        STUB_TEMPLATE(reg.title);
-    } else {
-      try {
-        raw = await fs.readFile(filePath, "utf8");
-      } catch {
-        raw = STUB_TEMPLATE(reg.title);
-      }
-    }
-
-    const chunks = chunkMarkdownForRag(raw, reg.title);
-    await prisma.docChunk.deleteMany({ where: { regulationId: reg.id } });
-
-    if (chunks.length === 0) continue;
-
-    const created = await prisma.docChunk.createManyAndReturn({
-      data: chunks.map((content, chunkIndex) => ({
-        regulationId: reg.id,
-        content,
-        chunkIndex,
-      })),
-    });
-
-    chunkTotal += created.length;
-    embeddedTotal += await attachEmbeddings(
-      created.map((c) => c.id),
-      created.map((c) => c.content),
-    );
+    const result = await ingestOneRegulation(reg);
+    chunkTotal += result.chunks;
+    embeddedTotal += result.embedded;
   }
 
   const embedNote = canUseEmbeddings()

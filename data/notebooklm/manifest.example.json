@@ -1,0 +1,13 @@
+{
+  "notebookTitle": "政府採購法研習筆記本（範例）",
+  "notebookUrl": "https://notebooklm.google.com/",
+  "sources": [
+    {
+      "file": "_範本-筆記.md",
+      "title": "NotebookLM 匯入範本",
+      "tier": "INTERPRETATION",
+      "sortOrder": 901,
+      "relatedSlugs": ["government-procurement-act"]
+    }
+  ]
+}
