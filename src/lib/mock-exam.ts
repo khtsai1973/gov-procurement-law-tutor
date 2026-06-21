@@ -164,3 +164,116 @@ export type MockExamHistoryRow = {
   startedAt: string;
   finishedAt: string | null;
 };
+
+export type MockExamAnswerBreakdown = {
+  correct: number;
+  wrong: number;
+  unrevealed: number;
+  ungradable: number;
+};
+
+export type MockExamCategoryStat = {
+  category: string;
+  correct: number;
+  total: number;
+  pct: number;
+};
+
+export type MockExamScoreTrendPoint = {
+  sessionId: string;
+  date: string;
+  label: string;
+  scorePct: number | null;
+  correctCount: number;
+  gradableCount: number;
+  questionType: string;
+  timedMode: boolean;
+};
+
+export type MockExamAnalyticsData = {
+  scoreTrend: MockExamScoreTrendPoint[];
+  categoryStats: MockExamCategoryStat[];
+  typeDistribution: { type: string; label: string; count: number }[];
+  summary: {
+    totalSessions: number;
+    avgScorePct: number | null;
+    bestScorePct: number | null;
+  };
+  frequentWrong: { itemKey: string; question: string; wrongCount: number }[];
+};
+
+export type MockExamSessionAnswerDetail = {
+  questionIndex: number;
+  itemKey: string;
+  question: string;
+  category: string;
+  userAnswer: string | null;
+  referenceAnswer: string | null;
+  isCorrect: boolean | null;
+  revealed: boolean;
+  sourceNote: string | null;
+  hintAnswer: string | null;
+};
+
+export type MockExamSessionDetail = MockExamHistoryRow & {
+  requestedCount: number;
+  answers: MockExamSessionAnswerDetail[];
+  breakdown: MockExamAnswerBreakdown;
+  categoryStats: MockExamCategoryStat[];
+};
+
+export function computeAnswerBreakdown(
+  answers: Pick<MockExamSessionAnswerDetail, "isCorrect" | "revealed">[],
+): MockExamAnswerBreakdown {
+  const breakdown: MockExamAnswerBreakdown = {
+    correct: 0,
+    wrong: 0,
+    unrevealed: 0,
+    ungradable: 0,
+  };
+  for (const a of answers) {
+    if (!a.revealed) {
+      breakdown.unrevealed++;
+      continue;
+    }
+    if (a.isCorrect === true) breakdown.correct++;
+    else if (a.isCorrect === false) breakdown.wrong++;
+    else breakdown.ungradable++;
+  }
+  return breakdown;
+}
+
+export function computeCategoryStats(
+  answers: Pick<MockExamSessionAnswerDetail, "category" | "isCorrect" | "revealed">[],
+): MockExamCategoryStat[] {
+  const map = new Map<string, { correct: number; total: number }>();
+  for (const a of answers) {
+    if (!a.revealed || a.isCorrect === null) continue;
+    const row = map.get(a.category) ?? { correct: 0, total: 0 };
+    row.total++;
+    if (a.isCorrect) row.correct++;
+    map.set(a.category, row);
+  }
+  return [...map.entries()]
+    .map(([category, { correct, total }]) => ({
+      category,
+      correct,
+      total,
+      pct: total > 0 ? Math.round((correct / total) * 100) : 0,
+    }))
+    .sort((a, b) => a.pct - b.pct);
+}
+
+export function scorePct(correctCount: number, gradableCount: number): number | null {
+  if (gradableCount <= 0) return null;
+  return Math.round((correctCount / gradableCount) * 100);
+}
+
+export function formatAnswerLabel(value: string | null, type: MockExamQuestionType | string): string {
+  if (!value) return "—";
+  if (type === "TRUE_FALSE") {
+    if (value === "O") return "是（○）";
+    if (value === "X") return "否（×）";
+  }
+  return value;
+}

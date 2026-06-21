@@ -1,6 +1,8 @@
+import { MockExamAnalyticsCharts } from "@/components/MockExamAnalyticsCharts";
 import { MockExamHistory } from "@/components/MockExamHistory";
 import { MockExamPanel } from "@/components/MockExamPanel";
-import type { MockExamHistoryRow } from "@/lib/mock-exam";
+import type { MockExamAnalyticsData, MockExamHistoryRow } from "@/lib/mock-exam";
+import { loadMockExamAnalytics } from "@/lib/mock-exam-analytics";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 
@@ -10,6 +12,13 @@ export default async function MockExamPage() {
   const session = await getSession();
   let initialNickname: string | null = null;
   let history: MockExamHistoryRow[] = [];
+  let analytics: MockExamAnalyticsData = {
+    scoreTrend: [],
+    categoryStats: [],
+    typeDistribution: [],
+    summary: { totalSessions: 0, avgScorePct: null, bestScorePct: null },
+    frequentWrong: [],
+  };
 
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
@@ -37,6 +46,8 @@ export default async function MockExamPage() {
       startedAt: r.startedAt.toISOString(),
       finishedAt: r.finishedAt?.toISOString() ?? null,
     }));
+
+    analytics = await loadMockExamAnalytics(session.user.id);
   }
 
   return (
@@ -44,6 +55,7 @@ export default async function MockExamPage() {
       signedIn={!!session?.user}
       initialNickname={initialNickname}
       history={<MockExamHistory records={history} />}
+      analytics={<MockExamAnalyticsCharts data={analytics} />}
     />
   );
 }

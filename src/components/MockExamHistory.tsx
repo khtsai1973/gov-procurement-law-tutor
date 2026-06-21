@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import {
   formatDuration,
   mockExamTypeLabel,
@@ -32,7 +34,8 @@ export function MockExamHistory({ records }: MockExamHistoryProps) {
               <th className="py-2 pr-3 font-medium">題數</th>
               <th className="py-2 pr-3 font-medium">成績</th>
               <th className="py-2 pr-3 font-medium">用時</th>
-              <th className="py-2 font-medium">模式</th>
+              <th className="py-2 pr-3 font-medium">模式</th>
+              <th className="py-2 font-medium">分析</th>
             </tr>
           </thead>
           <tbody>
@@ -70,12 +73,21 @@ export function MockExamHistory({ records }: MockExamHistoryProps) {
                     ) : null}
                   </td>
                   <td className="py-3 pr-3 whitespace-nowrap">{timeText}</td>
-                  <td className="py-3 whitespace-nowrap text-xs">
+                  <td className="py-3 pr-3 whitespace-nowrap text-xs">
                     {row.timedMode ? (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-900">計時</span>
                     ) : (
                       <span className="text-[var(--muted)]">不限時</span>
                     )}
+                  </td>
+                  <td className="py-3 whitespace-nowrap">
+                    <Link
+                      href={`/mock-exam/${row.id}`}
+                      className="text-xs font-medium no-underline hover:underline"
+                    >
+                      查看
+                      {pct != null ? ` (${pct}%)` : ""}
+                    </Link>
                   </td>
                 </tr>
               );

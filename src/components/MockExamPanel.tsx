@@ -12,9 +12,12 @@ import {
 } from "react";
 
 import { updateNickname } from "@/app/actions/profile";
+import { MockExamSingleSessionCharts } from "@/components/MockExamSingleSessionCharts";
 import {
   MOCK_EXAM_COUNT_OPTIONS,
   NICKNAME_PRESETS,
+  computeAnswerBreakdown,
+  computeCategoryStats,
   formatDuration,
   mockExamTimeLimitSec,
   type MockExamQuestionPayload,
@@ -39,9 +42,10 @@ type MockExamPanelProps = {
   signedIn: boolean;
   initialNickname: string | null;
   history: ReactNode;
+  analytics: ReactNode;
 };
 
-export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPanelProps) {
+export function MockExamPanel({ signedIn, initialNickname, history, analytics }: MockExamPanelProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("setup");
   const [nickname, setNickname] = useState(initialNickname ?? "");
@@ -362,6 +366,20 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
   const correctCount = questions.filter((q) => q.revealed?.isCorrect === true).length;
   const gradableCount = questions.filter((q) => q.revealed && q.revealed.isCorrect !== null).length;
 
+  const summaryBreakdown = computeAnswerBreakdown(
+    questions.map((q) => ({
+      isCorrect: q.revealed?.isCorrect ?? null,
+      revealed: !!q.revealed,
+    })),
+  );
+  const summaryCategoryStats = computeCategoryStats(
+    questions.map((q) => ({
+      category: q.category,
+      isCorrect: q.revealed?.isCorrect ?? null,
+      revealed: !!q.revealed,
+    })),
+  );
+
   return (
     <section className="space-y-6">
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
@@ -493,6 +511,7 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
             </button>
           </div>
           {history}
+          {analytics}
         </>
       ) : null}
 
@@ -763,7 +782,27 @@ export function MockExamPanel({ signedIn, initialNickname, history }: MockExamPa
               </Link>
             </div>
           </div>
+
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+            <h2 className="text-base font-semibold">本次測驗分析</h2>
+            <div className="mt-4">
+              <MockExamSingleSessionCharts
+                breakdown={summaryBreakdown}
+                categoryStats={summaryCategoryStats}
+                compact
+              />
+            </div>
+            {finishSaved && sessionId ? (
+              <p className="mt-4 text-sm">
+                <Link href={`/mock-exam/${sessionId}`} className="font-medium no-underline hover:underline">
+                  查看完整單次測驗分析 →
+                </Link>
+              </p>
+            ) : null}
+          </div>
+
           {history}
+          {analytics}
         </>
       ) : null}
     </section>
