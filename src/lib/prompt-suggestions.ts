@@ -15,7 +15,7 @@ const CATEGORY_ORDER = [
 ] as const;
 
 export const PROMPT_TIP =
-  "提問小提示：請盡量包含採購標的（工程／財物／勞務）、採購金額、程序階段，以及招標或決標方式。金額門檻問題請註明是否含稅及後續擴充。本站僅依已匯入法規／函釋全文作答。";
+  "提問小提示：請盡量包含採購標的（工程／財物／勞務）、採購金額、程序階段，以及招標或決標方式。金額門檻問題請註明是否含稅及後續擴充。本站僅依已匯入法規／函釋全文作答；與政府採購法規無關之問題將回覆「非本主題的範圍」。";
 
 export function getPromptSuggestionsByCategory(): {
   category: string;

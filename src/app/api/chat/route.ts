@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { retrieveForRag } from "@/lib/rag";
 import { matchQuestionBank } from "@/lib/question-bank";
 import { getSession } from "@/lib/get-session";
+import { OFF_TOPIC_REPLY, isOnTopicQuestion } from "@/lib/topic-scope";
 
 const bodySchema = z
   .object({
@@ -61,6 +62,23 @@ export async function POST(req: Request) {
   const question = parsed.data.question;
 
   try {
+    if (!isOnTopicQuestion(question)) {
+      await prisma.userQuestion.create({
+        data: {
+          userId,
+          question,
+          answer: OFF_TOPIC_REPLY,
+          sources: JSON.stringify([]),
+        },
+      });
+      return NextResponse.json({
+        answer: OFF_TOPIC_REPLY,
+        sources: [],
+        model: "off-topic",
+        retrievalMode: "off-topic",
+      });
+    }
+
     await ensureKnowledgeBase();
     const { chunks, mode: retrievalMode, questionBankUsed } = await retrieveForRag(question);
     const bankMatch = questionBankUsed ? await matchQuestionBank(question) : null;

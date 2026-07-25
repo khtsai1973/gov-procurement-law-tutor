@@ -68,7 +68,9 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
       }
       setAnswer(data.answer ?? "");
       setSources(Array.isArray(data.sources) ? data.sources : []);
-      if (data.warning === "openai-unavailable" || data.model === "keyword-fallback") {
+      if (data.model === "off-topic" || data.retrievalMode === "off-topic") {
+        setNotice(null);
+      } else if (data.warning === "openai-unavailable" || data.model === "keyword-fallback") {
         setNotice("目前以 RAG 檢索摘錄回覆（未使用 OpenAI 生成）。");
       } else if (
         typeof data.retrievalMode === "string" &&
@@ -107,7 +109,7 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
               <Link href="/regulations" className="no-underline hover:underline">
                 「法規／函釋／題庫清單」
               </Link>
-              及題庫 檢索整合分析全文（非摘要）以找出解答（仍須有檢索依據）。
+              及題庫 檢索整合分析全文（非摘要）以找出解答（仍須有檢索依據）。與政府採購法規無關之問題將直接回覆「非本主題的範圍」。
             </p>
           </div>
         </div>
