@@ -117,7 +117,29 @@
         "most-advantageous-tender-operations-manual",
         "it-service-selection-billing-rules"
       ],
-      "hintAnswer": "第22條第1項第9款公開評選之限制性招標，第一次開標無須三家；有一家合格廠商即得開標。勿套用公開招標第48條三家規定（施行細則第55條明定三家係指公開招標）。"
+      "hintAnswer": "第22條第1項第9款公開評選之限制性招標，第一次開標無須三家；有一家合格廠商即得開標。勿套用公開招標第48條三家規定（施行細則第55條明定三家係指公開招標）。第9款僅適用專業／技術／資訊／社福服務，不適用財物或工程。"
+    },
+    {
+      "key": "opening-art22-9-not-for-goods",
+      "category": "議價比減",
+      "question": "4800萬元財物採購案，可否依採購法第22條第1項第9款公開評選限制性招標，主張第一次開標只需1家合格廠商？",
+      "keywords": [
+        "財物",
+        "第22條",
+        "第9款",
+        "公開評選",
+        "限制性招標",
+        "開標",
+        "一家",
+        "不適用",
+        "4800萬"
+      ],
+      "relatedSlugs": [
+        "government-procurement-act",
+        "gpa-enforcement-rules",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "hintAnswer": "不可。第22條第1項第9款僅限委託專業／技術／資訊／社福服務，不適用財物採購。不得以該款主張第一次開標只需1家。財物若採公開招標，第一次開標原則須3家以上。"
     },
     {
       "key": "opening-public-tender-first-three",
@@ -126,8 +148,7 @@
       "keywords": ["公開招標", "第一次開標", "三家", "合格廠商", "第48條", "流標"],
       "relatedSlugs": ["government-procurement-act", "gpa-enforcement-rules"],
       "hintAnswer": "公開招標第一次開標原則須三家以上合格廠商（採購法第48條）；第一次因未滿三家流標後，第二次得不受三家限制。"
-    },
-    {
+    },    {
       "key": "bargaining-restricted-times",
       "category": "議價比減",
       "question": "限制性招標可以議價（比減價格）幾次？",

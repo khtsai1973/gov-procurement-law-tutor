@@ -73,14 +73,19 @@ export function inferProcurementCategory(query: string): {
         : "問題明示勞務採購",
     };
   }
-  if (/工程/.test(query) && !/財物|勞務/.test(query)) {
+  if (/工程/.test(query) && !/財物|財務|勞務/.test(query)) {
     return { category: "工程", reason: "問題明示工程採購" };
   }
-  if (/財物/.test(query) && !/工程|勞務/.test(query)) {
-    return { category: "財物", reason: "問題明示財物採購" };
+  if (/財物|財務/.test(query) && !/工程|勞務/.test(query) && !SERVICE_AS_LABOR.test(query)) {
+    return {
+      category: "財物",
+      reason: /財務/.test(query)
+        ? "問題提及「財務」，教學上常為「財物」之誤寫／同指財物採購"
+        : "問題明示財物採購",
+    };
   }
   // 同時列出工程財物勞務作選項時，若有服務關鍵詞已在上方處理
-  if (/工程/.test(query) && /財物/.test(query) && /勞務/.test(query)) {
+  if (/工程/.test(query) && /財物|財務/.test(query) && /勞務/.test(query)) {
     return { category: null, reason: "問題同時列舉工程／財物／勞務，需先依標的認定類別" };
   }
   return { category: null, reason: null };

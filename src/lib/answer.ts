@@ -77,30 +77,36 @@ function buildDeterministicBidderCountAnswer(
   chunks: ChunkWithReg[],
 ): string | null {
   const analysis = analyzeOpeningBidderCount(question);
-  if (!analysis || analysis.minQualifiedVendors == null) return null;
+  if (!analysis) return null;
 
   const hasSupport = chunks.some(
     (c) =>
-      /三家|公開評選|限制性招標|第四十八|合格廠商/.test(c.content) ||
+      /三家|公開評選|限制性招標|第四十八|第二十二|合格廠商|專業服務|資訊服務/.test(c.content) ||
       c.regulation.slug === "gpa-enforcement-rules" ||
+      c.regulation.slug === "government-procurement-act" ||
       c.regulation.slug === "most-advantageous-tender-operations-manual",
   );
-  if (!hasSupport) return null;
+  if (!hasSupport && analysis.mode !== "art22_9_inapplicable") return null;
 
-  return [
-    `結論：${analysis.conclusion}`,
-    "",
-    "說明：",
-    "1. 採購法第48條「三家以上合格廠商」主要適用公開招標；施行細則第55條明定該「三家」係指辦理公開招標之情形。",
-    "2. 依第22條第1項第9款等公開評選之限制性招標（含資訊服務），第一次開標無須滿三家，有一家合格廠商即可開標／續行評選。",
-    "3. 請對照下方檢索片段原文。",
-    "",
-    "—— 檢索摘錄 ——",
-    ...chunks.slice(0, 3).map(
-      (c) =>
-        `《${c.regulation.title}》\n${c.content.slice(0, 700)}${c.content.length > 700 ? "…" : ""}`,
-    ),
-  ].join("\n");
+  // 不相容案：即使沒有完美片段也應輸出更正結論
+  if (analysis.mode === "art22_9_inapplicable" || analysis.minQualifiedVendors != null) {
+    return [
+      `結論：${analysis.conclusion}`,
+      "",
+      "說明：",
+      "1. 第22條第1項第9款僅限委託專業／技術／資訊／社福服務（勞務）經公開客觀評選為優勝者；不適用財物採購，亦不適用工程採購。",
+      "2. 採購法第48條「三家以上合格廠商」＋施行細則第55條：該「三家」係指公開招標。",
+      "3. 請對照下方檢索片段原文。",
+      "",
+      "—— 檢索摘錄 ——",
+      ...chunks.slice(0, 3).map(
+        (c) =>
+          `《${c.regulation.title}》\n${c.content.slice(0, 700)}${c.content.length > 700 ? "…" : ""}`,
+      ),
+    ].join("\n");
+  }
+
+  return null;
 }
 
 function buildDeterministicAnswer(question: string, chunks: ChunkWithReg[]): string | null {
@@ -134,13 +140,16 @@ const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索�
 
 開標合格廠商家數（重要，勿與公開招標混淆）：
 - 採購法第48條「三家以上合格廠商」＋施行細則第55條：該「三家」係指**公開招標**。
-- 依第22條第1項第9款等「公開評選」之**限制性招標**（含資訊服務、專業服務、技術服務）：第一次開標**無須 3 家**，有 **1 家**合格廠商即得開標／續行評選。
-- 範例：250 萬元資訊服務＋公開評選限制性招標＋問第一次開標幾家 → 結論應為至少 **1 家**，並說明為何不適用公開招標三家規定。
+- 依第22條第1項第9款「公開評選」之限制性招標：**僅適用**委託專業服務、技術服務、資訊服務或社會福利服務（屬**勞務**）。第一次開標無須 3 家，有 1 家合格廠商即得開標／續行評選。
+- **第22條第1項第9款不適用財物採購，亦不適用工程採購。** 若本案已認定為財物（或工程），即使問題出現「公開評選／限制性招標」字樣，也**不得**引用第9款主張「第一次開標只需1家」。應先指出適用範圍不符，再依實際招標方式（例如公開招標→第一次3家；或其他第22條款次之限制性招標程序）說明。
+- 範例（正確）：250 萬元資訊服務＋第22條第1項第9款公開評選限制性招標 → 至少 1 家。
+- 範例（須更正）：4800 萬元財物採購卻套用第9款「1家即可」→ 錯誤；應說明第9款不適用財物。
 - 若問題實為公開招標第一次開標，則結論為 3 家以上；第一次流標後第二次得不受三家限制。
 
 嚴格限制：
 - 不得捏造條號、函釋文號、金額級距數字或主管機關見解；片段未出現的條號、數字、文號一律不可寫出。
 - 使用者問題中的預算或金額，除級距歸類所需之比較外，不可自行加總後斷言級距；後續擴充、選購是否併計須片段有依據。提醒以工程會最新公告為準。
+- 級距結論與招標程序結論必須一致：財物級距案不可搭配第22條第1項第9款開標家數規則。
 
 使用繁體中文，語氣專業、清楚。`;
 
@@ -183,11 +192,15 @@ export async function generateGroundedAnswer(
   if (!apiKey || aiDisabled) {
     const deterministic = buildDeterministicAnswer(question, chunks);
     if (deterministic) {
+      const bidder = analyzeOpeningBidderCount(question);
       return {
         answer: deterministic,
-        model: analyzeOpeningBidderCount(question)?.minQualifiedVendors != null
-          ? "opening-bidder-rules"
-          : "amount-tier-rules",
+        model:
+          bidder?.mode === "art22_9_inapplicable"
+            ? "art22-scope-guard"
+            : bidder?.minQualifiedVendors != null
+              ? "opening-bidder-rules"
+              : "amount-tier-rules",
         warning: !apiKey ? "openai-unavailable" : undefined,
       };
     }
@@ -214,7 +227,7 @@ export async function generateGroundedAnswer(
         { role: "system", content: RAG_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}${guideNote}\n\n請整合上列片段作答；若為金額級距或開標家數問題，須給出明確結論（含家數或級距名稱），並對照易混淆規定。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
+          content: `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}${guideNote}\n\n請整合上列片段作答；若為金額級距或開標家數問題，須給出明確結論。特別注意：第22條第1項第9款不適用財物／工程，不可與財物級距結論錯誤搭配「依第9款第一次開標1家」。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
         },
       ],
     });
