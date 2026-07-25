@@ -3,11 +3,7 @@ import Google from "next-auth/providers/google";
 import type { Role } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
-
-const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-  .split(",")
-  .map((s) => s.trim().toLowerCase())
-  .filter(Boolean);
+import { resolveRoleFromEmail } from "@/lib/roles";
 
 import { getGoogleOAuthConfig, isGoogleOAuthConfigured } from "@/lib/google-oauth-config";
 
@@ -44,9 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user }) {
       if (!user.email) return false;
 
-      const role: Role = adminEmails.includes(user.email.toLowerCase())
-        ? "ADMIN"
-        : "USER";
+      const role: Role = resolveRoleFromEmail(user.email);
 
       try {
         await prisma.user.upsert({

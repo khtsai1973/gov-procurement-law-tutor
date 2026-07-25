@@ -21,6 +21,9 @@ export async function Nav() {
         <Link href="/regulations" className="no-underline hover:underline">
           法規／函釋／題庫清單
         </Link>
+        <Link href="/materials" className="no-underline hover:underline">
+          單元教材
+        </Link>
         <Link href="/mock-exam" className="no-underline hover:underline">
           模擬考試
         </Link>
@@ -29,6 +32,11 @@ export async function Nav() {
             <Link href="/my-questions" className="no-underline hover:underline">
               我的提問紀錄
             </Link>
+            {session.user.role === "TEACHER" || session.user.role === "ADMIN" ? (
+              <Link href="/teacher" className="no-underline hover:underline">
+                老師
+              </Link>
+            ) : null}
             {session.user.role === "ADMIN" ? (
               <Link href="/admin" className="no-underline hover:underline">
                 管理者

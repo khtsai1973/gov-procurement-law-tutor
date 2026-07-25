@@ -10,6 +10,7 @@ datasource db {
 
 enum Role {
   ADMIN
+  TEACHER
   USER
 }
 
@@ -41,6 +42,26 @@ model User {
   questions     UserQuestion[]
   examSupplements MockExamSupplement[]
   mockExamSessions MockExamSession[]
+  unitMaterials UnitMaterial[]
+}
+
+/// 老師製作的單元教材（學員可閱讀已發布者）
+model UnitMaterial {
+  id        String   @id @default(cuid())
+  title     String
+  /// 單元代號，如 U01、第1單元
+  unitCode  String?
+  summary   String?
+  content   String
+  sortOrder Int      @default(0)
+  published Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, sortOrder])
+  @@index([authorId])
 }
 
 model Account {
