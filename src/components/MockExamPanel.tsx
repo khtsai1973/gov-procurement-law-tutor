@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { updateNickname } from "@/app/actions/profile";
+import { ExamDiagnosticsPanel } from "@/components/ExamDiagnosticsPanel";
 import { MockExamSingleSessionCharts } from "@/components/MockExamSingleSessionCharts";
 import {
   MOCK_EXAM_COUNT_OPTIONS,
@@ -797,9 +798,25 @@ export function MockExamPanel({ signedIn, initialNickname, history, analytics }:
                 <Link href={`/mock-exam/${sessionId}`} className="font-medium no-underline hover:underline">
                   查看完整單次測驗分析 →
                 </Link>
+                {" · "}
+                <Link href="/dashboard" className="font-medium no-underline hover:underline">
+                  學習儀表板
+                </Link>
               </p>
             ) : null}
           </div>
+
+          {finishSaved && sessionId ? (
+            <ExamDiagnosticsPanel
+              sessionId={sessionId}
+              autoStart
+              questionType={examType}
+            />
+          ) : finishSaving ? (
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)] shadow-sm">
+              測驗紀錄儲存完成後，將自動產生 AI 錯題診斷…
+            </div>
+          ) : null}
 
           {history}
           {analytics}

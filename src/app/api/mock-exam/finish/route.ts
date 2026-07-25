@@ -4,7 +4,6 @@ import { z } from "zod";
 import {
   gradeMockExamAnswer,
   inferMockExamQuestionType,
-  mockExamTimeLimitSec,
   parseReferenceAnswer,
 } from "@/lib/mock-exam";
 import { getSession } from "@/lib/get-session";
@@ -54,6 +53,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, alreadyFinished: true });
   }
 
+  const bankItems = await prisma.questionBankItem.findMany({
+    where: { key: { in: parsed.data.answers.map((a) => a.itemKey) } },
+    select: { key: true, hintAnswer: true, question: true },
+  });
+  const bankMap = new Map(bankItems.map((i) => [i.key, i]));
+
   let answeredCount = 0;
   let correctCount = 0;
   let gradableCount = 0;
@@ -61,16 +66,31 @@ export async function POST(req: Request) {
   const answerRows = parsed.data.answers.map((a) => {
     const hasAnswer = !!a.userAnswer?.trim();
     if (hasAnswer) answeredCount++;
-    if (a.isCorrect === true) correctCount++;
-    if (a.isCorrect !== null && a.isCorrect !== undefined) gradableCount++;
+
+    const bank = bankMap.get(a.itemKey);
+    const type = bank ? inferMockExamQuestionType(bank) : null;
+    const serverRef =
+      bank && type ? parseReferenceAnswer(bank.hintAnswer, type) : a.referenceAnswer ?? null;
+    const referenceAnswer = a.referenceAnswer ?? serverRef;
+    const serverGrade =
+      hasAnswer && referenceAnswer
+        ? gradeMockExamAnswer(a.userAnswer!.trim(), referenceAnswer)
+        : null;
+    const isCorrect = serverGrade ?? a.isCorrect ?? null;
+    // 交卷視為完成評分：有作答且可評分者計入成績
+    const revealed = a.revealed || (hasAnswer && isCorrect !== null);
+
+    if (isCorrect === true) correctCount++;
+    if (isCorrect !== null) gradableCount++;
+
     return {
       sessionId: examSession.id,
       itemKey: a.itemKey,
       questionIndex: a.questionIndex,
       userAnswer: a.userAnswer?.trim() || null,
-      referenceAnswer: a.referenceAnswer ?? null,
-      isCorrect: a.isCorrect ?? null,
-      revealed: a.revealed,
+      referenceAnswer,
+      isCorrect,
+      revealed,
       sourceNote: a.sourceNote?.trim() || null,
     };
   });
@@ -96,5 +116,6 @@ export async function POST(req: Request) {
     correctCount,
     gradableCount,
     elapsedSec: parsed.data.elapsedSec,
+    wrongCount: answerRows.filter((a) => a.isCorrect === false).length,
   });
 }
