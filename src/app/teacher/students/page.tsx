@@ -44,12 +44,17 @@ export default async function TeacherStudentsPage({
           <div>
             <h1 className="text-xl font-semibold">學員成績與學習資料</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              檢視所有學員的模擬考試成績、提問次數與近期學習活動。
+              檢視所有學員的模擬考試成績、提問次數與近期學習活動。圖表總覽請至學習儀表板。
             </p>
           </div>
-          <Link href="/teacher" className="text-sm no-underline hover:underline">
-            ← 老師工作台
-          </Link>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link href="/teacher/dashboard" className="no-underline hover:underline">
+              學習儀表板
+            </Link>
+            <Link href="/teacher" className="no-underline hover:underline">
+              ← 老師工作台
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 overflow-x-auto">
@@ -98,12 +103,20 @@ export default async function TeacherStudentsPage({
                     <td className="py-2 pr-3">{s.questionCount}</td>
                     <td className="py-2 pr-3 text-xs">{fmtDate(s.lastExamAt)}</td>
                     <td className="py-2">
-                      <Link
-                        href={`/teacher/students?user=${s.userId}`}
-                        className="no-underline hover:underline"
-                      >
-                        檢視
-                      </Link>
+                      <div className="flex flex-col gap-1">
+                        <Link
+                          href={`/teacher/dashboard?user=${s.userId}`}
+                          className="no-underline hover:underline"
+                        >
+                          儀表板
+                        </Link>
+                        <Link
+                          href={`/teacher/students?user=${s.userId}`}
+                          className="no-underline hover:underline"
+                        >
+                          明細
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))
