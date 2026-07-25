@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ensureFeedbackSchema } from "@/lib/ensure-feedback-schema";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/get-session";
 
@@ -10,6 +11,12 @@ export default async function MyQuestionsPage() {
   const session = await getSession();
   if (!session?.user?.id) {
     redirect("/");
+  }
+
+  try {
+    await ensureFeedbackSchema();
+  } catch {
+    // 舊 schema 仍可列出提問；回饋欄位可能暫不可用
   }
 
   const items = await prisma.userQuestion.findMany({
@@ -43,6 +50,12 @@ export default async function MyQuestionsPage() {
                 <div className="mt-3 text-sm font-semibold">A</div>
                 <div className="whitespace-pre-wrap text-sm">{row.answer}</div>
               </>
+            ) : null}
+            {row.feedback ? (
+              <div className="mt-3 text-xs text-[var(--muted)]">
+                回饋：{row.feedback === "UP" ? "👍 有幫助" : "👎 需改進"}
+                {row.feedbackComment ? `｜${row.feedbackComment}` : ""}
+              </div>
             ) : null}
           </li>
         ))}

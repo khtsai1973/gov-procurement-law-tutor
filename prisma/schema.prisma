@@ -21,6 +21,12 @@ enum RegulationTier {
   QUESTION_BANK
 }
 
+/// 使用者對 AI 回答的滿意度（供模型回答品質評估）
+enum AnswerFeedback {
+  UP
+  DOWN
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -101,15 +107,26 @@ model DocChunk {
 }
 
 model UserQuestion {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  question  String
-  answer    String?
-  sources   String?
-  createdAt DateTime @default(now())
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question      String
+  answer        String?
+  sources       String?
+  /// 產生回答時使用的模型／模式（如 gpt-4o-mini、off-topic、keyword-fallback）
+  answerModel   String?
+  /// RAG 檢索模式（如 rag-semantic、off-topic）
+  retrievalMode String?
+  /// 👍 / 👎 滿意度
+  feedback      AnswerFeedback?
+  /// 簡易文字回饋（選填）
+  feedbackComment String?
+  feedbackAt    DateTime?
+  createdAt     DateTime        @default(now())
 
   @@index([userId])
+  @@index([feedback])
+  @@index([createdAt])
 }
 
 model KnowledgeSync {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { AnswerFeedback } from "@/components/AnswerFeedback";
 import { getPromptSuggestionsByCategory, PROMPT_TIP } from "@/lib/prompt-suggestions";
 import { SCENARIO_TEMPLATES } from "@/lib/scenario-templates";
 
@@ -11,6 +12,7 @@ type Source = { title: string; tier: string; slug: string };
 export function ChatPanel({ signedIn }: { signedIn: boolean }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
+  const [questionId, setQuestionId] = useState<string | null>(null);
   const [sources, setSources] = useState<Source[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
     setError(null);
     setNotice(null);
     setAnswer(null);
+    setQuestionId(null);
     setSources(null);
     setLoading(true);
     try {
@@ -67,6 +70,7 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
         return;
       }
       setAnswer(data.answer ?? "");
+      setQuestionId(typeof data.questionId === "string" ? data.questionId : null);
       setSources(Array.isArray(data.sources) ? data.sources : []);
       if (data.model === "off-topic" || data.retrievalMode === "off-topic") {
         setNotice(null);
@@ -254,6 +258,7 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
               </ul>
             </div>
           ) : null}
+          {questionId ? <AnswerFeedback key={questionId} questionId={questionId} /> : null}
         </div>
       ) : null}
     </section>

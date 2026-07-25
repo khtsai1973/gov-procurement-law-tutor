@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { generateGroundedAnswer } from "@/lib/answer";
 import { ensureKnowledgeBase } from "@/lib/bootstrap-knowledge";
+import { ensureFeedbackSchema } from "@/lib/ensure-feedback-schema";
 import prisma from "@/lib/prisma";
 import { retrieveForRag } from "@/lib/rag";
 import { matchQuestionBank } from "@/lib/question-bank";
@@ -62,16 +63,21 @@ export async function POST(req: Request) {
   const question = parsed.data.question;
 
   try {
+    await ensureFeedbackSchema();
+
     if (!isOnTopicQuestion(question)) {
-      await prisma.userQuestion.create({
+      const row = await prisma.userQuestion.create({
         data: {
           userId,
           question,
           answer: OFF_TOPIC_REPLY,
           sources: JSON.stringify([]),
+          answerModel: "off-topic",
+          retrievalMode: "off-topic",
         },
       });
       return NextResponse.json({
+        questionId: row.id,
         answer: OFF_TOPIC_REPLY,
         sources: [],
         model: "off-topic",
@@ -99,16 +105,25 @@ export async function POST(req: Request) {
       if (sources.length >= 5) break;
     }
 
-    await prisma.userQuestion.create({
+    const row = await prisma.userQuestion.create({
       data: {
         userId,
         question,
         answer,
         sources: JSON.stringify(sources),
+        answerModel: model,
+        retrievalMode,
       },
     });
 
-    return NextResponse.json({ answer, sources, model, warning, retrievalMode });
+    return NextResponse.json({
+      questionId: row.id,
+      answer,
+      sources,
+      model,
+      warning,
+      retrievalMode,
+    });
   } catch (err) {
     console.error("[chat] unexpected error:", err);
     return NextResponse.json(
