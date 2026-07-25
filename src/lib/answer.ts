@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 
+import { analyzeAmountTierQuestion } from "@/lib/amount-tier";
 import { formatRagContext, type ChunkWithReg } from "@/lib/rag";
 import prisma from "@/lib/prisma";
 import { OFF_TOPIC_REPLY, isOnTopicQuestion } from "@/lib/topic-scope";
@@ -35,6 +36,41 @@ function isOpenAIQuotaError(err: unknown): boolean {
   return false;
 }
 
+function buildDeterministicTierAnswer(
+  question: string,
+  chunks: ChunkWithReg[],
+): string | null {
+  const analysis = analyzeAmountTierQuestion(question);
+  if (!analysis?.tier || !analysis.category || analysis.amount == null) return null;
+
+  const hasThresholdChunk = chunks.some(
+    (c) =>
+      c.regulation.slug === "pcc-procurement-amount-thresholds" ||
+      /公告金額|查核金額|巨額/.test(c.content),
+  );
+  if (!hasThresholdChunk) return null;
+
+  const amountLabel =
+    analysis.amount >= 10_000 && analysis.amount % 10_000 === 0
+      ? `${analysis.amount / 10_000} 萬元`
+      : `${analysis.amount.toLocaleString("zh-TW")} 元`;
+
+  return [
+    `結論：新臺幣 ${amountLabel} 之「${analysis.category}」採購，屬「${analysis.tier}」。`,
+    "",
+    "說明：",
+    `1. 標的歸類：${analysis.categoryReason ?? `本案按${analysis.category}認定`}；資訊服務、專業服務、技術服務等屬勞務（政府採購法第七條）。`,
+    `2. 級距對照：依工程會採購金額門檻彙整，將本案金額與該類別之小額／公告金額／查核金額／巨額門檻比較後，落在「${analysis.tier}」。`,
+    "3. 請再對照下方檢索片段中的門檻表數字；實際適用仍以工程會最新公告為準。",
+    "",
+    "—— 檢索摘錄 ——",
+    ...chunks.slice(0, 3).map(
+      (c) =>
+        `《${c.regulation.title}》\n${c.content.slice(0, 700)}${c.content.length > 700 ? "…" : ""}`,
+    ),
+  ].join("\n");
+}
+
 const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索增強生成）模式：僅能依據檢索系統取回之全文片段作答（非摘要或杜撰）。
 
 主題範圍（最優先）：
@@ -44,14 +80,22 @@ const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索�
 
 檢索與作答流程（與本站說明一致）：
 1. 系統已自「法規／函釋清單」及題庫檢索整合分析全文片段（非摘要）以找出解答；請依這些片段作答，先寫 1～2 句結論，再以條列說明，每一重要論點後標註 [片段N]。
-2. 若使用者訊息含「（題庫導引：…）」，表示檢索時已參考題庫；題庫僅供關鍵詞／出題方向參考，**不得**把題庫答案當法規條文引用，正式論點仍須來自 [片段N] 全文。
+2. 若使用者訊息含「（題庫導引：…）」或「【系統級距判定導引…】」，表示檢索／系統已提供分析方向；正式論點仍須來自 [片段N] 全文，並與導引交叉驗證。
 3. 應整合、對照多則全文片段（含不同法規、函釋與題庫導引）；仍須標註 [片段N]，並區分「片段已載明」與「依多則片段綜合推論」。
 4. 檢索片段仍不足以涵蓋問題重點時，開頭寫「檢索片段中未足以完整說明」，分別列出「已提及」「未提及」，並建議使用者至本站「法規／函釋清單」查閱全文（非摘要）。
 5. 若問題過於笼统、缺少適用法規所需之關鍵事實（例如未說明採購標的、採購金額、程序階段、招標或決標方式），仍先依檢索片段盡可能作答；在條列說明之後另設「建議補充資訊」小節，列出 2～4 項使用者若能補充可使答案更精準之事實類型（例如標的類型、金額是否含稅、是否屬限制性招標、是否已組評選委員會），勿捏造條文。若片段已足夠完整作答，可省略此小節。
 
+金額級距／門檻歸類（重要，應主動整合分析）：
+- 當使用者給出採購金額，並詢問屬哪一級距（或是否達公告／查核／巨額），且片段中已有工程會門檻表或等同數字時：
+  (a) 先依片段認定標的類別：資訊服務／專業服務／技術服務等屬「勞務」（採購法對工程、財物、勞務之定義）；工程、財物各用其門檻。
+  (b) 將使用者金額與該類別「小額／公告金額／查核金額／巨額」門檻比較（得做大小比較與級距歸屬，這屬於依片段綜合推論，不是捏造）。
+  (c) 結論須寫明：採購類別＋級距（例如「達公告金額、未達查核金額之勞務採購」），並列出據以比較的門檻數字與 [片段N]。
+- 範例邏輯：250 萬元資訊服務 → 勞務；勞務公告金額 150 萬、查核金額 1,000 萬 → 屬達公告金額、未達查核金額之勞務採購。
+- 不得捏造片段未出現的門檻數字；若片段已載明，必須引用並完成歸類，勿僅重述數字而不下結論。
+
 嚴格限制：
 - 不得捏造條號、函釋文號、金額級距數字或主管機關見解；片段未出現的條號、數字、文號一律不可寫出。
-- 使用者問題中的預算或金額數字，若片段未要求如何計入或如何分級，只可重述問題中的數字並說明「級距判定須依主管機關公告之公告金額、查核金額等標準」，不可自行加總後斷言屬哪一級距，除非片段有明確門檻。若片段（含工程會金額門檻彙整、主管機關公告整理）已載明查核金額、公告金額、巨額或小額採購之新臺幣數額，應依片段逐類引述，並標註 [片段N]。
+- 使用者問題中的預算或金額，除級距歸類所需之比較外，不可自行加總後斷言級距；後續擴充、選購是否併計須片段有依據。提醒以工程會最新公告為準。
 
 使用繁體中文，語氣專業、清楚。`;
 
@@ -87,8 +131,17 @@ export async function generateGroundedAnswer(
 
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   const aiDisabled = process.env.OPENAI_DISABLED === "true" || process.env.OPENAI_DISABLED === "1";
+  const tierGuidance = analyzeAmountTierQuestion(question)?.guidance;
 
   if (!apiKey || aiDisabled) {
+    const deterministic = buildDeterministicTierAnswer(question, chunks);
+    if (deterministic) {
+      return {
+        answer: deterministic,
+        model: "amount-tier-rules",
+        warning: !apiKey ? "openai-unavailable" : undefined,
+      };
+    }
     return excerptFallback(
       chunks,
       !apiKey
@@ -102,16 +155,17 @@ export async function generateGroundedAnswer(
   const bankNote = options?.questionBankHint
     ? `\n\n（題庫導引：${options.questionBankHint}）`
     : "";
+  const tierNote = tierGuidance ? `\n\n${tierGuidance}` : "";
 
   try {
     const completion = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-      temperature: 0.15,
+      temperature: 0.1,
       messages: [
         { role: "system", content: RAG_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}\n\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
+          content: `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}${tierNote}\n\n請整合上列片段作答；若為金額級距問題，須給出明確的類別與級距結論。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
         },
       ],
     });
@@ -120,6 +174,15 @@ export async function generateGroundedAnswer(
     return { answer, model: completion.model };
   } catch (err) {
     console.error("[answer] OpenAI error:", err);
+
+    const deterministic = buildDeterministicTierAnswer(question, chunks);
+    if (deterministic) {
+      return {
+        answer: deterministic,
+        model: "amount-tier-rules",
+        warning: "openai-unavailable",
+      };
+    }
 
     if (isOpenAIQuotaError(err)) {
       return excerptFallback(

@@ -1,6 +1,10 @@
 import type { DocChunk, Regulation } from "@prisma/client";
 
 import {
+  amountTierExpansionTerms,
+  isAmountTierClassificationQuery,
+} from "@/lib/amount-tier";
+import {
   canUseEmbeddings,
   cosineSimilarity,
   embedTexts,
@@ -21,13 +25,16 @@ const STOP = new Set(
 const QUERY_EXPANSIONS: Record<string, string[]> = {
   議價次數: ["議價", "比減價格", "減價", "限制性招標", "洽減", "協商"],
   議價: ["比減價格", "減價", "限制性招標"],
-  金額級距: ["公告金額", "查核金額", "巨額採購", "採購金額", "小額採購", "金額門檻"],
+  金額級距: ["公告金額", "查核金額", "巨額採購", "採購金額", "小額採購", "金額門檻", "勞務", "工程", "財物"],
   金額門檻: ["公告金額", "查核金額", "巨額", "小額採購", "金額級距", "採購金額"],
   門檻: ["公告金額", "查核金額", "巨額", "金額門檻", "小額採購"],
   公告金額: ["查核金額", "巨額", "金額度級距", "採購金額", "金額門檻"],
   查核金額: ["公告金額", "巨額", "監辦", "金額度級距", "金額門檻"],
   巨額: ["查核金額", "公告金額", "採購金額", "金額門檻"],
   採購金額: ["公告金額", "查核金額", "巨額", "後續擴充", "選購", "金額門檻"],
+  資訊服務: ["勞務", "公告金額", "查核金額", "巨額", "金額門檻", "第七條", "資訊服務廠商評選"],
+  專業服務: ["勞務", "公告金額", "查核金額", "金額門檻", "第七條"],
+  技術服務: ["勞務", "公告金額", "查核金額", "金額門檻", "第七條"],
   等標期: ["招標期限", "招標期限標準", "截止投標", "公告金額", "查核金額", "巨額"],
   招標期限: ["等標期", "招標期限標準", "未達公告金額", "公告金額", "查核金額"],
   未達公告金額: ["小額採購", "公告金額", "公開取得報價單", "監辦", "招標辦法"],
@@ -55,12 +62,12 @@ const AMOUNT_TIER_REGULATION_SLUGS = new Set([
   "below-threshold-supervision-rules",
 ]);
 
-/** 使用者明確問門檻數字（含查核／公告／巨額等用語） */
+/** 使用者明確問門檻數字（含查核／公告／巨額等用語）或級距歸類 */
 const THRESHOLD_AMOUNT_QUERY =
-  /查核金額|公告金額|巨額|金額門檻|金額級距|小額採購|採購金額門檻|金額標準|多少錢|幾元|數字|NT\$|新臺幣/;
+  /查核金額|公告金額|巨額|金額門檻|金額級距|採購金額級距|小額採購|採購金額門檻|金額標準|多少錢|幾元|數字|NT\$|新臺幣|屬(於)?哪|落在哪|哪一個.*級距|哪一.*級距/;
 
 function isThresholdAmountQuery(query: string): boolean {
-  return THRESHOLD_AMOUNT_QUERY.test(query);
+  return THRESHOLD_AMOUNT_QUERY.test(query) || isAmountTierClassificationQuery(query);
 }
 
 function hasThresholdFigures(text: string): boolean {
@@ -87,6 +94,9 @@ function expandQuery(query: string, bank?: QuestionBankMatch): string {
   const extras: string[] = [];
   for (const [key, terms] of Object.entries(QUERY_EXPANSIONS)) {
     if (compact.includes(key)) extras.push(...terms);
+  }
+  if (isThresholdAmountQuery(query)) {
+    extras.push(...amountTierExpansionTerms(query));
   }
   if (bank?.keywords.length) extras.push(...bank.keywords);
   const unique = [...new Set(extras)];
@@ -149,12 +159,23 @@ function slugBoost(slug: string, query: string, bank?: QuestionBankMatch): numbe
   let boost = 0;
   if (bank?.relatedSlugs.includes(slug)) boost += 5;
   if (isThresholdAmountQuery(query) && THRESHOLD_INTERP_SLUGS.has(slug)) {
-    boost += 8;
+    boost += 10;
   }
   if (
     (isThresholdAmountQuery(query) || /等標期|招標期限|未達公告/.test(query)) &&
     AMOUNT_TIER_REGULATION_SLUGS.has(slug)
   ) {
+    boost += 4;
+  }
+  // 級距歸類常需先認定工程／財物／勞務（採購法第七條）
+  if (
+    isAmountTierClassificationQuery(query) &&
+    slug === "government-procurement-act" &&
+    /工程|財物|勞務|資訊服務|專業服務|技術服務/.test(query)
+  ) {
+    boost += 6;
+  }
+  if (/資訊服務/.test(query) && slug === "it-service-selection-billing-rules") {
     boost += 4;
   }
   return boost;
@@ -291,6 +312,7 @@ export async function retrieveForRag(
 
   const poolSize = Math.max(topK * 3, ragFetchK());
   const thresholdQ = isThresholdAmountQuery(query);
+  const classifyQ = isAmountTierClassificationQuery(query);
 
   const amountTierQ = thresholdQ || /等標期|招標期限|未達公告金額/.test(query);
 
@@ -301,7 +323,12 @@ export async function retrieveForRag(
           AMOUNT_TIER_REGULATION_SLUGS.has(c.regulation.slug) ||
           hasThresholdFigures(c.content) ||
           (CORE_LAW_SLUGS.has(c.regulation.slug) &&
-            /查核金額|公告金額|巨額|小額採購|等標期|招標期限/.test(c.content)),
+            /查核金額|公告金額|巨額|小額採購|等標期|招標期限|本法所稱工程|本法所稱財物|本法所稱勞務|資訊服務/.test(
+              c.content,
+            )) ||
+          (classifyQ &&
+            (c.regulation.slug === "it-service-selection-billing-rules" ||
+              /資訊服務|專業服務|技術服務/.test(c.content))),
       )
     : PREFER_CORE_LAW.test(query)
       ? all.filter(
@@ -359,6 +386,24 @@ export async function retrieveForRag(
     } else if (bestInterp) {
       chunks = [bestInterp.chunk];
     }
+  }
+
+  // 級距歸類：確保門檻彙整＋採購法類別定義片段同時在場，便於整合分析
+  if (classifyQ) {
+    const ensureSlug = (slug: string, contentTest?: RegExp) => {
+      if (chunks.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
+        return;
+      }
+      const hit = scored.find(
+        (s) =>
+          s.chunk.regulation.slug === slug &&
+          (!contentTest || contentTest.test(s.chunk.content)),
+      );
+      if (!hit) return;
+      chunks = [hit.chunk, ...chunks.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
+    };
+    ensureSlug("pcc-procurement-amount-thresholds");
+    ensureSlug("government-procurement-act", /本法所稱勞務|本法所稱工程|本法所稱財物|資訊服務/);
   }
 
   const modeBase =

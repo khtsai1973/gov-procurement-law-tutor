@@ -63,6 +63,39 @@
       "hintAnswer": "優先引用知識庫內工程會門檻彙整與其註記之來源；回答時應標示彙整日期，並建議使用者至工程會官網核對最新公告。"
     },
     {
+      "key": "threshold-classify-it-service-250man",
+      "category": "金額門檻",
+      "question": "250萬元資訊服務採購案，屬於哪一個採購金額級距的（工程／財物／勞務）採購案？",
+      "keywords": [
+        "250萬",
+        "資訊服務",
+        "金額級距",
+        "公告金額",
+        "查核金額",
+        "勞務",
+        "工程",
+        "財物",
+        "級距"
+      ],
+      "relatedSlugs": [
+        "government-procurement-act",
+        "pcc-procurement-amount-thresholds",
+        "it-service-selection-billing-rules"
+      ],
+      "hintAnswer": "先依採購法認定資訊服務屬勞務，再對照工程會勞務門檻：公告金額150萬、查核金額1000萬、巨額2000萬。250萬元落在達公告金額、未達查核金額之勞務採購。須引用門檻彙整片段數字作結。"
+    },
+    {
+      "key": "threshold-classify-amount-tier",
+      "category": "金額門檻",
+      "question": "已知採購金額與標的類型時，如何判斷屬小額、未達公告、公告、查核或巨額級距？",
+      "keywords": ["級距", "判斷", "歸類", "公告金額", "查核金額", "巨額", "小額", "標的"],
+      "relatedSlugs": [
+        "government-procurement-act",
+        "pcc-procurement-amount-thresholds"
+      ],
+      "hintAnswer": "步驟：1) 定工程／財物／勞務；2) 取該類門檻表；3) 比較金額落點並寫明級距名稱。資訊／專業／技術服務屬勞務。"
+    },
+    {
       "key": "bargaining-restricted-times",
       "category": "議價比減",
       "question": "限制性招標可以議價（比減價格）幾次？",
