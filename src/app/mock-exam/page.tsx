@@ -20,6 +20,21 @@ export default async function MockExamPage() {
     frequentWrong: [],
   };
 
+  let categories: { name: string; count: number }[] = [];
+  try {
+    const categoryGroups = await prisma.questionBankItem.groupBy({
+      by: ["category"],
+      _count: { _all: true },
+      orderBy: { category: "asc" },
+    });
+    categories = categoryGroups.map((g) => ({
+      name: g.category,
+      count: g._count._all,
+    }));
+  } catch (e) {
+    console.error("[mock-exam] load categories failed:", e);
+  }
+
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -54,6 +69,7 @@ export default async function MockExamPage() {
     <MockExamPanel
       signedIn={!!session?.user}
       initialNickname={initialNickname}
+      categories={categories}
       history={<MockExamHistory records={history} />}
       analytics={<MockExamAnalyticsCharts data={analytics} />}
     />
