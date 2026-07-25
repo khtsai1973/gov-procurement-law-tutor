@@ -96,6 +96,38 @@
       "hintAnswer": "步驟：1) 定工程／財物／勞務；2) 取該類門檻表；3) 比較金額落點並寫明級距名稱。資訊／專業／技術服務屬勞務。"
     },
     {
+      "key": "opening-open-selection-it-service-bidder-count",
+      "category": "議價比減",
+      "question": "250萬元資訊服務採購案，採取公開評選限制性招標，第一次開標至少需要幾家合格廠商？",
+      "keywords": [
+        "公開評選",
+        "限制性招標",
+        "資訊服務",
+        "第一次開標",
+        "合格廠商",
+        "幾家",
+        "三家",
+        "一家",
+        "第22條",
+        "開標"
+      ],
+      "relatedSlugs": [
+        "government-procurement-act",
+        "gpa-enforcement-rules",
+        "most-advantageous-tender-operations-manual",
+        "it-service-selection-billing-rules"
+      ],
+      "hintAnswer": "第22條第1項第9款公開評選之限制性招標，第一次開標無須三家；有一家合格廠商即得開標。勿套用公開招標第48條三家規定（施行細則第55條明定三家係指公開招標）。"
+    },
+    {
+      "key": "opening-public-tender-first-three",
+      "category": "議價比減",
+      "question": "公開招標第一次開標，至少需要幾家合格廠商投標？",
+      "keywords": ["公開招標", "第一次開標", "三家", "合格廠商", "第48條", "流標"],
+      "relatedSlugs": ["government-procurement-act", "gpa-enforcement-rules"],
+      "hintAnswer": "公開招標第一次開標原則須三家以上合格廠商（採購法第48條）；第一次因未滿三家流標後，第二次得不受三家限制。"
+    },
+    {
       "key": "bargaining-restricted-times",
       "category": "議價比減",
       "question": "限制性招標可以議價（比減價格）幾次？",

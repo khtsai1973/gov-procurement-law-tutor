@@ -5,6 +5,10 @@ import {
   isAmountTierClassificationQuery,
 } from "@/lib/amount-tier";
 import {
+  isOpeningBidderCountQuery,
+  openingBidderExpansionTerms,
+} from "@/lib/opening-bidder-count";
+import {
   canUseEmbeddings,
   cosineSimilarity,
   embedTexts,
@@ -35,6 +39,10 @@ const QUERY_EXPANSIONS: Record<string, string[]> = {
   資訊服務: ["勞務", "公告金額", "查核金額", "巨額", "金額門檻", "第七條", "資訊服務廠商評選"],
   專業服務: ["勞務", "公告金額", "查核金額", "金額門檻", "第七條"],
   技術服務: ["勞務", "公告金額", "查核金額", "金額門檻", "第七條"],
+  公開評選: ["限制性招標", "第二十二條", "公開客觀評選", "資訊服務", "專業服務", "技術服務", "開標", "家數", "三家", "一家"],
+  限制性招標: ["公開評選", "第二十二條", "議價", "比價", "開標", "家數"],
+  合格廠商: ["開標", "三家", "公開招標", "第四十八條", "施行細則", "公開評選"],
+  開標: ["合格廠商", "三家", "公開招標", "限制性招標", "第四十八條", "流標"],
   等標期: ["招標期限", "招標期限標準", "截止投標", "公告金額", "查核金額", "巨額"],
   招標期限: ["等標期", "招標期限標準", "未達公告金額", "公告金額", "查核金額"],
   未達公告金額: ["小額採購", "公告金額", "公開取得報價單", "監辦", "招標辦法"],
@@ -97,6 +105,9 @@ function expandQuery(query: string, bank?: QuestionBankMatch): string {
   }
   if (isThresholdAmountQuery(query)) {
     extras.push(...amountTierExpansionTerms(query));
+  }
+  if (isOpeningBidderCountQuery(query)) {
+    extras.push(...openingBidderExpansionTerms(query));
   }
   if (bank?.keywords.length) extras.push(...bank.keywords);
   const unique = [...new Set(extras)];
@@ -177,6 +188,14 @@ function slugBoost(slug: string, query: string, bank?: QuestionBankMatch): numbe
   }
   if (/資訊服務/.test(query) && slug === "it-service-selection-billing-rules") {
     boost += 4;
+  }
+  if (
+    isOpeningBidderCountQuery(query) &&
+    (slug === "gpa-enforcement-rules" ||
+      slug === "government-procurement-act" ||
+      slug === "most-advantageous-tender-operations-manual")
+  ) {
+    boost += 6;
   }
   return boost;
 }
@@ -293,7 +312,7 @@ async function scoreAllChunks(
 }
 
 const PREFER_CORE_LAW =
-  /議價|比減|減價|限制性招標|協商|底價|公告金額|查核金額|巨額|金額級距|金額門檻|小額採購|採購金額|後續擴充/;
+  /議價|比減|減價|限制性招標|協商|底價|公告金額|查核金額|巨額|金額級距|金額門檻|小額採購|採購金額|後續擴充|公開評選|開標|合格廠商|幾家/;
 
 /**
  * RAG 檢索：擴展查詢 → 混合向量+關鍵字打分 → 取較大候選池 → MMR 多樣化 → 回傳 topK 片段
@@ -313,6 +332,7 @@ export async function retrieveForRag(
   const poolSize = Math.max(topK * 3, ragFetchK());
   const thresholdQ = isThresholdAmountQuery(query);
   const classifyQ = isAmountTierClassificationQuery(query);
+  const bidderCountQ = isOpeningBidderCountQuery(query);
 
   const amountTierQ = thresholdQ || /等標期|招標期限|未達公告金額/.test(query);
 
@@ -330,15 +350,25 @@ export async function retrieveForRag(
             (c.regulation.slug === "it-service-selection-billing-rules" ||
               /資訊服務|專業服務|技術服務/.test(c.content))),
       )
-    : PREFER_CORE_LAW.test(query)
+    : bidderCountQ
       ? all.filter(
           (c) =>
-            c.regulation.tier === "LAW" ||
-            c.regulation.tier === "REGULATION" ||
             CORE_LAW_SLUGS.has(c.regulation.slug) ||
-            THRESHOLD_INTERP_SLUGS.has(c.regulation.slug),
+            c.regulation.slug === "most-advantageous-tender-operations-manual" ||
+            c.regulation.slug === "most-advantageous-tender-selection-rules" ||
+            c.regulation.slug === "it-service-selection-billing-rules" ||
+            /三家|開標|合格廠商|公開評選|限制性招標|第四十八|第二十二/.test(c.content),
         )
-      : all;
+      : PREFER_CORE_LAW.test(query)
+        ? all.filter(
+            (c) =>
+              c.regulation.tier === "LAW" ||
+              c.regulation.tier === "REGULATION" ||
+              CORE_LAW_SLUGS.has(c.regulation.slug) ||
+              THRESHOLD_INTERP_SLUGS.has(c.regulation.slug) ||
+              c.regulation.slug === "most-advantageous-tender-operations-manual",
+          )
+        : all;
 
   const baseCorpus = corpus.length > 0 ? corpus : all;
 
@@ -404,6 +434,24 @@ export async function retrieveForRag(
     };
     ensureSlug("pcc-procurement-amount-thresholds");
     ensureSlug("government-procurement-act", /本法所稱勞務|本法所稱工程|本法所稱財物|資訊服務/);
+  }
+
+  if (bidderCountQ) {
+    const ensureSlug = (slug: string, contentTest?: RegExp) => {
+      if (chunks.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
+        return;
+      }
+      const hit = scored.find(
+        (s) =>
+          s.chunk.regulation.slug === slug &&
+          (!contentTest || contentTest.test(s.chunk.content)),
+      );
+      if (!hit) return;
+      chunks = [hit.chunk, ...chunks.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
+    };
+    ensureSlug("gpa-enforcement-rules", /三家以上合格廠商|公開招標/);
+    ensureSlug("government-procurement-act", /第 48 條|三家以上合格廠商|限制性招標/);
+    ensureSlug("most-advantageous-tender-operations-manual", /公開評選|家數|三家/);
   }
 
   const modeBase =

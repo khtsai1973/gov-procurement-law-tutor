@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 
 import { analyzeAmountTierQuestion } from "@/lib/amount-tier";
+import { analyzeOpeningBidderCount } from "@/lib/opening-bidder-count";
 import { formatRagContext, type ChunkWithReg } from "@/lib/rag";
 import prisma from "@/lib/prisma";
 import { OFF_TOPIC_REPLY, isOnTopicQuestion } from "@/lib/topic-scope";
@@ -71,6 +72,44 @@ function buildDeterministicTierAnswer(
   ].join("\n");
 }
 
+function buildDeterministicBidderCountAnswer(
+  question: string,
+  chunks: ChunkWithReg[],
+): string | null {
+  const analysis = analyzeOpeningBidderCount(question);
+  if (!analysis || analysis.minQualifiedVendors == null) return null;
+
+  const hasSupport = chunks.some(
+    (c) =>
+      /三家|公開評選|限制性招標|第四十八|合格廠商/.test(c.content) ||
+      c.regulation.slug === "gpa-enforcement-rules" ||
+      c.regulation.slug === "most-advantageous-tender-operations-manual",
+  );
+  if (!hasSupport) return null;
+
+  return [
+    `結論：${analysis.conclusion}`,
+    "",
+    "說明：",
+    "1. 採購法第48條「三家以上合格廠商」主要適用公開招標；施行細則第55條明定該「三家」係指辦理公開招標之情形。",
+    "2. 依第22條第1項第9款等公開評選之限制性招標（含資訊服務），第一次開標無須滿三家，有一家合格廠商即可開標／續行評選。",
+    "3. 請對照下方檢索片段原文。",
+    "",
+    "—— 檢索摘錄 ——",
+    ...chunks.slice(0, 3).map(
+      (c) =>
+        `《${c.regulation.title}》\n${c.content.slice(0, 700)}${c.content.length > 700 ? "…" : ""}`,
+    ),
+  ].join("\n");
+}
+
+function buildDeterministicAnswer(question: string, chunks: ChunkWithReg[]): string | null {
+  return (
+    buildDeterministicBidderCountAnswer(question, chunks) ??
+    buildDeterministicTierAnswer(question, chunks)
+  );
+}
+
 const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索增強生成）模式：僅能依據檢索系統取回之全文片段作答（非摘要或杜撰）。
 
 主題範圍（最優先）：
@@ -80,7 +119,7 @@ const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索�
 
 檢索與作答流程（與本站說明一致）：
 1. 系統已自「法規／函釋清單」及題庫檢索整合分析全文片段（非摘要）以找出解答；請依這些片段作答，先寫 1～2 句結論，再以條列說明，每一重要論點後標註 [片段N]。
-2. 若使用者訊息含「（題庫導引：…）」或「【系統級距判定導引…】」，表示檢索／系統已提供分析方向；正式論點仍須來自 [片段N] 全文，並與導引交叉驗證。
+2. 若使用者訊息含「（題庫導引：…）」、「【系統級距判定導引…】」或「【系統開標家數判定導引…】」，表示檢索／系統已提供分析方向；正式論點仍須來自 [片段N] 全文，並與導引交叉驗證。
 3. 應整合、對照多則全文片段（含不同法規、函釋與題庫導引）；仍須標註 [片段N]，並區分「片段已載明」與「依多則片段綜合推論」。
 4. 檢索片段仍不足以涵蓋問題重點時，開頭寫「檢索片段中未足以完整說明」，分別列出「已提及」「未提及」，並建議使用者至本站「法規／函釋清單」查閱全文（非摘要）。
 5. 若問題過於笼统、缺少適用法規所需之關鍵事實（例如未說明採購標的、採購金額、程序階段、招標或決標方式），仍先依檢索片段盡可能作答；在條列說明之後另設「建議補充資訊」小節，列出 2～4 項使用者若能補充可使答案更精準之事實類型（例如標的類型、金額是否含稅、是否屬限制性招標、是否已組評選委員會），勿捏造條文。若片段已足夠完整作答，可省略此小節。
@@ -92,6 +131,12 @@ const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索�
   (c) 結論須寫明：採購類別＋級距（例如「達公告金額、未達查核金額之勞務採購」），並列出據以比較的門檻數字與 [片段N]。
 - 範例邏輯：250 萬元資訊服務 → 勞務；勞務公告金額 150 萬、查核金額 1,000 萬 → 屬達公告金額、未達查核金額之勞務採購。
 - 不得捏造片段未出現的門檻數字；若片段已載明，必須引用並完成歸類，勿僅重述數字而不下結論。
+
+開標合格廠商家數（重要，勿與公開招標混淆）：
+- 採購法第48條「三家以上合格廠商」＋施行細則第55條：該「三家」係指**公開招標**。
+- 依第22條第1項第9款等「公開評選」之**限制性招標**（含資訊服務、專業服務、技術服務）：第一次開標**無須 3 家**，有 **1 家**合格廠商即得開標／續行評選。
+- 範例：250 萬元資訊服務＋公開評選限制性招標＋問第一次開標幾家 → 結論應為至少 **1 家**，並說明為何不適用公開招標三家規定。
+- 若問題實為公開招標第一次開標，則結論為 3 家以上；第一次流標後第二次得不受三家限制。
 
 嚴格限制：
 - 不得捏造條號、函釋文號、金額級距數字或主管機關見解；片段未出現的條號、數字、文號一律不可寫出。
@@ -132,13 +177,17 @@ export async function generateGroundedAnswer(
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   const aiDisabled = process.env.OPENAI_DISABLED === "true" || process.env.OPENAI_DISABLED === "1";
   const tierGuidance = analyzeAmountTierQuestion(question)?.guidance;
+  const bidderGuidance = analyzeOpeningBidderCount(question)?.guidance;
+  const systemGuidance = [tierGuidance, bidderGuidance].filter(Boolean).join("\n\n");
 
   if (!apiKey || aiDisabled) {
-    const deterministic = buildDeterministicTierAnswer(question, chunks);
+    const deterministic = buildDeterministicAnswer(question, chunks);
     if (deterministic) {
       return {
         answer: deterministic,
-        model: "amount-tier-rules",
+        model: analyzeOpeningBidderCount(question)?.minQualifiedVendors != null
+          ? "opening-bidder-rules"
+          : "amount-tier-rules",
         warning: !apiKey ? "openai-unavailable" : undefined,
       };
     }
@@ -155,7 +204,7 @@ export async function generateGroundedAnswer(
   const bankNote = options?.questionBankHint
     ? `\n\n（題庫導引：${options.questionBankHint}）`
     : "";
-  const tierNote = tierGuidance ? `\n\n${tierGuidance}` : "";
+  const guideNote = systemGuidance ? `\n\n${systemGuidance}` : "";
 
   try {
     const completion = await client.chat.completions.create({
@@ -165,7 +214,7 @@ export async function generateGroundedAnswer(
         { role: "system", content: RAG_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}${tierNote}\n\n請整合上列片段作答；若為金額級距問題，須給出明確的類別與級距結論。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
+          content: `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}${guideNote}\n\n請整合上列片段作答；若為金額級距或開標家數問題，須給出明確結論（含家數或級距名稱），並對照易混淆規定。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
         },
       ],
     });
@@ -175,11 +224,11 @@ export async function generateGroundedAnswer(
   } catch (err) {
     console.error("[answer] OpenAI error:", err);
 
-    const deterministic = buildDeterministicTierAnswer(question, chunks);
+    const deterministic = buildDeterministicAnswer(question, chunks);
     if (deterministic) {
       return {
         answer: deterministic,
-        model: "amount-tier-rules",
+        model: "rules-fallback",
         warning: "openai-unavailable",
       };
     }
