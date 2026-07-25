@@ -4,32 +4,34 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerFeedback } from "@/components/AnswerFeedback";
+import { AnswerWithCitations } from "@/components/AnswerWithCitations";
+import type { ChatCitation } from "@/lib/chat-types";
 import { getPromptSuggestionsByCategory, PROMPT_TIP } from "@/lib/prompt-suggestions";
 import { SCENARIO_TEMPLATES } from "@/lib/scenario-templates";
-
-type Source = { title: string; tier: string; slug: string };
+import { consumeSseBuffer } from "@/lib/sse";
 
 export function ChatPanel({ signedIn }: { signedIn: boolean }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [questionId, setQuestionId] = useState<string | null>(null);
-  const [sources, setSources] = useState<Source[] | null>(null);
+  const [sources, setSources] = useState<ChatCitation[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!answer) return;
-    answerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    answerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [answer]);
 
   useEffect(() => {
-    if (!loading) return;
+    if (!loading || answer) return;
     loadingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [loading]);
+  }, [loading, answer]);
 
   const suggestionsByCategory = useMemo(() => getPromptSuggestionsByCategory(), []);
 
@@ -40,9 +42,26 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
       const el = textareaRef.current;
       if (!el) return;
       el.focus();
-      const pos = text.includes("想請教：") ? text.length : text.length;
-      el.setSelectionRange(pos, pos);
+      el.setSelectionRange(text.length, text.length);
     });
+  }
+
+  function applyNotice(model?: string, warning?: string, retrievalMode?: string) {
+    if (model === "off-topic" || retrievalMode === "off-topic") {
+      setNotice(null);
+      return;
+    }
+    if (warning === "openai-unavailable" || model === "keyword-fallback") {
+      setNotice("目前以 RAG 檢索摘錄回覆（未使用 OpenAI 生成）。");
+      return;
+    }
+    if (typeof retrievalMode === "string" && retrievalMode.includes("question-bank")) {
+      setNotice("法規／函釋與題庫檢索後整合多則片段作答。");
+      return;
+    }
+    if (typeof retrievalMode === "string" && retrievalMode.startsWith("rag-")) {
+      setNotice(`已自法規／函釋清單及題庫檢索全文並產生回答（${retrievalMode}）。`);
+    }
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -56,38 +75,107 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
     setNotice(null);
     setAnswer(null);
     setQuestionId(null);
-    setSources(null);
+    setSources([]);
     setLoading(true);
+    setStreaming(false);
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
         body: JSON.stringify({ question: trimmed }),
       });
-      const data = await res.json().catch(() => ({}));
+
+      const contentType = res.headers.get("content-type") ?? "";
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         setError(typeof data.error === "string" ? data.error : "伺服器錯誤");
         return;
       }
-      setAnswer(data.answer ?? "");
-      setQuestionId(typeof data.questionId === "string" ? data.questionId : null);
-      setSources(Array.isArray(data.sources) ? data.sources : []);
-      if (data.model === "off-topic" || data.retrievalMode === "off-topic") {
-        setNotice(null);
-      } else if (data.warning === "openai-unavailable" || data.model === "keyword-fallback") {
-        setNotice("目前以 RAG 檢索摘錄回覆（未使用 OpenAI 生成）。");
-      } else if (
-        typeof data.retrievalMode === "string" &&
-        data.retrievalMode.includes("question-bank")
-      ) {
-        setNotice("法規／函釋與題庫檢索後整合多則片段作答。");
-      } else if (typeof data.retrievalMode === "string" && data.retrievalMode.startsWith("rag-")) {
-        setNotice(`已自法規／函釋清單及題庫檢索全文並產生回答（${data.retrievalMode}）。`);
+
+      if (!contentType.includes("text/event-stream") || !res.body) {
+        setError("伺服器未以串流回應，請重新整理後再試。");
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let assembled = "";
+      let hadStreamError = false;
+      let retrievalMode: string | undefined;
+      let model: string | undefined;
+      let warning: string | undefined;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const { events, rest } = consumeSseBuffer(buffer);
+        buffer = rest;
+
+        for (const ev of events) {
+          let payload: Record<string, unknown> = {};
+          try {
+            payload = JSON.parse(ev.data) as Record<string, unknown>;
+          } catch {
+            continue;
+          }
+
+          if (ev.event === "meta") {
+            if (typeof payload.questionId === "string") {
+              setQuestionId(payload.questionId);
+            }
+            if (Array.isArray(payload.sources)) {
+              setSources(payload.sources as ChatCitation[]);
+            }
+            if (typeof payload.retrievalMode === "string") {
+              retrievalMode = payload.retrievalMode;
+            }
+            if (typeof payload.model === "string") {
+              model = payload.model;
+            }
+            if (typeof payload.warning === "string") {
+              warning = payload.warning;
+            }
+          } else if (ev.event === "token") {
+            const text = typeof payload.text === "string" ? payload.text : "";
+            if (text) {
+              assembled += text;
+              setStreaming(true);
+              setAnswer(assembled);
+            }
+          } else if (ev.event === "done") {
+            if (typeof payload.answer === "string") {
+              assembled = payload.answer;
+              setAnswer(assembled);
+            }
+            if (typeof payload.model === "string") model = payload.model;
+            if (typeof payload.warning === "string") warning = payload.warning;
+            if (typeof payload.retrievalMode === "string") {
+              retrievalMode = payload.retrievalMode;
+            }
+            applyNotice(model, warning, retrievalMode);
+          } else if (ev.event === "error") {
+            hadStreamError = true;
+            setError(
+              typeof payload.error === "string" ? payload.error : "處理問題時發生錯誤",
+            );
+          }
+        }
+      }
+
+      if (!assembled && !hadStreamError) {
+        setError("未收到回答內容，請稍後再試。");
       }
     } catch {
       setError("無法連線，請稍後再試。");
     } finally {
       setLoading(false);
+      setStreaming(false);
     }
   }
 
@@ -113,7 +201,7 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
               <Link href="/regulations" className="no-underline hover:underline">
                 「法規／函釋／題庫清單」
               </Link>
-              及題庫 檢索整合分析全文（非摘要）以找出解答（仍須有檢索依據）。與政府採購法規無關之問題將直接回覆「非本主題的範圍」。
+              及題庫檢索整合分析全文（非摘要）以找出解答；回答會以串流顯示，並附可點擊的條文引用標籤。與政府採購法規無關之問題將直接回覆「非本主題的範圍」。
             </p>
           </div>
         </div>
@@ -163,7 +251,7 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
               {loading ? (
                 <>
                   <span className="chat-submit-spinner" aria-hidden="true" />
-                  處理中…
+                  {streaming ? "回答產生中…" : "處理中…"}
                 </>
               ) : (
                 "送出"
@@ -198,10 +286,9 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
             ))}
           </div>
         </div>
-
       </form>
 
-      {loading ? (
+      {loading && !answer ? (
         <div
           ref={loadingRef}
           className="chat-block-loading mt-6 rounded-lg p-5"
@@ -221,7 +308,7 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
                   <span />
                   <span />
                 </span>
-                <p className="text-sm font-semibold text-amber-900">正在檢索法規並產生回答</p>
+                <p className="text-sm font-semibold text-amber-900">正在檢索法規並串流產生回答</p>
               </div>
               <p className="mt-2 text-xs text-amber-800/80">比對法規／函釋與題庫中，請稍候…</p>
               <div className="chat-loading-bar mt-3" aria-hidden="true">
@@ -239,26 +326,19 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
       ) : null}
 
       {answer ? (
-        <div
-          ref={answerRef}
-          className="chat-block-answer mt-6 space-y-4 rounded-lg p-5"
-        >
-          <h2 className="text-base font-semibold">回答</h2>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">{answer}</div>
-          {sources && sources.length > 0 ? (
-            <div>
-              <h3 className="text-sm font-semibold text-[var(--muted)]">參考來源（摘錄所屬法規／函釋）</h3>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                {sources.map((s, i) => (
-                  <li key={`${s.slug}-${i}`}>
-                    {s.title}
-                    <span className="text-[var(--muted)]">（{s.tier}）</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <div ref={answerRef} className="chat-block-answer mt-6 space-y-4 rounded-lg p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">回答</h2>
+            {streaming ? (
+              <span className="text-xs font-medium text-amber-800" aria-live="polite">
+                串流輸出中…
+              </span>
+            ) : null}
+          </div>
+          <AnswerWithCitations answer={answer} citations={sources} streaming={streaming} />
+          {questionId && !streaming ? (
+            <AnswerFeedback key={questionId} questionId={questionId} />
           ) : null}
-          {questionId ? <AnswerFeedback key={questionId} questionId={questionId} /> : null}
         </div>
       ) : null}
     </section>

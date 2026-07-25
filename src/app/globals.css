@@ -217,3 +217,22 @@ a {
     transform: translateX(350%);
   }
 }
+
+/* 串流打字游標 */
+.citation-caret {
+  animation: citation-caret-blink 1s step-end infinite;
+}
+
+@keyframes citation-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.citation-modal::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}

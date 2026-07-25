@@ -153,13 +153,47 @@ const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索�
 
 使用繁體中文，語氣專業、清楚。`;
 
-export async function generateGroundedAnswer(
+export type AnswerStreamEvent =
+  | { type: "token"; text: string }
+  | { type: "done"; answer: string; model: string; warning?: string };
+
+async function* yieldTextAsTokens(
+  text: string,
+  model: string,
+  warning?: string,
+): AsyncGenerator<AnswerStreamEvent> {
+  const chunkSize = 28;
+  for (let i = 0; i < text.length; i += chunkSize) {
+    yield { type: "token", text: text.slice(i, i + chunkSize) };
+  }
+  yield { type: "done", answer: text, model, warning };
+}
+
+function buildUserPrompt(
   question: string,
   chunks: ChunkWithReg[],
   options?: { questionBankHint?: string },
-): Promise<AnswerResult> {
+): string {
+  const context = formatRagContext(chunks);
+  const bankNote = options?.questionBankHint
+    ? `\n\n（題庫導引：${options.questionBankHint}）`
+    : "";
+  const tierGuidance = analyzeAmountTierQuestion(question)?.guidance;
+  const bidderGuidance = analyzeOpeningBidderCount(question)?.guidance;
+  const systemGuidance = [tierGuidance, bidderGuidance].filter(Boolean).join("\n\n");
+  const guideNote = systemGuidance ? `\n\n${systemGuidance}` : "";
+  return `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}${guideNote}\n\n請整合上列片段作答；若為金額級距或開標家數問題，須給出明確結論。特別注意：第22條第1項第9款不適用財物／工程，不可與財物級距結論錯誤搭配「依第9款第一次開標1家」。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`;
+}
+
+/** SSE／打字機效果：逐步輸出 token，最後以 done 結束 */
+export async function* streamGroundedAnswer(
+  question: string,
+  chunks: ChunkWithReg[],
+  options?: { questionBankHint?: string },
+): AsyncGenerator<AnswerStreamEvent> {
   if (!isOnTopicQuestion(question)) {
-    return { answer: OFF_TOPIC_REPLY, model: "off-topic" };
+    yield* yieldTextAsTokens(OFF_TOPIC_REPLY, "off-topic");
+    return;
   }
 
   if (chunks.length === 0) {
@@ -180,79 +214,93 @@ export async function generateGroundedAnswer(
         "找不到與您問題相關的全文匹配（非摘要）。系統已嘗試法規／函釋清單與題庫輔助檢索。請至「法規／函釋清單」查閱全文，或改以較具體的法規／函釋用語重新提問。";
     }
 
-    return { answer, model: "no-chunks" };
+    yield* yieldTextAsTokens(answer, "no-chunks");
+    return;
   }
 
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   const aiDisabled = process.env.OPENAI_DISABLED === "true" || process.env.OPENAI_DISABLED === "1";
-  const tierGuidance = analyzeAmountTierQuestion(question)?.guidance;
-  const bidderGuidance = analyzeOpeningBidderCount(question)?.guidance;
-  const systemGuidance = [tierGuidance, bidderGuidance].filter(Boolean).join("\n\n");
 
   if (!apiKey || aiDisabled) {
     const deterministic = buildDeterministicAnswer(question, chunks);
     if (deterministic) {
       const bidder = analyzeOpeningBidderCount(question);
-      return {
-        answer: deterministic,
-        model:
-          bidder?.mode === "art22_9_inapplicable"
-            ? "art22-scope-guard"
-            : bidder?.minQualifiedVendors != null
-              ? "opening-bidder-rules"
-              : "amount-tier-rules",
-        warning: !apiKey ? "openai-unavailable" : undefined,
-      };
+      const model =
+        bidder?.mode === "art22_9_inapplicable"
+          ? "art22-scope-guard"
+          : bidder?.minQualifiedVendors != null
+            ? "opening-bidder-rules"
+            : "amount-tier-rules";
+      yield* yieldTextAsTokens(deterministic, model, !apiKey ? "openai-unavailable" : undefined);
+      return;
     }
-    return excerptFallback(
+    const fallback = excerptFallback(
       chunks,
       !apiKey
         ? "尚未設定 OPENAI_API_KEY，以下為 RAG 檢索摘錄，供您自行對照：\n\n"
         : "已停用 OpenAI 生成回答，以下為 RAG 檢索摘錄：\n\n",
     );
+    yield* yieldTextAsTokens(fallback.answer, fallback.model, fallback.warning);
+    return;
   }
 
   const client = new OpenAI({ apiKey });
-  const context = formatRagContext(chunks);
-  const bankNote = options?.questionBankHint
-    ? `\n\n（題庫導引：${options.questionBankHint}）`
-    : "";
-  const guideNote = systemGuidance ? `\n\n${systemGuidance}` : "";
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: RAG_SYSTEM_PROMPT },
+    { role: "user", content: buildUserPrompt(question, chunks, options) },
+  ];
 
   try {
     const completion = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
       temperature: 0.1,
-      messages: [
-        { role: "system", content: RAG_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}${guideNote}\n\n請整合上列片段作答；若為金額級距或開標家數問題，須給出明確結論。特別注意：第22條第1項第9款不適用財物／工程，不可與財物級距結論錯誤搭配「依第9款第一次開標1家」。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
-        },
-      ],
+      stream: true,
+      messages,
     });
 
-    const answer = completion.choices[0]?.message?.content?.trim() ?? "無法產生回答。";
-    return { answer, model: completion.model };
+    let answer = "";
+    let model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+    for await (const part of completion) {
+      if (part.model) model = part.model;
+      const text = part.choices[0]?.delta?.content;
+      if (text) {
+        answer += text;
+        yield { type: "token", text };
+      }
+    }
+    const finalAnswer = answer.trim() || "無法產生回答。";
+    yield { type: "done", answer: finalAnswer, model };
   } catch (err) {
-    console.error("[answer] OpenAI error:", err);
+    console.error("[answer] OpenAI stream error:", err);
 
     const deterministic = buildDeterministicAnswer(question, chunks);
     if (deterministic) {
-      return {
-        answer: deterministic,
-        model: "rules-fallback",
-        warning: "openai-unavailable",
-      };
+      yield* yieldTextAsTokens(deterministic, "rules-fallback", "openai-unavailable");
+      return;
     }
 
-    if (isOpenAIQuotaError(err)) {
-      return excerptFallback(
-        chunks,
-        "OpenAI 額度不足，以下為 RAG 檢索摘錄（非 AI 整理解答）：\n\n",
-      );
-    }
-
-    return excerptFallback(chunks, "AI 服務暫時無法連線，以下為 RAG 檢索摘錄：\n\n");
+    const fallback = isOpenAIQuotaError(err)
+      ? excerptFallback(chunks, "OpenAI 額度不足，以下為 RAG 檢索摘錄（非 AI 整理解答）：\n\n")
+      : excerptFallback(chunks, "AI 服務暫時無法連線，以下為 RAG 檢索摘錄：\n\n");
+    yield* yieldTextAsTokens(fallback.answer, fallback.model, fallback.warning);
   }
+}
+
+export async function generateGroundedAnswer(
+  question: string,
+  chunks: ChunkWithReg[],
+  options?: { questionBankHint?: string },
+): Promise<AnswerResult> {
+  let answer = "";
+  let model = "unknown";
+  let warning: string | undefined;
+  for await (const ev of streamGroundedAnswer(question, chunks, options)) {
+    if (ev.type === "token") answer += ev.text;
+    if (ev.type === "done") {
+      answer = ev.answer;
+      model = ev.model;
+      warning = ev.warning;
+    }
+  }
+  return { answer, model, warning };
 }

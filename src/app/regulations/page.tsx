@@ -70,7 +70,11 @@ npm run corpus:rag-init   # 選填，語意檢索需 OPENAI_API_KEY`}
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-[var(--border)] align-top">
+              <tr
+                key={r.id}
+                id={r.slug}
+                className="border-b border-[var(--border)] align-top scroll-mt-24"
+              >
                 <td className="py-3 pr-4 whitespace-nowrap">{tierLabel(r.tier)}</td>
                 <td className="py-3 pr-4">
                   <div className="font-medium">{r.title}</div>
