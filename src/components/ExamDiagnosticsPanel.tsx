@@ -97,7 +97,7 @@ export function ExamDiagnosticsPanel({
 
       {skipped > 0 ? (
         <p className="mt-3 text-xs text-[var(--muted)]">
-          錯題較多，本次先診斷前 {items.length} 題，其餘 {skipped} 題可按「重新診斷」繼續。
+          錯題較多，本次先診斷前 {items.length} 題，其餘 {skipped} 題可按「繼續診斷其餘錯題」。
         </p>
       ) : null}
 
