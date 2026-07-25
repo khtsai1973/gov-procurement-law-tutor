@@ -21,6 +21,9 @@ export async function Nav() {
         <Link href="/regulations" className="no-underline hover:underline">
           法規／函釋／題庫清單
         </Link>
+        <Link href="/question-bank" className="no-underline hover:underline">
+          題庫
+        </Link>
         <Link href="/materials" className="no-underline hover:underline">
           單元教材
         </Link>

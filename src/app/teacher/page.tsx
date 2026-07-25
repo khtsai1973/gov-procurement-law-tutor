@@ -17,10 +17,11 @@ export default async function TeacherHomePage() {
 
   await ensureTeacherSchema();
 
-  const [materialCount, publishedCount, students] = await Promise.all([
+  const [materialCount, publishedCount, students, questionBankCount] = await Promise.all([
     prisma.unitMaterial.count(),
     prisma.unitMaterial.count({ where: { published: true } }),
     loadAllStudentsLearning(),
+    prisma.questionBankItem.count(),
   ]);
 
   const withExams = students.filter((s) => s.examSessionCount > 0).length;
@@ -32,7 +33,7 @@ export default async function TeacherHomePage() {
           <div>
             <h1 className="text-xl font-semibold">老師工作台</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              身分：{roleLabel(session.user.role)}。可製作單元教材，並檢視學員學習成績。
+              身分：{roleLabel(session.user.role)}。可製作單元教材、管理題庫，並檢視學員學習成績。
             </p>
           </div>
           <Link href="/" className="text-sm no-underline hover:underline">
@@ -40,14 +41,18 @@ export default async function TeacherHomePage() {
           </Link>
         </div>
 
-        <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-3">
             <dt className="text-xs text-[var(--muted)]">單元教材數</dt>
             <dd className="mt-1 text-xl font-semibold">{materialCount}</dd>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-3">
-            <dt className="text-xs text-[var(--muted)]">已發布</dt>
+            <dt className="text-xs text-[var(--muted)]">已發布教材</dt>
             <dd className="mt-1 text-xl font-semibold">{publishedCount}</dd>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-3">
+            <dt className="text-xs text-[var(--muted)]">題庫題數</dt>
+            <dd className="mt-1 text-xl font-semibold">{questionBankCount}</dd>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-3">
             <dt className="text-xs text-[var(--muted)]">學員人數</dt>
@@ -65,6 +70,12 @@ export default async function TeacherHomePage() {
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white no-underline hover:bg-blue-800"
           >
             製作單元教材
+          </Link>
+          <Link
+            href="/teacher/question-bank"
+            className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white no-underline hover:bg-blue-800"
+          >
+            管理題庫
           </Link>
           <Link
             href="/teacher/students"
