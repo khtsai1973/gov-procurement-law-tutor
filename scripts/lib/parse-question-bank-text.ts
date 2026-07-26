@@ -4,8 +4,9 @@
  */
 import type { QuestionBankEntry } from "../../src/lib/question-bank-types";
 
+/** 僅略過整行即為表頭／頁碼者；不可用 ^案 等前綴，以免吃掉「標\\n案。」續行 */
 const SKIP_LINE =
-  /^(?:資料產生日期|編|號|答|案|試|題|--\s*\d+\s+of\s+\d+\s*--|第\s*\d+\s*$|條\s*$)/;
+  /^(?:資料產生日期.*|--\s*\d+\s+of\s+\d+\s*--|第\s*\d+\s*$|條\s*$|編|號|答|案|試|題)$/;
 
 /** 選擇題：編號 答案(1-4) 題幹（pdf-parse 常省略答案與題幹間空白；題幹可換行） */
 const MC_LINE_RE = /^(\d{1,4})\s+([1-4])(?:\s+|(?=[\u4e00-\u9fff（(]))(.*)$/;
@@ -123,14 +124,28 @@ export function isSectionTitle(line: string): boolean {
   return true;
 }
 
+function endsTruncated(question: string): boolean {
+  const q = question.replace(/\s+/g, "").trim();
+  if (!q) return true;
+  // 句中標點／連詞收尾，常見於 PDF 換頁截斷
+  if (/[，、：；]$/.test(q)) return true;
+  if (TRUNCATED_END_RE.test(q)) return true;
+  return false;
+}
+
 export function isLikelyIncompleteQuestion(question: string): boolean {
   const q = question.replace(/\s+/g, "").trim();
   if (q.length < 12) return true;
   if (TRUNCATED_START_RE.test(q)) return true;
+  if (endsTruncated(q)) return true;
   // 選擇題從選項 3/4 開頭 → 題幹被截斷
   if (/^[(（]\s*[34]\s*[)）]/.test(q)) return true;
   // 是非／選擇題開頭像條文續句
   if (/^條(第|及|至|規定)/.test(q)) return true;
+  // 頁中被切斷後的續句（無題號、無「下列」起首）
+  if (/^(?:方得|得為|始得|不得|應|其|並|或|及|且)/.test(q) && !/[？?]/.test(q)) {
+    return true;
+  }
   return false;
 }
 
@@ -202,12 +217,16 @@ function optionCount(question: string): number {
 function looksCompleteQuestion(question: string, questionType: string): boolean {
   const q = question.replace(/\s+/g, " ").trim();
   if (q.length < 15) return false;
+  if (endsTruncated(q)) return false;
   if (questionType === "是非題") {
     return /[。．！？?]$/.test(q) || q.length >= 20;
   }
   const opts = optionCount(q);
-  // 至少 3 個選項，或已有問句且至少 2 個選項
-  return opts >= 3 || (opts >= 2 && /[？?]/.test(q));
+  const compact = q.replace(/\s+/g, "");
+  const endsClean = /[。．！？?）)]$/.test(compact);
+  // 4 選項：標準完整；2–3 選項且有問句、收尾乾淨：視為完整以免殘片誤併
+  if (opts >= 4) return true;
+  return opts >= 2 && /[？?]/.test(q) && endsClean;
 }
 
 /** 將疑似截斷的題目併回「尚未完整」的上一題；已完整者則丟棄殘片 */
@@ -215,22 +234,42 @@ export function mergeIncompleteQuestions(items: RawParsedQuestion[]): RawParsedQ
   const out: RawParsedQuestion[] = [];
   for (const item of items) {
     const body = joinQuestionBody(item.questionLines);
-    if (isLikelyIncompleteQuestion(body)) {
-      if (out.length > 0) {
-        const prev = out[out.length - 1]!;
-        const prevBody = joinQuestionBody(prev.questionLines);
-        if (!looksCompleteQuestion(prevBody, prev.questionType)) {
-          prev.questionLines.push(...item.questionLines);
-        }
-      }
+    const prev = out.length > 0 ? out[out.length - 1]! : null;
+    const prevBody = prev ? joinQuestionBody(prev.questionLines) : "";
+    const prevNeedsMore = Boolean(
+      prev && (!looksCompleteQuestion(prevBody, prev.questionType) || endsTruncated(prevBody)),
+    );
+
+    if (prevNeedsMore && (isLikelyIncompleteQuestion(body) || endsTruncated(prevBody))) {
+      prev!.questionLines.push(...item.questionLines);
       continue;
     }
+
+    if (isLikelyIncompleteQuestion(body)) {
+      // 孤立殘片：丟棄，避免污染下一題
+      continue;
+    }
+
     out.push({
       ...item,
       questionLines: [...item.questionLines],
     });
   }
   return out;
+}
+
+/** 頁首重複章節／條號不應切斷正在組裝的題目 */
+function shouldIgnoreSectionTitle(
+  line: string,
+  sectionTitle: string,
+  current: RawParsedQuestion | null,
+): boolean {
+  if (line === sectionTitle) return true;
+  if (!current) return false;
+  const body = joinQuestionBody(current.questionLines);
+  if (looksCompleteQuestion(body, current.questionType)) return false;
+  // 未完題中插入的條號／短標題多為頁眉
+  return isArticleSection(line) || KNOWN_SECTION_TITLES.has(line);
 }
 
 function parseQuestionBankLines(text: string): RawParsedQuestion[] {
@@ -261,6 +300,9 @@ function parseQuestionBankLines(text: string): RawParsedQuestion[] {
     }
 
     if (isSectionTitle(line)) {
+      if (shouldIgnoreSectionTitle(line, sectionTitle, current)) {
+        continue;
+      }
       flush();
       sectionTitle = line;
       continue;
@@ -377,6 +419,9 @@ function parseSplitColumnLines(text: string): RawParsedQuestion[] {
     }
 
     if (isSectionTitle(line)) {
+      if (shouldIgnoreSectionTitle(line, sectionTitle, current)) {
+        continue;
+      }
       flush();
       pendingNum = null;
       pendingAns = null;
@@ -596,11 +641,15 @@ export function toQuestionBankEntry(raw: RawParsedQuestion): QuestionBankEntry |
   const questionBody = joinQuestionBody(raw.questionLines);
   if (questionBody.length < 12) return null;
   if (isLikelyIncompleteQuestion(questionBody)) return null;
+  if (endsTruncated(questionBody)) return null;
   if (raw.questionType === "選擇題") {
     const opts = optionCount(questionBody);
     // 明顯截斷：選擇題應至少有 3 個選項標記，否則多為 PDF 斷行殘缺
     if (opts > 0 && opts < 3) return null;
-    if (opts === 0 && /[，、：；]$/.test(questionBody)) return null;
+    // 僅 3 個選項且未以句號／括號收尾 → 多半缺選項 (4)
+    if (opts === 3 && !/[。．！？?）)]$/.test(questionBody.replace(/\s+/g, "").trim())) {
+      return null;
+    }
   }
 
   const { relatedSlugs, category } = inferSlugsAndCategory(questionBody, raw.category);

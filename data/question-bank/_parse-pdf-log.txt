@@ -1,8 +1,8 @@
 pdf=/workspace/政府採購法規全部題庫.pdf
-started=2026-07-26T03:29:14.916Z
+started=2026-07-26T03:31:39.606Z
 size_bytes=916067
 extract_method=pdf-parse
 raw_chars=314237
 parsed_raw=886
-entries=881
-with_hint_answer=881
+entries=886
+with_hint_answer=886

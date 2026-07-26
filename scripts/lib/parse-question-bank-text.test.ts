@@ -144,6 +144,55 @@ const mergeIntoIncomplete = mergeIncompleteQuestions([
 assert.equal(mergeIntoIncomplete.length, 1);
 assert.ok(joinIncludes(mergeIntoIncomplete[0]!, "(4)丁"));
 
+// 頁首重複「第 N 條」不得切斷題幹；續句應留在同一題
+const pageHeaderMidQuestion = `
+第 36 條
+選擇題
+1321有關投標廠商資格之敘述，何者為正確？ (1)甲。 (2)乙。 (3)票據交換機構於等標期內所出具之非拒絕往來戶或最近3年內無退票紀錄證明，
+第 36 條
+方得為廠商信用之證明。 (4)工廠登記證明文件為投標廠商特定資格。
+1333機關訂定招標文件，何者正確？ (1)甲。 (2)乙。 (3)丙。 (4)丁。
+`;
+const pageHeaderParsed = parseQuestionBankText(pageHeaderMidQuestion);
+assert.equal(pageHeaderParsed.length, 2, "page-header 第 N 條 must not split a question");
+assert.ok(
+  joinIncludes(pageHeaderParsed[0]!, "方得為廠商信用之證明"),
+  "continuation after page header stays in same question",
+);
+assert.ok(joinIncludes(pageHeaderParsed[0]!, "(4)工廠登記"));
+const pageHeaderEntries = rawToEntries(pageHeaderParsed);
+assert.equal(pageHeaderEntries.length, 2);
+assert.ok(!pageHeaderEntries[0]!.question.endsWith("，"), "must not keep truncated ending");
+
+// 末端截斷且缺選項 (4) 的題目不得進題庫
+const truncatedTail = rawToEntries([
+  {
+    number: "9",
+    category: "第 36 條｜選擇題",
+    questionType: "選擇題",
+    questionLines: [
+      "有關投標廠商資格之敘述，何者為正確？ (1)甲。 (2)乙。 (3)票據交換機構於等標期內所出具之證明，",
+    ],
+    answer: "1",
+  },
+]);
+assert.equal(truncatedTail.length, 0, "truncated MC ending with comma must be dropped");
+
+// 「標\\n案。」續行不得被表頭 SKIP_LINE 吃掉
+const anCaseWrap = `
+工程及技術服務採購作業
+選擇題
+151下列何者正確？ (1)廠商承辦專案管理技術服務，不得承攬受其管理之標
+案。 (2)設計、監造等技術服務採購案，得委由公立專科以上技專校院相關
+科系所之專任教師辦理並簽證之。 (3)委託監造服務案亦得同時委由承辦統
+包案之細部設計廠商辦理，以提升效率。 (4)委託技術服務採服務成本加公
+費法計費者，廠商應記錄各項費用並提出憑證，且應為正本。
+`;
+const anCaseParsed = parseQuestionBankText(anCaseWrap);
+assert.equal(anCaseParsed.length, 1);
+assert.ok(joinIncludes(anCaseParsed[0]!, "(2)設計"), "案。 continuation must keep option (2)");
+assert.ok(joinIncludes(anCaseParsed[0]!, "不得承攬受其管理之標案"));
+
 console.log("parse-question-bank-text: ok");
 
 function sectionOf(q: { category: string }): string {
