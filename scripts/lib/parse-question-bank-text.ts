@@ -25,9 +25,40 @@ const TF_BLOCK_RE =
   /(?:^|\n)\s*(\d{1,4})\s+([OXox])(?:\s+|(?=[\u4e00-\u9fff（(]))([\s\S]*?)(?=(?:\n\s*\d{1,4}\s+[1-4OXox](?:\s+|(?=[\u4e00-\u9fff（(])))|\n(?:選擇題|是非題|複選題|問答題)\s*(?:\n|$)|$)/g;
 
 const SECTION_LINE_RE =
-  /^[\u4e00-\u9fff][\u4e00-\u9fffA-Za-z0-9、（）()《》「」\-—\s]{1,48}$/;
+  /^[\u4e00-\u9fff][\u4e00-\u9fffA-Za-z0-9、（）()《》「」\-—\s]{1,40}$/;
 
 const QUESTION_TYPE_RE = /^(選擇題|是非題|複選題|問答題)$/;
+
+/** PDF 中常見、可信的章節／單元標題（避免題幹換行被誤判為分類） */
+const KNOWN_SECTION_TITLES = new Set([
+  "工程及技術服務採購作業",
+  "財物及勞務採購作業",
+  "政府採購全生命週期概論",
+  "政府採購法之爭議處理",
+  "政府採購法之總則、招標及決標",
+  "政府採購法之罰則及附則",
+  "電子採購實務",
+  "底價及價格分析",
+  "道德規範及違法處置",
+  "採購人員倫理",
+  "投標須知及招標文件製作",
+  "採購契約",
+  "未達公告金額",
+  "錯誤採購態樣",
+  "金額門檻",
+  "最有利標",
+  "最有利標及評選優勝廠商",
+  "議價比減",
+  "招標期限",
+  "中國大陸廠牌資通訊產品、不得提供公務機密予AI及使用AI履約須報機關同意",
+]);
+
+/** 題幹／選項換行常見片段，絕不可當分類 */
+const QUESTION_FRAGMENT_RE =
+  /下列|何者|何種|敘述|錯誤|正確|有關|關於|不得|應親自|依採購|依「|會議者|廠商者|投標時須|招標文件|公開發給|公開閱覽|最近三|所任職務|百分比參考表|上級機關核|不得參加投標|[？?]|\([1-4]\)|（[1-4]）/;
+
+const TRUNCATED_END_RE = /[之的與及或為應其於以、，；：]$/;
+const TRUNCATED_START_RE = /^(?:[條之的與及或為應其於以、，。；]|[)）]|(?:[(（]\s*[34]\s*[)）])|以下若干|以上)/;
 
 export type RawParsedQuestion = {
   number: string;
@@ -53,14 +84,8 @@ export function normalizePdfText(raw: string): string {
   const newlineCount = (text.match(/\n/g) ?? []).length;
   if (newlineCount < text.length / 120) {
     text = text
-      .replace(
-        /(\d{1,4})\s+([1-4]|[OXox])(?=\s|[\u4e00-\u9fff（(])/g,
-        "\n$1 $2 ",
-      )
-      .replace(
-        /(\d{2,})([1-4])(?=[\u4e00-\u9fff（(])/g,
-        "\n$1$2",
-      );
+      .replace(/(\d{1,4})\s+([1-4]|[OXox])(?=\s|[\u4e00-\u9fff（(])/g, "\n$1 $2 ")
+      .replace(/(\d{2,})([1-4])(?=[\u4e00-\u9fff（(])/g, "\n$1$2");
   }
 
   return text.trim();
@@ -71,15 +96,42 @@ function slugifyCategory(parts: string[]): string {
   return base
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
+    .slice(0, 40);
 }
 
-function isSectionTitle(line: string): boolean {
-  if (line.length < 3 || line.length > 50) return false;
-  if (MC_LINE_RE.test(line) || TF_LINE_RE.test(line)) return false;
-  if (SKIP_LINE.test(line)) return false;
-  if (/^\d/.test(line)) return false;
-  return SECTION_LINE_RE.test(line);
+function isArticleSection(line: string): boolean {
+  return /^第\s*\d{1,3}\s*條$/.test(line.trim());
+}
+
+export function isSectionTitle(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (KNOWN_SECTION_TITLES.has(trimmed)) return true;
+  if (isArticleSection(trimmed)) return true;
+
+  // 其餘標題須短且不像題幹／選項片段（過短如「綜合」多為噪訊）
+  if (trimmed.length < 4 || trimmed.length > 22) return false;
+  if (MC_LINE_RE.test(trimmed) || TF_LINE_RE.test(trimmed)) return false;
+  if (SKIP_LINE.test(trimmed)) return false;
+  if (/^\d/.test(trimmed)) return false;
+  if (QUESTION_FRAGMENT_RE.test(trimmed)) return false;
+  if (TRUNCATED_END_RE.test(trimmed) || TRUNCATED_START_RE.test(trimmed)) return false;
+  if (!SECTION_LINE_RE.test(trimmed)) return false;
+
+  // 過長「句子型」標題通常是題幹斷行
+  if (trimmed.length > 14 && /[，、；]/.test(trimmed)) return false;
+  return true;
+}
+
+export function isLikelyIncompleteQuestion(question: string): boolean {
+  const q = question.replace(/\s+/g, "").trim();
+  if (q.length < 12) return true;
+  if (TRUNCATED_START_RE.test(q)) return true;
+  // 選擇題從選項 3/4 開頭 → 題幹被截斷
+  if (/^[(（]\s*[34]\s*[)）]/.test(q)) return true;
+  // 是非／選擇題開頭像條文續句
+  if (/^條(第|及|至|規定)/.test(q)) return true;
+  return false;
 }
 
 /** pdf table columns merged: 13下列… → 題1答案3；101關於… → 題10答案1 */
@@ -95,6 +147,8 @@ function matchConcatenatedQuestionLine(
   const ans = digitRun.slice(-1);
   const num = digitRun.slice(0, -1);
   if (!num || num.startsWith("0")) return null;
+  // 不合理題號（掃描噪訊）捨棄
+  if (Number.parseInt(num, 10) > 400) return null;
 
   if (/[1-4]/.test(ans)) {
     return { num, ans, rest, mc: true };
@@ -105,7 +159,9 @@ function matchConcatenatedQuestionLine(
   return null;
 }
 
-function matchQuestionLine(line: string): { num: string; ans: string; rest: string; mc: boolean } | null {
+function matchQuestionLine(
+  line: string,
+): { num: string; ans: string; rest: string; mc: boolean } | null {
   const mc = line.match(MC_LINE_RE);
   if (mc) {
     return { num: mc[1]!, ans: mc[2]!, rest: (mc[3] ?? "").trim(), mc: true };
@@ -135,6 +191,48 @@ function makeQuestion(
   };
 }
 
+function joinQuestionBody(lines: string[]): string {
+  return lines.join("").replace(/\s+/g, " ").trim();
+}
+
+function optionCount(question: string): number {
+  return (question.match(/\(\s*[1-4]\s*\)/g) ?? []).length;
+}
+
+function looksCompleteQuestion(question: string, questionType: string): boolean {
+  const q = question.replace(/\s+/g, " ").trim();
+  if (q.length < 15) return false;
+  if (questionType === "是非題") {
+    return /[。．！？?]$/.test(q) || q.length >= 20;
+  }
+  const opts = optionCount(q);
+  // 至少 3 個選項，或已有問句且至少 2 個選項
+  return opts >= 3 || (opts >= 2 && /[？?]/.test(q));
+}
+
+/** 將疑似截斷的題目併回「尚未完整」的上一題；已完整者則丟棄殘片 */
+export function mergeIncompleteQuestions(items: RawParsedQuestion[]): RawParsedQuestion[] {
+  const out: RawParsedQuestion[] = [];
+  for (const item of items) {
+    const body = joinQuestionBody(item.questionLines);
+    if (isLikelyIncompleteQuestion(body)) {
+      if (out.length > 0) {
+        const prev = out[out.length - 1]!;
+        const prevBody = joinQuestionBody(prev.questionLines);
+        if (!looksCompleteQuestion(prevBody, prev.questionType)) {
+          prev.questionLines.push(...item.questionLines);
+        }
+      }
+      continue;
+    }
+    out.push({
+      ...item,
+      questionLines: [...item.questionLines],
+    });
+  }
+  return out;
+}
+
 function parseQuestionBankLines(text: string): RawParsedQuestion[] {
   const lines = normalizePdfText(text)
     .split("\n")
@@ -148,7 +246,7 @@ function parseQuestionBankLines(text: string): RawParsedQuestion[] {
 
   const flush = () => {
     if (!current) return;
-    const body = current.questionLines.join("").trim();
+    const body = joinQuestionBody(current.questionLines);
     if (body.length >= 4) items.push(current);
     current = null;
   };
@@ -181,7 +279,7 @@ function parseQuestionBankLines(text: string): RawParsedQuestion[] {
   }
 
   flush();
-  return items;
+  return mergeIncompleteQuestions(items);
 }
 
 function lookupContextBefore(
@@ -234,6 +332,7 @@ function parseQuestionBankBlocks(text: string): RawParsedQuestion[] {
     if (!/[1-4]/.test(ans)) continue;
     const num = digitRun.slice(0, -1);
     if (!num || num.startsWith("0")) continue;
+    if (Number.parseInt(num, 10) > 400) continue;
 
     const dedupeKey = `${num}:${ans}:${rest.slice(0, 40)}`;
     if (seen.has(dedupeKey)) continue;
@@ -243,7 +342,7 @@ function parseQuestionBankBlocks(text: string): RawParsedQuestion[] {
     items.push(makeQuestion(num, ans, rest, true, ctx.sectionTitle, ctx.questionType));
   }
 
-  return items;
+  return mergeIncompleteQuestions(items);
 }
 
 function parseSplitColumnLines(text: string): RawParsedQuestion[] {
@@ -261,7 +360,7 @@ function parseSplitColumnLines(text: string): RawParsedQuestion[] {
 
   const flush = () => {
     if (!current) return;
-    const body = current.questionLines.join("").trim();
+    const body = joinQuestionBody(current.questionLines);
     if (body.length >= 4) items.push(current);
     current = null;
   };
@@ -324,14 +423,7 @@ function parseSplitColumnLines(text: string): RawParsedQuestion[] {
     if (pendingNum && pendingAns && line.length >= 4) {
       flush();
       const mc = /^[1-4]$/.test(pendingAns);
-      current = makeQuestion(
-        pendingNum,
-        pendingAns,
-        line,
-        mc,
-        sectionTitle,
-        questionType,
-      );
+      current = makeQuestion(pendingNum, pendingAns, line, mc, sectionTitle, questionType);
       pendingNum = null;
       pendingAns = null;
       continue;
@@ -347,7 +439,7 @@ function parseSplitColumnLines(text: string): RawParsedQuestion[] {
   }
 
   flush();
-  return items;
+  return mergeIncompleteQuestions(items);
 }
 
 export function parseQuestionBankText(text: string): RawParsedQuestion[] {
@@ -433,50 +525,102 @@ const SLUG_RULES: Array<{ pattern: RegExp; slugs: string[]; category?: string }>
     slugs: ["vendor-qualification-standards", "government-procurement-act"],
   },
   {
-    pattern: /技術服務|監造|設計/,
+    pattern: /技術服務|監造|設計服務|建造費用百分比/,
     slugs: ["technical-service-selection-billing-rules", "government-procurement-act"],
+    category: "工程及技術服務採購作業",
+  },
+  {
+    pattern: /資訊服務|勞務採購|財物採購/,
+    slugs: ["government-procurement-act", "gpa-enforcement-rules"],
+    category: "財物及勞務採購作業",
   },
   {
     pattern: /倫理|饋贈|招待/,
     slugs: ["government-procurement-act"],
     category: "採購人員倫理",
   },
+  {
+    pattern: /電子領標|電子投標|電子採購/,
+    slugs: ["government-procurement-act"],
+    category: "電子採購實務",
+  },
+  {
+    pattern: /異議|申訴|調解|爭議處理/,
+    slugs: ["government-procurement-act"],
+    category: "政府採購法之爭議處理",
+  },
 ];
+
+function sectionBase(fallbackCategory: string): string {
+  return (fallbackCategory.split("｜")[0] ?? fallbackCategory).trim() || "題庫";
+}
+
+export function isGoodCategory(category: string): boolean {
+  const c = category.trim();
+  if (!c || c === "題庫") return false;
+  if (KNOWN_SECTION_TITLES.has(c)) return true;
+  if (isArticleSection(c)) return true;
+  if (c.length > 22) return false;
+  if (QUESTION_FRAGMENT_RE.test(c)) return false;
+  if (TRUNCATED_END_RE.test(c) || TRUNCATED_START_RE.test(c)) return false;
+  return c.length >= 2 && c.length <= 18;
+}
 
 export function inferSlugsAndCategory(
   question: string,
   fallbackCategory: string,
 ): { relatedSlugs: string[]; category: string } {
+  const section = sectionBase(fallbackCategory);
+
+  let relatedSlugs = ["government-procurement-act", "gpa-enforcement-rules"];
+  let keywordCategory: string | null = null;
   for (const rule of SLUG_RULES) {
     if (rule.pattern.test(question)) {
-      return {
-        relatedSlugs: rule.slugs,
-        category: rule.category ?? fallbackCategory.split("｜")[0] ?? fallbackCategory,
-      };
+      relatedSlugs = rule.slugs;
+      if (rule.category) keywordCategory = rule.category;
+      break;
     }
   }
-  return {
-    relatedSlugs: ["government-procurement-act", "gpa-enforcement-rules"],
-    category: fallbackCategory.split("｜")[0] ?? fallbackCategory,
-  };
+
+  // 可信章節標題優先，避免「公告金額」等關鍵詞把整章覆蓋成金額門檻
+  if (isGoodCategory(section)) {
+    return { relatedSlugs, category: section };
+  }
+  if (keywordCategory) {
+    return { relatedSlugs, category: keywordCategory };
+  }
+  return { relatedSlugs, category: "未分類章節" };
 }
 
-export function toQuestionBankEntry(raw: RawParsedQuestion): QuestionBankEntry {
-  const questionBody = raw.questionLines.join("").trim();
+export function toQuestionBankEntry(raw: RawParsedQuestion): QuestionBankEntry | null {
+  const questionBody = joinQuestionBody(raw.questionLines);
+  if (questionBody.length < 12) return null;
+  if (isLikelyIncompleteQuestion(questionBody)) return null;
+  if (raw.questionType === "選擇題") {
+    const opts = optionCount(questionBody);
+    // 明顯截斷：選擇題應至少有 3 個選項標記，否則多為 PDF 斷行殘缺
+    if (opts > 0 && opts < 3) return null;
+    if (opts === 0 && /[，、：；]$/.test(questionBody)) return null;
+  }
+
   const { relatedSlugs, category } = inferSlugsAndCategory(questionBody, raw.category);
   const keywords = extractKeywords(questionBody);
 
   let hintAnswer: string | undefined;
   if (raw.answer) {
     const ansLabel =
-      raw.questionType === "是非題"
-        ? raw.answer
-        : `選項 (${raw.answer})`;
+      raw.questionType === "是非題" ? raw.answer : `選項 (${raw.answer})`;
     hintAnswer = `【題庫】本題參考答案為 ${ansLabel}。正式作答須以檢索到的法規／函釋全文為準，勿僅依題庫背誦。`;
   }
 
-  const catSlug = slugifyCategory([raw.category]);
-  const key = `gpa-${catSlug}-${raw.number.padStart(4, "0")}`;
+  const typeSlug =
+    raw.questionType === "是非題"
+      ? "tf"
+      : raw.questionType === "選擇題"
+        ? "mc"
+        : slugifyCategory([raw.questionType]);
+  const catSlug = slugifyCategory([category]) || "topic";
+  const key = `gpa-${catSlug}-${typeSlug}-${raw.number.padStart(4, "0")}`;
 
   return {
     key,
@@ -490,12 +634,13 @@ export function toQuestionBankEntry(raw: RawParsedQuestion): QuestionBankEntry {
 
 export function rawToEntries(rawItems: RawParsedQuestion[]): QuestionBankEntry[] {
   const byKey = new Map<string, QuestionBankEntry>();
-  for (const raw of rawItems) {
+  for (const raw of mergeIncompleteQuestions(rawItems)) {
     const entry = toQuestionBankEntry(raw);
+    if (!entry) continue;
     let key = entry.key;
     let dup = 2;
     while (byKey.has(key)) {
-      key = `${entry.key}-dup${dup++}`;
+      key = `${entry.key}-d${dup++}`;
     }
     byKey.set(key, { ...entry, key });
   }
