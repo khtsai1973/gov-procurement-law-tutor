@@ -15,7 +15,7 @@ const bodySchema = z.object({
   count: z.union([z.literal(5), z.literal(10), z.literal(50)]),
   timedMode: z.boolean().optional().default(false),
   nickname: z.string().max(24).optional(),
-  /** 題庫分類複選；空陣列或未傳＝全部類別 */
+  /** 題庫類型（分類）複選；空陣列或未傳＝全部類型 */
   categories: z.array(z.string().trim().min(1).max(120)).max(200).optional(),
 });
 
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     const typeLabel = type === "TRUE_FALSE" ? "是非題" : "選擇題";
     const error =
       selectedCategories.length > 0
-        ? `所選類別中尚無可用的${typeLabel}`
+        ? `所選題庫類型中尚無可用的${typeLabel}`
         : `題庫中尚無${typeLabel}`;
     return NextResponse.json({ error }, { status: 404 });
   }

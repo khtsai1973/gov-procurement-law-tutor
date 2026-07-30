@@ -20,6 +20,7 @@ import {
   computeCategoryStats,
   formatDuration,
   mockExamTimeLimitSec,
+  type MockExamCategoryOption,
   type MockExamQuestionPayload,
   type MockExamQuestionType,
   type MockExamRegulationLink,
@@ -38,15 +39,10 @@ type QuestionState = MockExamQuestionPayload & {
   supplementSaved: boolean;
 };
 
-type CategoryOption = {
-  name: string;
-  count: number;
-};
-
 type MockExamPanelProps = {
   signedIn: boolean;
   initialNickname: string | null;
-  categories: CategoryOption[];
+  categories: MockExamCategoryOption[];
   history: ReactNode;
   analytics: ReactNode;
 };
@@ -197,6 +193,11 @@ export function MockExamPanel({
     resetExamState();
     setLoading(true);
     try {
+      const categoriesForRequest = selectedCategories.filter((name) => {
+        const row = categories.find((c) => c.name === name);
+        if (!row) return false;
+        return examType === "MULTIPLE_CHOICE" ? row.mcCount > 0 : row.tfCount > 0;
+      });
       const res = await fetch("/api/mock-exam/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -205,7 +206,7 @@ export function MockExamPanel({
           count: examCount,
           timedMode,
           nickname: nickname.trim() || undefined,
-          categories: selectedCategories,
+          categories: categoriesForRequest,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -231,15 +232,17 @@ export function MockExamPanel({
         return;
       }
       const categoryNote =
-        selectedCategories.length > 0
-          ? `（已限定 ${selectedCategories.length} 個類別）`
+        categoriesForRequest.length > 0
+          ? `（已限定 ${categoriesForRequest.length} 個類型）`
           : "";
       if (data.actual < data.requested) {
         setPoolNote(
           `題庫中此題型僅 ${data.totalInPool} 題${categoryNote}，已為您抽出 ${data.actual} 題。`,
         );
-      } else if (selectedCategories.length > 0) {
-        setPoolNote(`已依所選 ${selectedCategories.length} 個類別出題（題庫池 ${data.totalInPool} 題）。`);
+      } else if (categoriesForRequest.length > 0) {
+        setPoolNote(
+          `已依所選 ${categoriesForRequest.length} 個題庫類型出題（題庫池 ${data.totalInPool} 題）。`,
+        );
       }
 
       const limit =
@@ -383,9 +386,20 @@ export function MockExamPanel({
   }
 
   const categoryQueryNorm = categoryQuery.trim().toLowerCase();
+  const categoriesForType = categories
+    .map((c) => ({
+      ...c,
+      typeCount: examType === "MULTIPLE_CHOICE" ? c.mcCount : c.tfCount,
+    }))
+    .filter((c) => c.typeCount > 0);
   const visibleCategories = categoryQueryNorm
-    ? categories.filter((c) => c.name.toLowerCase().includes(categoryQueryNorm))
-    : categories;
+    ? categoriesForType.filter((c) => c.name.toLowerCase().includes(categoryQueryNorm))
+    : categoriesForType;
+  const selectedTypePool = (
+    selectedCategories.length > 0
+      ? categoriesForType.filter((c) => selectedCategories.includes(c.name))
+      : categoriesForType
+  ).reduce((sum, c) => sum + c.typeCount, 0);
 
   function toggleCategory(name: string) {
     setSelectedCategories((prev) =>
@@ -532,12 +546,12 @@ export function MockExamPanel({
             <div className="mt-6">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium">題庫類別（可複選）</p>
+                  <p className="text-sm font-medium">題庫類型（可複選）</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    未勾選＝全部類別
+                    依上方題型篩選可選類型；未勾選＝全部類型
                     {selectedCategories.length > 0
-                      ? `；目前已選 ${selectedCategories.length} 類`
-                      : ""}
+                      ? `；目前已選 ${selectedCategories.length} 類（約 ${selectedTypePool} 題）`
+                      : `（目前題型約 ${selectedTypePool} 題）`}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs">
@@ -563,15 +577,17 @@ export function MockExamPanel({
                 type="search"
                 value={categoryQuery}
                 onChange={(e) => setCategoryQuery(e.target.value)}
-                placeholder="搜尋類別名稱"
+                placeholder="搜尋題庫類型名稱"
                 className="mt-3 w-full max-w-md rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
               />
-              {categories.length === 0 ? (
-                <p className="mt-3 text-sm text-[var(--muted)]">尚無可選類別，請先匯入題庫。</p>
+              {categoriesForType.length === 0 ? (
+                <p className="mt-3 text-sm text-[var(--muted)]">
+                  目前題型尚無可選類型，請先匯入題庫或改選另一題型。
+                </p>
               ) : (
                 <div className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-[var(--border)] bg-white px-3 py-2">
                   {visibleCategories.length === 0 ? (
-                    <p className="py-2 text-sm text-[var(--muted)]">沒有符合的類別。</p>
+                    <p className="py-2 text-sm text-[var(--muted)]">沒有符合的類型。</p>
                   ) : (
                     <ul className="space-y-1.5">
                       {visibleCategories.map((c) => {
@@ -587,7 +603,9 @@ export function MockExamPanel({
                               />
                               <span className="min-w-0 flex-1 break-words">
                                 {c.name}
-                                <span className="ml-1 text-xs text-[var(--muted)]">({c.count})</span>
+                                <span className="ml-1 text-xs text-[var(--muted)]">
+                                  ({c.typeCount})
+                                </span>
                               </span>
                             </label>
                           </li>

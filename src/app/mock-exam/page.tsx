@@ -2,6 +2,7 @@ import { MockExamAnalyticsCharts } from "@/components/MockExamAnalyticsCharts";
 import { MockExamHistory } from "@/components/MockExamHistory";
 import { MockExamPanel } from "@/components/MockExamPanel";
 import type { MockExamAnalyticsData, MockExamHistoryRow } from "@/lib/mock-exam";
+import { buildMockExamCategoryOptions } from "@/lib/mock-exam";
 import { loadMockExamAnalytics } from "@/lib/mock-exam-analytics";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
@@ -20,17 +21,12 @@ export default async function MockExamPage() {
     frequentWrong: [],
   };
 
-  let categories: { name: string; count: number }[] = [];
+  let categories: ReturnType<typeof buildMockExamCategoryOptions> = [];
   try {
-    const categoryGroups = await prisma.questionBankItem.groupBy({
-      by: ["category"],
-      _count: { _all: true },
-      orderBy: { category: "asc" },
+    const bankItems = await prisma.questionBankItem.findMany({
+      select: { category: true, key: true, question: true },
     });
-    categories = categoryGroups.map((g) => ({
-      name: g.category,
-      count: g._count._all,
-    }));
+    categories = buildMockExamCategoryOptions(bankItems);
   } catch (e) {
     console.error("[mock-exam] load categories failed:", e);
   }
