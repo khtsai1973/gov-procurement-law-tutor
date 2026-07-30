@@ -104,3 +104,26 @@ export async function importQuestionBank(
 
   return { imported: entries.length, files: fileCount, synced };
 }
+
+/** 清空題庫後自磁碟 JSON 全量重匯（用於分類結構變更） */
+export async function replaceQuestionBankFromDisk(
+  prisma: PrismaClient,
+  source = "replace",
+): Promise<{
+  deleted: number;
+  imported: number;
+  files: number;
+  synced?: { categories: number; items: number; slugs: string[] };
+}> {
+  const entries = await loadQuestionBankEntriesFromDisk();
+  if (entries.length === 0) {
+    throw new Error(`題庫 JSON 不存在或為空（目錄：${DATA_DIR}）`);
+  }
+
+  const questionBankItem = getQuestionBankItemDelegate(prisma);
+  const deleted = await questionBankItem.deleteMany({});
+  console.log(`[question-bank] ${source}: deleted ${deleted.count} old item(s)`);
+
+  const imported = await importQuestionBank(prisma, source);
+  return { deleted: deleted.count, ...imported };
+}

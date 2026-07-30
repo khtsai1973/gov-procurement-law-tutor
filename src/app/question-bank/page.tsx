@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { isDatabaseReady } from "@/lib/ensure-db";
+import { ensureOfficialQuestionBankCategories } from "@/lib/ensure-question-bank-categories";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 import { canAccessTeacher } from "@/lib/roles";
@@ -31,6 +32,8 @@ export default async function QuestionBankPage({
   }
 
   try {
+    await ensureOfficialQuestionBankCategories();
+
     const grouped = await prisma.questionBankItem.groupBy({
       by: ["category"],
       _count: { _all: true },
