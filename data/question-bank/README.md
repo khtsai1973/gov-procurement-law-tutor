@@ -50,12 +50,25 @@ npm run corpus:question-bank-from-pdf
 .\scripts\run-question-bank-from-pdf.ps1
 ```
 
+解析器會：
+
+- 以可信章節標題為主分類（避免題幹換行被誤判成分類）
+- 略過頁首重複條號，避免題幹被「第 N 條」切斷
+- 合併／丟棄不正常截斷的題幹殘片（含選項未完、句中逗號收尾）
+- 關鍵詞僅補 `relatedSlugs`，不覆寫可信章節分類
+
 若 PDF 為掃描影像、擷取文字過短，請在本機執行：
 
 ```powershell
 pdftotext -enc UTF-8 "政府採購法規全部題庫.pdf" data\question-bank\gpa-full.txt
 npm run corpus:parse-question-bank-text -- --text data/question-bank/gpa-full.txt
 npm run corpus:import-question-bank
+```
+
+驗證解析：
+
+```powershell
+npx tsx scripts/lib/parse-question-bank-text.test.ts
 ```
 
 ## 匯入
