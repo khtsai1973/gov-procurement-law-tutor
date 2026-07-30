@@ -35,8 +35,10 @@ export type MockExamRevealResult = {
 const MC_OPTION_RE = /\(\s*([1-4])\s*\)\s*([^()]+?)(?=\(\s*[1-4]\s*\)|$)/g;
 
 export function inferMockExamQuestionType(item: Pick<QuestionBankItem, "key" | "question">): MockExamQuestionType | null {
-  if (item.key.includes("是非題")) return "TRUE_FALSE";
-  if (item.key.includes("選擇題")) return "MULTIPLE_CHOICE";
+  const key = item.key.toLowerCase();
+  // 新題庫 key：gpa-…-tf-0001 / gpa-…-mc-0001；舊 key 含「是非題」「選擇題」
+  if (/(^|[-_])tf([-_]|$)/.test(key) || item.key.includes("是非題")) return "TRUE_FALSE";
+  if (/(^|[-_])mc([-_]|$)/.test(key) || item.key.includes("選擇題")) return "MULTIPLE_CHOICE";
   if (/\(\s*[1-4]\s*\)/.test(item.question)) return "MULTIPLE_CHOICE";
   return null;
 }
@@ -148,6 +150,36 @@ export function formatDuration(totalSec: number): string {
 
 export function mockExamTypeLabel(type: MockExamQuestionType | string): string {
   return type === "TRUE_FALSE" ? "是非題" : "選擇題";
+}
+
+/** 模擬考試開始設定用：題庫類型（分類）與各題型題數 */
+export type MockExamCategoryOption = {
+  name: string;
+  count: number;
+  mcCount: number;
+  tfCount: number;
+};
+
+export function buildMockExamCategoryOptions(
+  items: Array<Pick<QuestionBankItem, "category" | "key" | "question">>,
+): MockExamCategoryOption[] {
+  const map = new Map<string, { mcCount: number; tfCount: number }>();
+  for (const item of items) {
+    const type = inferMockExamQuestionType(item);
+    if (!type) continue;
+    const row = map.get(item.category) ?? { mcCount: 0, tfCount: 0 };
+    if (type === "MULTIPLE_CHOICE") row.mcCount += 1;
+    else row.tfCount += 1;
+    map.set(item.category, row);
+  }
+  return [...map.entries()]
+    .map(([name, { mcCount, tfCount }]) => ({
+      name,
+      mcCount,
+      tfCount,
+      count: mcCount + tfCount,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
 }
 
 export type MockExamHistoryRow = {

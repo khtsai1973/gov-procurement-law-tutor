@@ -2,6 +2,7 @@ import { MockExamAnalyticsCharts } from "@/components/MockExamAnalyticsCharts";
 import { MockExamHistory } from "@/components/MockExamHistory";
 import { MockExamPanel } from "@/components/MockExamPanel";
 import type { MockExamAnalyticsData, MockExamHistoryRow } from "@/lib/mock-exam";
+import { buildMockExamCategoryOptions } from "@/lib/mock-exam";
 import { loadMockExamAnalytics } from "@/lib/mock-exam-analytics";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
@@ -19,6 +20,16 @@ export default async function MockExamPage() {
     summary: { totalSessions: 0, avgScorePct: null, bestScorePct: null },
     frequentWrong: [],
   };
+
+  let categories: ReturnType<typeof buildMockExamCategoryOptions> = [];
+  try {
+    const bankItems = await prisma.questionBankItem.findMany({
+      select: { category: true, key: true, question: true },
+    });
+    categories = buildMockExamCategoryOptions(bankItems);
+  } catch (e) {
+    console.error("[mock-exam] load categories failed:", e);
+  }
 
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
@@ -54,6 +65,7 @@ export default async function MockExamPage() {
     <MockExamPanel
       signedIn={!!session?.user}
       initialNickname={initialNickname}
+      categories={categories}
       history={<MockExamHistory records={history} />}
       analytics={<MockExamAnalyticsCharts data={analytics} />}
     />

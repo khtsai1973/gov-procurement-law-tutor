@@ -20,6 +20,7 @@ import {
   computeCategoryStats,
   formatDuration,
   mockExamTimeLimitSec,
+  type MockExamCategoryOption,
   type MockExamQuestionPayload,
   type MockExamQuestionType,
   type MockExamRegulationLink,
@@ -41,11 +42,18 @@ type QuestionState = MockExamQuestionPayload & {
 type MockExamPanelProps = {
   signedIn: boolean;
   initialNickname: string | null;
+  categories: MockExamCategoryOption[];
   history: ReactNode;
   analytics: ReactNode;
 };
 
-export function MockExamPanel({ signedIn, initialNickname, history, analytics }: MockExamPanelProps) {
+export function MockExamPanel({
+  signedIn,
+  initialNickname,
+  categories,
+  history,
+  analytics,
+}: MockExamPanelProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("setup");
   const [nickname, setNickname] = useState(initialNickname ?? "");
@@ -53,6 +61,9 @@ export function MockExamPanel({ signedIn, initialNickname, history, analytics }:
   const [examType, setExamType] = useState<MockExamQuestionType>("MULTIPLE_CHOICE");
   const [examCount, setExamCount] = useState<(typeof MOCK_EXAM_COUNT_OPTIONS)[number]>(5);
   const [timedMode, setTimedMode] = useState(false);
+  /** 空集合＝全部類別 */
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoryQuery, setCategoryQuery] = useState("");
   const [questions, setQuestions] = useState<QuestionState[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -182,6 +193,11 @@ export function MockExamPanel({ signedIn, initialNickname, history, analytics }:
     resetExamState();
     setLoading(true);
     try {
+      const categoriesForRequest = selectedCategories.filter((name) => {
+        const row = categories.find((c) => c.name === name);
+        if (!row) return false;
+        return examType === "MULTIPLE_CHOICE" ? row.mcCount > 0 : row.tfCount > 0;
+      });
       const res = await fetch("/api/mock-exam/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -190,6 +206,7 @@ export function MockExamPanel({ signedIn, initialNickname, history, analytics }:
           count: examCount,
           timedMode,
           nickname: nickname.trim() || undefined,
+          categories: categoriesForRequest,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -214,9 +231,17 @@ export function MockExamPanel({ signedIn, initialNickname, history, analytics }:
         setError("沒有可用的題目");
         return;
       }
+      const categoryNote =
+        categoriesForRequest.length > 0
+          ? `（已限定 ${categoriesForRequest.length} 個類型）`
+          : "";
       if (data.actual < data.requested) {
         setPoolNote(
-          `題庫中此題型僅 ${data.totalInPool} 題，已為您抽出 ${data.actual} 題。`,
+          `題庫中此題型僅 ${data.totalInPool} 題${categoryNote}，已為您抽出 ${data.actual} 題。`,
+        );
+      } else if (categoriesForRequest.length > 0) {
+        setPoolNote(
+          `已依所選 ${categoriesForRequest.length} 個題庫類型出題（題庫池 ${data.totalInPool} 題）。`,
         );
       }
 
@@ -360,6 +385,40 @@ export function MockExamPanel({ signedIn, initialNickname, history, analytics }:
     });
   }
 
+  const categoryQueryNorm = categoryQuery.trim().toLowerCase();
+  const categoriesForType = categories
+    .map((c) => ({
+      ...c,
+      typeCount: examType === "MULTIPLE_CHOICE" ? c.mcCount : c.tfCount,
+    }))
+    .filter((c) => c.typeCount > 0);
+  const visibleCategories = categoryQueryNorm
+    ? categoriesForType.filter((c) => c.name.toLowerCase().includes(categoryQueryNorm))
+    : categoriesForType;
+  const selectedTypePool = (
+    selectedCategories.length > 0
+      ? categoriesForType.filter((c) => selectedCategories.includes(c.name))
+      : categoriesForType
+  ).reduce((sum, c) => sum + c.typeCount, 0);
+
+  function toggleCategory(name: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name],
+    );
+  }
+
+  function selectAllVisibleCategories() {
+    setSelectedCategories((prev) => {
+      const next = new Set(prev);
+      for (const c of visibleCategories) next.add(c.name);
+      return [...next];
+    });
+  }
+
+  function clearSelectedCategories() {
+    setSelectedCategories([]);
+  }
+
   const current = questions[currentIndex];
   const revealedCount = questions.filter((q) => q.revealed).length;
   const answeredCount = questions.filter((q) => q.userAnswer.trim()).length;
@@ -482,6 +541,80 @@ export function MockExamPanel({ signedIn, initialNickname, history, analytics }:
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className="mt-6">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">題庫類型（可複選）</p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    依上方題型篩選可選類型；未勾選＝全部類型
+                    {selectedCategories.length > 0
+                      ? `；目前已選 ${selectedCategories.length} 類（約 ${selectedTypePool} 題）`
+                      : `（目前題型約 ${selectedTypePool} 題）`}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={selectAllVisibleCategories}
+                    disabled={visibleCategories.length === 0}
+                    className="rounded border border-[var(--border)] px-2.5 py-1 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    全選目前列表
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearSelectedCategories}
+                    disabled={selectedCategories.length === 0}
+                    className="rounded border border-[var(--border)] px-2.5 py-1 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    清除選取
+                  </button>
+                </div>
+              </div>
+              <input
+                type="search"
+                value={categoryQuery}
+                onChange={(e) => setCategoryQuery(e.target.value)}
+                placeholder="搜尋題庫類型名稱"
+                className="mt-3 w-full max-w-md rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
+              />
+              {categoriesForType.length === 0 ? (
+                <p className="mt-3 text-sm text-[var(--muted)]">
+                  目前題型尚無可選類型，請先匯入題庫或改選另一題型。
+                </p>
+              ) : (
+                <div className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-[var(--border)] bg-white px-3 py-2">
+                  {visibleCategories.length === 0 ? (
+                    <p className="py-2 text-sm text-[var(--muted)]">沒有符合的類型。</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {visibleCategories.map((c) => {
+                        const checked = selectedCategories.includes(c.name);
+                        return (
+                          <li key={c.name}>
+                            <label className="flex cursor-pointer items-start gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                className="mt-0.5"
+                                checked={checked}
+                                onChange={() => toggleCategory(c.name)}
+                              />
+                              <span className="min-w-0 flex-1 break-words">
+                                {c.name}
+                                <span className="ml-1 text-xs text-[var(--muted)]">
+                                  ({c.typeCount})
+                                </span>
+                              </span>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="mt-6">

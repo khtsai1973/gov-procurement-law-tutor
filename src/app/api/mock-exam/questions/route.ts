@@ -15,6 +15,8 @@ const bodySchema = z.object({
   count: z.union([z.literal(5), z.literal(10), z.literal(50)]),
   timedMode: z.boolean().optional().default(false),
   nickname: z.string().max(24).optional(),
+  /** 題庫類型（分類）複選；空陣列或未傳＝全部類型 */
+  categories: z.array(z.string().trim().min(1).max(120)).max(200).optional(),
 });
 
 export async function POST(req: Request) {
@@ -36,14 +38,22 @@ export async function POST(req: Request) {
   }
 
   const { type, count, timedMode, nickname: bodyNickname } = parsed.data;
-  const allItems = await prisma.questionBankItem.findMany();
+  const selectedCategories = [
+    ...new Set((parsed.data.categories ?? []).map((c) => c.trim()).filter(Boolean)),
+  ];
+
+  const allItems = await prisma.questionBankItem.findMany({
+    where: selectedCategories.length > 0 ? { category: { in: selectedCategories } } : undefined,
+  });
   const pool = allItems.filter((item) => inferMockExamQuestionType(item) === type);
 
   if (pool.length === 0) {
-    return NextResponse.json(
-      { error: type === "TRUE_FALSE" ? "題庫中尚無是非題" : "題庫中尚無選擇題" },
-      { status: 404 },
-    );
+    const typeLabel = type === "TRUE_FALSE" ? "是非題" : "選擇題";
+    const error =
+      selectedCategories.length > 0
+        ? `所選題庫類型中尚無可用的${typeLabel}`
+        : `題庫中尚無${typeLabel}`;
+    return NextResponse.json({ error }, { status: 404 });
   }
 
   const take = Math.min(count, pool.length);
@@ -78,6 +88,7 @@ export async function POST(req: Request) {
     requested: count,
     actual: questions.length,
     totalInPool: pool.length,
+    categories: selectedCategories,
     nickname,
     timedMode,
     timeLimitSec,
