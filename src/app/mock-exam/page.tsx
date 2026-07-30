@@ -4,7 +4,6 @@ import { MockExamPanel } from "@/components/MockExamPanel";
 import type { MockExamAnalyticsData, MockExamHistoryRow } from "@/lib/mock-exam";
 import { buildMockExamCategoryOptions } from "@/lib/mock-exam";
 import { loadMockExamAnalytics } from "@/lib/mock-exam-analytics";
-import { ensureOfficialQuestionBankCategories } from "@/lib/ensure-question-bank-categories";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 
@@ -24,7 +23,6 @@ export default async function MockExamPage() {
 
   let categories: ReturnType<typeof buildMockExamCategoryOptions> = [];
   try {
-    await ensureOfficialQuestionBankCategories();
     const bankItems = await prisma.questionBankItem.findMany({
       select: { category: true, key: true, question: true },
     });

@@ -24,22 +24,40 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
   try {
     names = await readdir(DATA_DIR);
   } catch {
-    return [];
+    names = [];
   }
 
   const jsonFiles = names.filter((n) => n.endsWith(".json")).sort();
   const byKey = new Map<string, QuestionBankEntry>();
 
   for (const file of jsonFiles) {
-    const raw = await readFile(path.join(DATA_DIR, file), "utf8");
-    const json = JSON.parse(raw) as unknown;
-    const parsed = questionBankFileSchema.parse(json);
-    if (parsed.items.length === 0) {
-      console.warn(`[question-bank] Skipping ${file}: items array is empty`);
-      continue;
+    try {
+      const raw = await readFile(path.join(DATA_DIR, file), "utf8");
+      const json = JSON.parse(raw) as unknown;
+      const parsed = questionBankFileSchema.parse(json);
+      if (parsed.items.length === 0) {
+        console.warn(`[question-bank] Skipping ${file}: items array is empty`);
+        continue;
+      }
+      for (const item of parsed.items) {
+        byKey.set(item.key, item);
+      }
+    } catch (e) {
+      console.warn(`[question-bank] Failed reading ${file}:`, e);
     }
-    for (const item of parsed.items) {
-      byKey.set(item.key, item);
+  }
+
+  // Vercel 追蹤遺漏時的備援：打包內建 JSON
+  if (byKey.size === 0) {
+    try {
+      const bundled = await import("../../data/question-bank/gpa-full-question-bank.json");
+      const parsed = questionBankFileSchema.parse(bundled.default ?? bundled);
+      for (const item of parsed.items) {
+        byKey.set(item.key, item);
+      }
+      console.log(`[question-bank] loaded ${byKey.size} item(s) from bundled JSON fallback`);
+    } catch (e) {
+      console.warn("[question-bank] bundled JSON fallback failed:", e);
     }
   }
 
@@ -115,6 +133,14 @@ export async function replaceQuestionBankFromDisk(
   files: number;
   synced?: { categories: number; items: number; slugs: string[] };
 }> {
+  let fileCount = 0;
+  try {
+    const names = await readdir(DATA_DIR);
+    fileCount = names.filter((n) => n.endsWith(".json")).length;
+  } catch {
+    fileCount = 0;
+  }
+
   const entries = await loadQuestionBankEntriesFromDisk();
   if (entries.length === 0) {
     throw new Error(`題庫 JSON 不存在或為空（目錄：${DATA_DIR}）`);
@@ -124,6 +150,35 @@ export async function replaceQuestionBankFromDisk(
   const deleted = await questionBankItem.deleteMany({});
   console.log(`[question-bank] ${source}: deleted ${deleted.count} old item(s)`);
 
-  const imported = await importQuestionBank(prisma, source);
-  return { deleted: deleted.count, ...imported };
+  const BATCH = 200;
+  for (let i = 0; i < entries.length; i += BATCH) {
+    const batch = entries.slice(i, i + BATCH);
+    await questionBankItem.createMany({
+      data: batch.map((item) => ({
+        key: item.key,
+        question: item.question,
+        keywords: item.keywords,
+        relatedSlugs: item.relatedSlugs,
+        hintAnswer: item.hintAnswer ?? null,
+        category: item.category,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  console.log(
+    `[question-bank] ${source}: created ${entries.length} item(s) from ${fileCount} file(s)`,
+  );
+
+  const synced = await syncQuestionBankRegulations(prisma);
+  console.log(
+    `[question-bank] synced ${synced.categories} category/categories (${synced.items} items) to regulations list`,
+  );
+
+  return {
+    deleted: deleted.count,
+    imported: entries.length,
+    files: fileCount,
+    synced,
+  };
 }
