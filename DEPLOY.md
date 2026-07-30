@@ -42,6 +42,7 @@ DATABASE_URL="postgresql://user:password@ep-xxx.region.aws.neon.tech/neondb?sslm
 | `GOOGLE_CLIENT_ID` | Google OAuth 用戶端 ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth 密鑰 |
 | `ADMIN_EMAILS` | 管理者 Gmail，逗號分隔 |
+| `TEACHER_EMAILS` | 老師 Gmail，逗號分隔（可與程式內建老師信箱併用；`ADMIN` 優先） |
 | `OPENAI_API_KEY` | 選填；未設則僅摘錄模式 |
 | `OPENAI_MODEL` | 選填，預設 `gpt-4o-mini` |
 | `OPENAI_EMBEDDING_MODEL` | 選填，預設 `text-embedding-3-small` |
