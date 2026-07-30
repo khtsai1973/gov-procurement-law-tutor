@@ -25,38 +25,37 @@ const MC_CONCAT_BLOCK_RE =
 const TF_BLOCK_RE =
   /(?:^|\n)\s*(\d{1,4})\s+([OXox])(?:\s+|(?=[\u4e00-\u9fff（(]))([\s\S]*?)(?=(?:\n\s*\d{1,4}\s+[1-4OXox](?:\s+|(?=[\u4e00-\u9fff（(])))|\n(?:選擇題|是非題|複選題|問答題)\s*(?:\n|$)|$)/g;
 
-const SECTION_LINE_RE =
-  /^[\u4e00-\u9fff][\u4e00-\u9fffA-Za-z0-9、（）()《》「」\-—\s]{1,40}$/;
-
 const QUESTION_TYPE_RE = /^(選擇題|是非題|複選題|問答題)$/;
 
-/** PDF 中常見、可信的章節／單元標題（避免題幹換行被誤判為分類） */
-const KNOWN_SECTION_TITLES = new Set([
-  "工程及技術服務採購作業",
-  "財物及勞務採購作業",
+/** 正式題庫分類（僅此 14 類；「第 N 條」不得當分類） */
+export const OFFICIAL_QUESTION_BANK_CATEGORIES = [
   "政府採購全生命週期概論",
-  "政府採購法之爭議處理",
   "政府採購法之總則、招標及決標",
+  "政府採購法之履約管理及驗收",
   "政府採購法之罰則及附則",
-  "電子採購實務",
+  "政府採購法之爭議處理",
   "底價及價格分析",
-  "道德規範及違法處置",
-  "採購人員倫理",
   "投標須知及招標文件製作",
   "採購契約",
-  "未達公告金額",
-  "錯誤採購態樣",
-  "金額門檻",
-  "最有利標",
   "最有利標及評選優勝廠商",
-  "議價比減",
-  "招標期限",
-  "中國大陸廠牌資通訊產品、不得提供公務機密予AI及使用AI履約須報機關同意",
-]);
+  "電子採購實務",
+  "工程及技術服務採購作業",
+  "財物及勞務採購作業",
+  "錯誤採購態樣",
+  "道德規範及違法處置",
+] as const;
 
-/** 題幹／選項換行常見片段，絕不可當分類 */
-const QUESTION_FRAGMENT_RE =
-  /下列|何者|何種|敘述|錯誤|正確|有關|關於|不得|應親自|依採購|依「|會議者|廠商者|投標時須|招標文件|公開發給|公開閱覽|最近三|所任職務|百分比參考表|上級機關核|不得參加投標|[？?]|\([1-4]\)|（[1-4]）/;
+const OFFICIAL_CATEGORY_SET = new Set<string>(OFFICIAL_QUESTION_BANK_CATEGORIES);
+
+/** 舊別名／關鍵詞分類 → 正式 14 類 */
+const CATEGORY_ALIASES: Record<string, string> = {
+  最有利標: "最有利標及評選優勝廠商",
+  採購人員倫理: "道德規範及違法處置",
+  金額門檻: "政府採購法之總則、招標及決標",
+  未達公告金額: "政府採購法之總則、招標及決標",
+  招標期限: "政府採購法之總則、招標及決標",
+  議價比減: "政府採購法之總則、招標及決標",
+};
 
 const TRUNCATED_END_RE = /[之的與及或為應其於以、，；：]$/;
 const TRUNCATED_START_RE = /^(?:[條之的與及或為應其於以、，。；]|[)）]|(?:[(（]\s*[34]\s*[)）])|以下若干|以上)/;
@@ -104,24 +103,28 @@ function isArticleSection(line: string): boolean {
   return /^第\s*\d{1,3}\s*條$/.test(line.trim());
 }
 
+/** 依條號歸入採購法四大篇章（PDF 以條號當頁眉，不可當分類） */
+export function categoryForArticleNumber(articleNo: number): string {
+  if (articleNo >= 63 && articleNo <= 73) return "政府採購法之履約管理及驗收";
+  if (articleNo >= 74 && articleNo <= 86) return "政府採購法之爭議處理";
+  if (articleNo >= 87) return "政府採購法之罰則及附則";
+  return "政府採購法之總則、招標及決標";
+}
+
+/** 正規化為正式 14 類；無法對應則回傳 null */
+export function normalizeToOfficialCategory(raw: string): string | null {
+  const base = sectionBase(raw);
+  if (!base || base === "題庫") return null;
+  if (OFFICIAL_CATEGORY_SET.has(base)) return base;
+  if (CATEGORY_ALIASES[base]) return CATEGORY_ALIASES[base]!;
+  const art = base.match(/^第\s*(\d{1,3})\s*條$/);
+  if (art) return categoryForArticleNumber(Number.parseInt(art[1]!, 10));
+  return null;
+}
+
 export function isSectionTitle(line: string): boolean {
-  const trimmed = line.trim();
-  if (!trimmed) return false;
-  if (KNOWN_SECTION_TITLES.has(trimmed)) return true;
-  if (isArticleSection(trimmed)) return true;
-
-  // 其餘標題須短且不像題幹／選項片段（過短如「綜合」多為噪訊）
-  if (trimmed.length < 4 || trimmed.length > 22) return false;
-  if (MC_LINE_RE.test(trimmed) || TF_LINE_RE.test(trimmed)) return false;
-  if (SKIP_LINE.test(trimmed)) return false;
-  if (/^\d/.test(trimmed)) return false;
-  if (QUESTION_FRAGMENT_RE.test(trimmed)) return false;
-  if (TRUNCATED_END_RE.test(trimmed) || TRUNCATED_START_RE.test(trimmed)) return false;
-  if (!SECTION_LINE_RE.test(trimmed)) return false;
-
-  // 過長「句子型」標題通常是題幹斷行
-  if (trimmed.length > 14 && /[，、；]/.test(trimmed)) return false;
-  return true;
+  // 僅承認正式 14 類章節標題，避免題幹斷行／條號頁眉污染分類
+  return OFFICIAL_CATEGORY_SET.has(line.trim());
 }
 
 function endsTruncated(question: string): boolean {
@@ -258,7 +261,7 @@ export function mergeIncompleteQuestions(items: RawParsedQuestion[]): RawParsedQ
   return out;
 }
 
-/** 頁首重複章節／條號不應切斷正在組裝的題目 */
+/** 頁首重複章節不應切斷正在組裝的題目；條號另以 isArticleSection 略過 */
 function shouldIgnoreSectionTitle(
   line: string,
   sectionTitle: string,
@@ -268,8 +271,8 @@ function shouldIgnoreSectionTitle(
   if (!current) return false;
   const body = joinQuestionBody(current.questionLines);
   if (looksCompleteQuestion(body, current.questionType)) return false;
-  // 未完題中插入的條號／短標題多為頁眉
-  return isArticleSection(line) || KNOWN_SECTION_TITLES.has(line);
+  // 未完題中插入的正式章節標題多為頁眉重複
+  return OFFICIAL_CATEGORY_SET.has(line);
 }
 
 function parseQuestionBankLines(text: string): RawParsedQuestion[] {
@@ -292,6 +295,8 @@ function parseQuestionBankLines(text: string): RawParsedQuestion[] {
 
   for (const line of lines) {
     if (SKIP_LINE.test(line)) continue;
+    // 條號頁眉：不切斷題目、不寫入題幹、不改分類
+    if (isArticleSection(line)) continue;
 
     if (QUESTION_TYPE_RE.test(line)) {
       flush();
@@ -332,7 +337,7 @@ function lookupContextBefore(
   let questionType = "選擇題";
   for (const line of normalized.slice(0, start).split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed || SKIP_LINE.test(trimmed)) continue;
+    if (!trimmed || SKIP_LINE.test(trimmed) || isArticleSection(trimmed)) continue;
     if (QUESTION_TYPE_RE.test(trimmed)) questionType = trimmed;
     else if (isSectionTitle(trimmed)) sectionTitle = trimmed;
   }
@@ -409,6 +414,7 @@ function parseSplitColumnLines(text: string): RawParsedQuestion[] {
 
   for (const line of lines) {
     if (SKIP_LINE.test(line)) continue;
+    if (isArticleSection(line)) continue;
 
     if (QUESTION_TYPE_RE.test(line)) {
       flush();
@@ -539,27 +545,27 @@ const SLUG_RULES: Array<{ pattern: RegExp; slugs: string[]; category?: string }>
   {
     pattern: /查核金額|公告金額|巨額|金額門檻|小額採購|採購金額/,
     slugs: ["government-procurement-act", "gpa-enforcement-rules", "pcc-procurement-amount-thresholds"],
-    category: "金額門檻",
+    category: "政府採購法之總則、招標及決標",
   },
   {
     pattern: /議價|比減|減價|限制性招標|協商|洽減/,
     slugs: ["government-procurement-act", "gpa-enforcement-rules"],
-    category: "議價比減",
+    category: "政府採購法之總則、招標及決標",
   },
   {
     pattern: /未達公告金額|公開取得報價單/,
     slugs: ["below-threshold-bidding-rules", "below-threshold-supervision-rules"],
-    category: "未達公告金額",
+    category: "政府採購法之總則、招標及決標",
   },
   {
     pattern: /最有利標|評選|最低標/,
     slugs: ["government-procurement-act", "most-advantageous-tender-selection-rules"],
-    category: "最有利標",
+    category: "最有利標及評選優勝廠商",
   },
   {
     pattern: /等標期|招標期限/,
     slugs: ["bidding-deadline-standards", "government-procurement-act"],
-    category: "招標期限",
+    category: "投標須知及招標文件製作",
   },
   {
     pattern: /押標金|保證金|履約保證/,
@@ -582,7 +588,7 @@ const SLUG_RULES: Array<{ pattern: RegExp; slugs: string[]; category?: string }>
   {
     pattern: /倫理|饋贈|招待/,
     slugs: ["government-procurement-act"],
-    category: "採購人員倫理",
+    category: "道德規範及違法處置",
   },
   {
     pattern: /電子領標|電子投標|電子採購/,
@@ -594,6 +600,16 @@ const SLUG_RULES: Array<{ pattern: RegExp; slugs: string[]; category?: string }>
     slugs: ["government-procurement-act"],
     category: "政府採購法之爭議處理",
   },
+  {
+    pattern: /底價|價格分析/,
+    slugs: ["government-procurement-act", "gpa-enforcement-rules"],
+    category: "底價及價格分析",
+  },
+  {
+    pattern: /採購契約|契約要項/,
+    slugs: ["procurement-contract-essentials", "government-procurement-act"],
+    category: "採購契約",
+  },
 ];
 
 function sectionBase(fallbackCategory: string): string {
@@ -601,40 +617,35 @@ function sectionBase(fallbackCategory: string): string {
 }
 
 export function isGoodCategory(category: string): boolean {
-  const c = category.trim();
-  if (!c || c === "題庫") return false;
-  if (KNOWN_SECTION_TITLES.has(c)) return true;
-  if (isArticleSection(c)) return true;
-  if (c.length > 22) return false;
-  if (QUESTION_FRAGMENT_RE.test(c)) return false;
-  if (TRUNCATED_END_RE.test(c) || TRUNCATED_START_RE.test(c)) return false;
-  return c.length >= 2 && c.length <= 18;
+  return normalizeToOfficialCategory(category) !== null;
 }
 
 export function inferSlugsAndCategory(
   question: string,
   fallbackCategory: string,
 ): { relatedSlugs: string[]; category: string } {
-  const section = sectionBase(fallbackCategory);
+  const section = normalizeToOfficialCategory(fallbackCategory);
 
   let relatedSlugs = ["government-procurement-act", "gpa-enforcement-rules"];
   let keywordCategory: string | null = null;
   for (const rule of SLUG_RULES) {
     if (rule.pattern.test(question)) {
       relatedSlugs = rule.slugs;
-      if (rule.category) keywordCategory = rule.category;
+      if (rule.category) {
+        keywordCategory = normalizeToOfficialCategory(rule.category) ?? rule.category;
+      }
       break;
     }
   }
 
-  // 可信章節標題優先，避免「公告金額」等關鍵詞把整章覆蓋成金額門檻
-  if (isGoodCategory(section)) {
+  // 正式章節標題優先，避免關鍵詞覆寫整章分類
+  if (section) {
     return { relatedSlugs, category: section };
   }
-  if (keywordCategory) {
+  if (keywordCategory && OFFICIAL_CATEGORY_SET.has(keywordCategory)) {
     return { relatedSlugs, category: keywordCategory };
   }
-  return { relatedSlugs, category: "未分類章節" };
+  return { relatedSlugs, category: "政府採購全生命週期概論" };
 }
 
 export function toQuestionBankEntry(raw: RawParsedQuestion): QuestionBankEntry | null {
