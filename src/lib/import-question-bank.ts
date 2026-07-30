@@ -5,6 +5,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import { questionBankFileSchema, type QuestionBankEntry } from "@/lib/question-bank-types";
 import { syncQuestionBankRegulations } from "@/lib/question-bank-corpus";
+import { coerceOfficialCategory } from "@/lib/question-bank-categories";
 
 const DATA_DIR = path.join(process.cwd(), "data", "question-bank");
 
@@ -27,7 +28,14 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
     names = [];
   }
 
-  const jsonFiles = names.filter((n) => n.endsWith(".json")).sort();
+  const jsonFiles = names
+    .filter((n) => n.endsWith(".json"))
+    // gpa-full 最後寫入，避免 starter 覆蓋正式題庫同 key
+    .sort((a, b) => {
+      const ag = a.includes("gpa-full") ? 1 : 0;
+      const bg = b.includes("gpa-full") ? 1 : 0;
+      return ag - bg || a.localeCompare(b);
+    });
   const byKey = new Map<string, QuestionBankEntry>();
 
   for (const file of jsonFiles) {
@@ -40,7 +48,10 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
         continue;
       }
       for (const item of parsed.items) {
-        byKey.set(item.key, item);
+        byKey.set(item.key, {
+          ...item,
+          category: coerceOfficialCategory(item.category),
+        });
       }
     } catch (e) {
       console.warn(`[question-bank] Failed reading ${file}:`, e);
@@ -53,7 +64,10 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
       const bundled = await import("../../data/question-bank/gpa-full-question-bank.json");
       const parsed = questionBankFileSchema.parse(bundled.default ?? bundled);
       for (const item of parsed.items) {
-        byKey.set(item.key, item);
+        byKey.set(item.key, {
+          ...item,
+          category: coerceOfficialCategory(item.category),
+        });
       }
       console.log(`[question-bank] loaded ${byKey.size} item(s) from bundled JSON fallback`);
     } catch (e) {

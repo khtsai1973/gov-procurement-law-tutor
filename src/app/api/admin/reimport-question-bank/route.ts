@@ -11,6 +11,8 @@ export const maxDuration = 60;
 async function hasStaleOrEmptyQuestionBank(): Promise<boolean> {
   const count = await prisma.questionBankItem.count();
   if (count === 0) return true;
+  const groups = await prisma.questionBankItem.groupBy({ by: ["category"] });
+  if (groups.length !== 14) return true;
   const stale = await prisma.questionBankItem.findFirst({
     where: {
       OR: [
