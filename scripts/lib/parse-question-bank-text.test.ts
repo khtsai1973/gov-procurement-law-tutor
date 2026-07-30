@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 
 import {
+  categoryForArticleNumber,
   inferSlugsAndCategory,
   isSectionTitle,
   mergeIncompleteQuestions,
+  normalizeToOfficialCategory,
+  OFFICIAL_QUESTION_BANK_CATEGORIES,
   parseQuestionBankText,
   rawToEntries,
 } from "./parse-question-bank-text";
@@ -79,7 +82,14 @@ assert.equal(
   false,
 );
 assert.equal(isSectionTitle("工程及技術服務採購作業"), true);
-assert.equal(isSectionTitle("第 22 條"), true);
+assert.equal(isSectionTitle("政府採購法之履約管理及驗收"), true);
+assert.equal(isSectionTitle("第 22 條"), false, "條號不得當分類標題");
+assert.equal(categoryForArticleNumber(22), "政府採購法之總則、招標及決標");
+assert.equal(categoryForArticleNumber(70), "政府採購法之履約管理及驗收");
+assert.equal(categoryForArticleNumber(90), "政府採購法之罰則及附則");
+assert.equal(normalizeToOfficialCategory("最有利標"), "最有利標及評選優勝廠商");
+assert.equal(normalizeToOfficialCategory("第 36 條"), "政府採購法之總則、招標及決標");
+assert.equal(OFFICIAL_QUESTION_BANK_CATEGORIES.length, 14);
 
 const wrappedOptionFragment = `
 工程及技術服務採購作業
@@ -192,6 +202,25 @@ const anCaseParsed = parseQuestionBankText(anCaseWrap);
 assert.equal(anCaseParsed.length, 1);
 assert.ok(joinIncludes(anCaseParsed[0]!, "(2)設計"), "案。 continuation must keep option (2)");
 assert.ok(joinIncludes(anCaseParsed[0]!, "不得承攬受其管理之標案"));
+
+// 條號頁眉歸入篇章，不得產出「第 N 條」分類
+const articleChapter = `
+政府採購法之總則、招標及決標
+選擇題
+1 1 下列何者正確？ (1)甲。 (2)乙。 (3)丙。 (4)丁。
+第 22 條
+2 2 下列何者錯誤？ (1)甲。 (2)乙。 (3)丙。 (4)丁。
+政府採購法之履約管理及驗收
+3 3 履約管理相關敘述何者正確？ (1)甲。 (2)乙。 (3)丙。 (4)丁。
+`;
+const articleParsed = parseQuestionBankText(articleChapter);
+assert.equal(articleParsed.length, 3);
+assert.equal(sectionOf(articleParsed[0]!), "政府採購法之總則、招標及決標");
+assert.equal(sectionOf(articleParsed[1]!), "政府採購法之總則、招標及決標");
+assert.equal(sectionOf(articleParsed[2]!), "政府採購法之履約管理及驗收");
+const articleEntries = rawToEntries(articleParsed);
+assert.ok(articleEntries.every((e) => OFFICIAL_QUESTION_BANK_CATEGORIES.includes(e.category as (typeof OFFICIAL_QUESTION_BANK_CATEGORIES)[number])));
+assert.ok(articleEntries.every((e) => !/^第\s*\d+\s*條$/.test(e.category)));
 
 console.log("parse-question-bank-text: ok");
 
