@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { HistoryAnswer } from "@/components/HistoryAnswer";
 import { ensureFeedbackSchema } from "@/lib/ensure-feedback-schema";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/get-session";
@@ -48,7 +49,9 @@ export default async function MyQuestionsPage() {
             {row.answer ? (
               <>
                 <div className="mt-3 text-sm font-semibold">A</div>
-                <div className="whitespace-pre-wrap text-sm">{row.answer}</div>
+                <div className="mt-1">
+                  <HistoryAnswer answer={row.answer} sourcesJson={row.sources} />
+                </div>
               </>
             ) : null}
             {row.feedback ? (

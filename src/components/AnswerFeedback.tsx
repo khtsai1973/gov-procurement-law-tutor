@@ -50,9 +50,9 @@ export function AnswerFeedback({ questionId }: AnswerFeedbackProps) {
 
   return (
     <div className="mt-5 border-t border-[var(--border)] pt-4">
-      <p className="text-sm font-medium text-[var(--fg)]">這個回答對您有幫助嗎？</p>
+      <p className="text-sm font-medium text-[var(--fg)]">回答反饋</p>
       <p className="mt-1 text-xs text-[var(--muted)]">
-        點讚／點踩與簡短意見會寫入資料庫，作為模型回答品質評估指標。
+        請以 👍／👎 評分；結果會寫入資料庫，作為模型成效與回答品質指標（管理者可於評估頁查看）。
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
