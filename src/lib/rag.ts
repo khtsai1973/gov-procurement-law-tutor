@@ -4,6 +4,7 @@ import {
   amountTierExpansionTerms,
   isAmountTierClassificationQuery,
 } from "@/lib/amount-tier";
+import { isBelowThresholdSupervisionQuery } from "@/lib/below-threshold-supervision";
 import {
   isOpeningBidderCountQuery,
   openingBidderExpansionTerms,
@@ -45,7 +46,9 @@ const QUERY_EXPANSIONS: Record<string, string[]> = {
   開標: ["合格廠商", "三家", "公開招標", "限制性招標", "第四十八條", "流標"],
   等標期: ["招標期限", "招標期限標準", "截止投標", "公告金額", "查核金額", "巨額"],
   招標期限: ["等標期", "招標期限標準", "未達公告金額", "公告金額", "查核金額"],
-  未達公告金額: ["小額採購", "公告金額", "公開取得報價單", "監辦", "招標辦法"],
+  未達公告金額: ["小額採購", "公告金額", "公開取得報價單", "監辦", "招標辦法", "十分之一"],
+  會同監辦: ["監辦", "未達公告金額", "十分之一", "主計", "開標", "驗收"],
+  監辦: ["會同監辦", "未達公告金額", "十分之一", "主計"],
   評選委員會: ["採購評選委員會組織準則", "專家學者", "工作小組", "召集人", "評選"],
   最有利標: ["評選", "評選委員會", "最有利標評選辦法", "採購評選委員會組織準則"],
 };
@@ -196,6 +199,11 @@ function slugBoost(slug: string, query: string, bank?: QuestionBankMatch): numbe
       slug === "most-advantageous-tender-operations-manual")
   ) {
     boost += 6;
+  }
+  if (isBelowThresholdSupervisionQuery(query)) {
+    if (slug === "below-threshold-supervision-rules") boost += 12;
+    // 降低「公告金額以上會同監辦」辦法權重，避免答錯門檻
+    if (slug === "joint-procurement-supervision-rules") boost -= 4;
   }
   return boost;
 }
@@ -452,6 +460,22 @@ export async function retrieveForRag(
     ensureSlug("gpa-enforcement-rules", /三家以上合格廠商|公開招標/);
     ensureSlug("government-procurement-act", /第 48 條|三家以上合格廠商|限制性招標/);
     ensureSlug("most-advantageous-tender-operations-manual", /公開評選|家數|三家/);
+  }
+
+  if (isBelowThresholdSupervisionQuery(query)) {
+    const ensureSlug = (slug: string, contentTest?: RegExp) => {
+      if (chunks.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
+        return;
+      }
+      const hit = scored.find(
+        (s) =>
+          s.chunk.regulation.slug === slug &&
+          (!contentTest || contentTest.test(s.chunk.content)),
+      );
+      if (!hit) return;
+      chunks = [hit.chunk, ...chunks.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
+    };
+    ensureSlug("below-threshold-supervision-rules", /十分之一|監辦/);
   }
 
   const modeBase =

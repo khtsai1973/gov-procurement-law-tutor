@@ -186,14 +186,14 @@
     },
     {
       "key": "below-threshold-supervision",
-      "category": "未達公告金額",
+      "category": "政府採購法之總則、招標及決標",
       "question": "未達公告金額採購什麼時候要會同監辦？",
-      "keywords": ["未達公告金額", "監辦", "會同", "主計"],
+      "keywords": ["未達公告金額", "監辦", "會同", "主計", "十分之一", "開標", "驗收"],
       "relatedSlugs": [
         "below-threshold-supervision-rules",
-        "joint-procurement-supervision-rules"
+        "government-procurement-act"
       ],
-      "hintAnswer": "請對照《中央機關未達公告金額採購監辦辦法》及相關會同監辦規定，依採購金額、性質與是否屬應監辦案件逐項說明。"
+      "hintAnswer": "結論應為：未達公告金額而逾公告金額十分之一之採購，於開標、比價、議價、決標及驗收時，承辦單位應通知主（會）計或有關單位派員監辦；公告金額十分之一以下得不通知。法規來源為《中央機關未達公告金額採購監辦辦法》第2條、第5條，勿與公告金額以上會同監辦辦法混淆。"
     },
     {
       "key": "below-threshold-rfq",
