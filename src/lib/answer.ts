@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 
 import { analyzeAmountTierQuestion } from "@/lib/amount-tier";
+import {
+  buildBelowThresholdSupervisionAnswer,
+  isBelowThresholdSupervisionQuery,
+} from "@/lib/below-threshold-supervision";
 import { analyzeOpeningBidderCount } from "@/lib/opening-bidder-count";
 import { formatRagContext, type ChunkWithReg } from "@/lib/rag";
 import prisma from "@/lib/prisma";
@@ -110,6 +114,9 @@ function buildDeterministicBidderCountAnswer(
 }
 
 function buildDeterministicAnswer(question: string, chunks: ChunkWithReg[]): string | null {
+  if (isBelowThresholdSupervisionQuery(question)) {
+    return buildBelowThresholdSupervisionAnswer();
+  }
   return (
     buildDeterministicBidderCountAnswer(question, chunks) ??
     buildDeterministicTierAnswer(question, chunks)
@@ -163,6 +170,14 @@ export async function generateGroundedAnswer(
   }
 
   if (chunks.length === 0) {
+    // 未達公告金額監辦時機有明確條文結論，即使檢索空也先給確定性回答
+    if (isBelowThresholdSupervisionQuery(question)) {
+      return {
+        answer: buildBelowThresholdSupervisionAnswer(),
+        model: "below-threshold-supervision-rules",
+      };
+    }
+
     const [regCount, chunkCount] = await Promise.all([
       prisma.regulation.count(),
       prisma.docChunk.count(),
@@ -189,8 +204,18 @@ export async function generateGroundedAnswer(
   const bidderGuidance = analyzeOpeningBidderCount(question)?.guidance;
   const systemGuidance = [tierGuidance, bidderGuidance].filter(Boolean).join("\n\n");
 
+  // 監辦時機：優先使用確定性回答，避免與「公告金額以上會同監辦」混淆
+  const deterministicPreferred = buildDeterministicAnswer(question, chunks);
+  if (deterministicPreferred && isBelowThresholdSupervisionQuery(question)) {
+    return {
+      answer: deterministicPreferred,
+      model: "below-threshold-supervision-rules",
+      warning: !apiKey ? "openai-unavailable" : undefined,
+    };
+  }
+
   if (!apiKey || aiDisabled) {
-    const deterministic = buildDeterministicAnswer(question, chunks);
+    const deterministic = deterministicPreferred ?? buildDeterministicAnswer(question, chunks);
     if (deterministic) {
       const bidder = analyzeOpeningBidderCount(question);
       return {
