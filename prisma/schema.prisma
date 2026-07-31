@@ -183,11 +183,22 @@ model MockExamSupplement {
   supplement String
   /// 使用者註記的解答來源（法條、函釋等）
   sourceNote String?
+  /// 學員請老師指導時的簡短提問（選填）
+  guidanceAskNote String?
+  /// 學員送出「請老師指導」的時間
+  guidanceRequestedAt DateTime?
+  /// 老師回覆的指導內容
+  teacherGuidance String?
+  /// 老師回覆時間
+  guidanceRepliedAt DateTime?
+  /// 回覆的老師使用者 id
+  guidanceByUserId String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@unique([userId, itemKey])
   @@index([userId])
+  @@index([guidanceRequestedAt])
 }
 
 /// 模擬考試場次（含計時與成績）

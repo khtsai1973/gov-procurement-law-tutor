@@ -30,6 +30,9 @@ export type MockExamRevealResult = {
   regulations: MockExamRegulationLink[];
   supplement: string | null;
   sourceNote: string | null;
+  teacherGuidance: string | null;
+  guidanceRequestedAt: string | null;
+  guidanceAskNote: string | null;
 };
 
 const MC_OPTION_RE = /\(\s*([1-4])\s*\)\s*([^()]+?)(?=\(\s*[1-4]\s*\)|$)/g;
@@ -244,6 +247,8 @@ export type MockExamSessionAnswerDetail = {
   isCorrect: boolean | null;
   revealed: boolean;
   sourceNote: string | null;
+  supplement: string | null;
+  teacherGuidance: string | null;
   hintAnswer: string | null;
 };
 

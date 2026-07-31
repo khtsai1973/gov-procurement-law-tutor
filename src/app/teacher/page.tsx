@@ -17,12 +17,29 @@ export default async function TeacherHomePage() {
 
   await ensureTeacherSchema();
 
-  const [materialCount, publishedCount, students, questionBankCount] = await Promise.all([
-    prisma.unitMaterial.count(),
-    prisma.unitMaterial.count({ where: { published: true } }),
-    loadAllStudentsLearning(),
-    prisma.questionBankItem.count(),
-  ]);
+  const [materialCount, publishedCount, students, questionBankCount, pendingGuidance] =
+    await Promise.all([
+      prisma.unitMaterial.count(),
+      prisma.unitMaterial.count({ where: { published: true } }),
+      loadAllStudentsLearning(),
+      prisma.questionBankItem.count(),
+      (async () => {
+        try {
+          const { ensureMockExamGuidanceSchema } = await import(
+            "@/lib/ensure-mock-exam-guidance-schema"
+          );
+          await ensureMockExamGuidanceSchema();
+          return prisma.mockExamSupplement.count({
+            where: {
+              guidanceRequestedAt: { not: null },
+              guidanceRepliedAt: null,
+            },
+          });
+        } catch {
+          return 0;
+        }
+      })(),
+    ]);
 
   const withExams = students.filter((s) => s.examSessionCount > 0).length;
 
@@ -76,6 +93,13 @@ export default async function TeacherHomePage() {
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white no-underline hover:bg-blue-800"
           >
             管理題庫
+          </Link>
+          <Link
+            href="/teacher/guidance"
+            className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white no-underline hover:bg-blue-800"
+          >
+            學員請老師指導
+            {pendingGuidance > 0 ? `（${pendingGuidance}）` : ""}
           </Link>
           <Link
             href="/teacher/students"

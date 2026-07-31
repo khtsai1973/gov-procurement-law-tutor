@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { ensureMockExamGuidanceSchema } from "@/lib/ensure-mock-exam-guidance-schema";
 import {
   gradeMockExamAnswer,
   inferMockExamQuestionType,
@@ -19,6 +20,8 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "請先登入" }, { status: 401 });
   }
+
+  await ensureMockExamGuidanceSchema();
 
   let json: unknown;
   try {
@@ -73,5 +76,8 @@ export async function POST(req: Request) {
     })),
     supplement: supplementRow?.supplement ?? null,
     sourceNote: supplementRow?.sourceNote ?? null,
+    teacherGuidance: supplementRow?.teacherGuidance ?? null,
+    guidanceRequestedAt: supplementRow?.guidanceRequestedAt?.toISOString() ?? null,
+    guidanceAskNote: supplementRow?.guidanceAskNote ?? null,
   });
 }
