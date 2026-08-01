@@ -224,6 +224,12 @@ model MockExamSessionAnswer {
   revealed        Boolean         @default(false)
   /// 該場測驗中使用者註記的解答來源
   sourceNote      String?
+  /// AI 錯題診斷（觀念釐清＋補強條文）
+  diagnosticText    String?
+  diagnosticModel   String?
+  /// JSON：[{ slug, title, sourceUrl }]
+  diagnosticSources String?
+  diagnosedAt       DateTime?
 
   @@index([sessionId])
 }

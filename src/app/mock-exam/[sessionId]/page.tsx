@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { ExamDiagnosticsPanel } from "@/components/ExamDiagnosticsPanel";
 import { MockExamSingleSessionCharts } from "@/components/MockExamSingleSessionCharts";
 import {
   formatAnswerLabel,
@@ -9,6 +10,7 @@ import {
   scorePct,
 } from "@/lib/mock-exam";
 import { loadMockExamSessionDetail } from "@/lib/mock-exam-analytics";
+import { loadSessionDiagnostics } from "@/lib/exam-diagnostics";
 import { getSession } from "@/lib/get-session";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +28,7 @@ export default async function MockExamSessionPage({ params }: PageProps) {
   const { sessionId } = await params;
   const detail = await loadMockExamSessionDetail(auth.user.id, sessionId);
   if (!detail) notFound();
+  const diagnostics = await loadSessionDiagnostics(auth.user.id, sessionId);
 
   const pct = scorePct(detail.correctCount, detail.gradableCount);
   const avgSecPerQ =
@@ -55,9 +58,14 @@ export default async function MockExamSessionPage({ params }: PageProps) {
               {detail.timedMode ? " · 計時模式" : " · 不限時"}
             </p>
           </div>
-          <Link href="/mock-exam" className="text-sm no-underline hover:underline">
-            ← 返回模擬考試
-          </Link>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link href="/dashboard" className="no-underline hover:underline">
+              學習儀表板
+            </Link>
+            <Link href="/mock-exam" className="no-underline hover:underline">
+              ← 返回模擬考試
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -103,6 +111,13 @@ export default async function MockExamSessionPage({ params }: PageProps) {
           />
         </div>
       </div>
+
+      <ExamDiagnosticsPanel
+        sessionId={sessionId}
+        autoStart={diagnostics.length === 0 && detail.breakdown.wrong > 0}
+        questionType={detail.questionType}
+        initialItems={diagnostics}
+      />
 
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <h2 className="text-base font-semibold">逐題明細</h2>
