@@ -207,6 +207,12 @@ model MockExamSession {
   gradableCount  Int      @default(0)
   startedAt      DateTime @default(now())
   finishedAt     DateTime?
+  /// 交卷後 LLM 綜合觀念診斷全文
+  diagnosticSummary String?
+  /// JSON：建議補強法規 [{ slug, title, sourceUrl, reason? }]
+  diagnosticRecommendations String?
+  diagnosticModel   String?
+  diagnosedAt       DateTime?
   answers        MockExamSessionAnswer[]
 
   @@index([userId, startedAt])
@@ -224,6 +230,8 @@ model MockExamSessionAnswer {
   revealed        Boolean         @default(false)
   /// 該場測驗中使用者註記的解答來源
   sourceNote      String?
+  /// 該題在綜合診斷中的摘錄要點（選填）
+  diagnosticNote  String?
 
   @@index([sessionId])
 }
