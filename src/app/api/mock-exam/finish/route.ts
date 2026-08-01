@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { assertSameOrigin, requireUser } from "@/lib/authz";
 import {
   gradeMockExamAnswer,
   inferMockExamQuestionType,
-  mockExamTimeLimitSec,
   parseReferenceAnswer,
 } from "@/lib/mock-exam";
-import { getSession } from "@/lib/get-session";
+import { rateLimit } from "@/lib/rate-limit";
 import prisma from "@/lib/prisma";
+import { withUserRls } from "@/lib/with-user-rls";
 
 const answerSchema = z.object({
   itemKey: z.string().min(1),
@@ -23,13 +24,26 @@ const answerSchema = z.object({
 const bodySchema = z.object({
   sessionId: z.string().min(1),
   elapsedSec: z.number().int().min(0).max(86400),
-  answers: z.array(answerSchema).min(1),
+  answers: z.array(answerSchema).min(1).max(200),
 });
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "請先登入" }, { status: 401 });
+  const originError = assertSameOrigin(req);
+  if (originError) return originError;
+
+  const authed = await requireUser();
+  if (!authed.ok) return authed.response;
+  const userId = authed.user.id;
+
+  const limited = rateLimit(`mock-finish:${userId}`, { limit: 20, windowMs: 60_000 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "操作過於頻繁，請稍後再試" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      },
+    );
   }
 
   let json: unknown;
@@ -44,15 +58,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "參數格式不正確" }, { status: 400 });
   }
 
-  const examSession = await prisma.mockExamSession.findFirst({
-    where: { id: parsed.data.sessionId, userId: session.user.id },
-  });
+  const examSession = await withUserRls(userId, (tx) =>
+    tx.mockExamSession.findFirst({
+      where: { id: parsed.data.sessionId, userId },
+    }),
+  );
   if (!examSession) {
     return NextResponse.json({ error: "找不到測驗場次" }, { status: 404 });
   }
   if (examSession.finishedAt) {
     return NextResponse.json({ ok: true, alreadyFinished: true });
   }
+
+  // 伺服器端重新評分，不信任客戶端 isCorrect / referenceAnswer
+  const keys = [...new Set(parsed.data.answers.map((a) => a.itemKey))];
+  const items = await prisma.questionBankItem.findMany({
+    where: { key: { in: keys } },
+    select: { key: true, question: true, hintAnswer: true },
+  });
+  const itemMap = new Map(items.map((i) => [i.key, i]));
 
   let answeredCount = 0;
   let correctCount = 0;
@@ -61,24 +85,35 @@ export async function POST(req: Request) {
   const answerRows = parsed.data.answers.map((a) => {
     const hasAnswer = !!a.userAnswer?.trim();
     if (hasAnswer) answeredCount++;
-    if (a.isCorrect === true) correctCount++;
-    if (a.isCorrect !== null && a.isCorrect !== undefined) gradableCount++;
+
+    const item = itemMap.get(a.itemKey);
+    const type = item ? inferMockExamQuestionType(item) : null;
+    const referenceAnswer =
+      item && type ? parseReferenceAnswer(item.hintAnswer, type) : null;
+    const isCorrect =
+      hasAnswer && referenceAnswer
+        ? gradeMockExamAnswer(a.userAnswer!.trim(), referenceAnswer)
+        : null;
+
+    if (isCorrect === true) correctCount++;
+    if (isCorrect !== null) gradableCount++;
+
     return {
       sessionId: examSession.id,
       itemKey: a.itemKey,
       questionIndex: a.questionIndex,
       userAnswer: a.userAnswer?.trim() || null,
-      referenceAnswer: a.referenceAnswer ?? null,
-      isCorrect: a.isCorrect ?? null,
+      referenceAnswer,
+      isCorrect,
       revealed: a.revealed,
       sourceNote: a.sourceNote?.trim() || null,
     };
   });
 
-  await prisma.$transaction([
-    prisma.mockExamSessionAnswer.deleteMany({ where: { sessionId: examSession.id } }),
-    prisma.mockExamSessionAnswer.createMany({ data: answerRows }),
-    prisma.mockExamSession.update({
+  await withUserRls(userId, async (tx) => {
+    await tx.mockExamSessionAnswer.deleteMany({ where: { sessionId: examSession.id } });
+    await tx.mockExamSessionAnswer.createMany({ data: answerRows });
+    await tx.mockExamSession.update({
       where: { id: examSession.id },
       data: {
         elapsedSec: parsed.data.elapsedSec,
@@ -87,8 +122,8 @@ export async function POST(req: Request) {
         gradableCount,
         finishedAt: new Date(),
       },
-    }),
-  ]);
+    });
+  });
 
   return NextResponse.json({
     ok: true,

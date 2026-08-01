@@ -1,6 +1,6 @@
 import { scorePct } from "@/lib/mock-exam";
-import prisma from "@/lib/prisma";
 import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
+import { withRlsBypass } from "@/lib/with-user-rls";
 
 export type StudentLearningRow = {
   userId: string;
@@ -37,37 +37,39 @@ export type StudentLearningDetail = StudentLearningRow & {
 export async function loadAllStudentsLearning(): Promise<StudentLearningRow[]> {
   await ensureTeacherSchema();
 
-  const users = await prisma.user.findMany({
-    where: { role: "USER" },
-    orderBy: { email: "asc" },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      nickname: true,
-      role: true,
-      _count: {
-        select: {
-          questions: true,
-          mockExamSessions: true,
+  const users = await withRlsBypass((tx) =>
+    tx.user.findMany({
+      where: { role: "USER" },
+      orderBy: { email: "asc" },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        nickname: true,
+        role: true,
+        _count: {
+          select: {
+            questions: true,
+            mockExamSessions: true,
+          },
+        },
+        questions: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { createdAt: true },
+        },
+        mockExamSessions: {
+          where: { finishedAt: { not: null } },
+          orderBy: { finishedAt: "desc" },
+          select: {
+            correctCount: true,
+            gradableCount: true,
+            finishedAt: true,
+          },
         },
       },
-      questions: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { createdAt: true },
-      },
-      mockExamSessions: {
-        where: { finishedAt: { not: null } },
-        orderBy: { finishedAt: "desc" },
-        select: {
-          correctCount: true,
-          gradableCount: true,
-          finishedAt: true,
-        },
-      },
-    },
-  });
+    }),
+  );
 
   return users.map((u) => {
     const finished = u.mockExamSessions;
@@ -99,7 +101,8 @@ export async function loadStudentLearningDetail(
 ): Promise<StudentLearningDetail | null> {
   await ensureTeacherSchema();
 
-  const user = await prisma.user.findUnique({
+  return withRlsBypass(async (tx) => {
+  const user = await tx.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
@@ -112,7 +115,7 @@ export async function loadStudentLearningDetail(
   if (!user) return null;
 
   const [sessions, questions, allFinished, questionCount] = await Promise.all([
-    prisma.mockExamSession.findMany({
+    tx.mockExamSession.findMany({
       where: { userId, finishedAt: { not: null } },
       orderBy: { finishedAt: "desc" },
       take: 20,
@@ -125,7 +128,7 @@ export async function loadStudentLearningDetail(
         finishedAt: true,
       },
     }),
-    prisma.userQuestion.findMany({
+    tx.userQuestion.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: 20,
@@ -136,12 +139,12 @@ export async function loadStudentLearningDetail(
         createdAt: true,
       },
     }),
-    prisma.mockExamSession.findMany({
+    tx.mockExamSession.findMany({
       where: { userId, finishedAt: { not: null } },
       select: { correctCount: true, gradableCount: true, finishedAt: true },
       orderBy: { finishedAt: "desc" },
     }),
-    prisma.userQuestion.count({ where: { userId } }),
+    tx.userQuestion.count({ where: { userId } }),
   ]);
 
   const scores = allFinished
@@ -177,4 +180,5 @@ export async function loadStudentLearningDetail(
       createdAt: q.createdAt.toISOString(),
     })),
   };
+  });
 }
