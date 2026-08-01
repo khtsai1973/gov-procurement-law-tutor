@@ -36,9 +36,14 @@ export async function Nav() {
               我的提問紀錄
             </Link>
             {session.user.role === "TEACHER" || session.user.role === "ADMIN" ? (
-              <Link href="/teacher" className="no-underline hover:underline">
-                老師
-              </Link>
+              <>
+                <Link href="/teacher" className="no-underline hover:underline">
+                  老師
+                </Link>
+                <Link href="/teacher/dashboard" className="no-underline hover:underline">
+                  學員儀表板
+                </Link>
+              </>
             ) : null}
             {session.user.role === "ADMIN" ? (
               <Link href="/admin" className="no-underline hover:underline">
