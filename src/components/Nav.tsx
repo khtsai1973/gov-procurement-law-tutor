@@ -15,7 +15,7 @@ export async function Nav() {
         <Link href="/" className="group inline-flex items-center gap-3 no-underline">
           <Logo size={44} showWordmark />
         </Link>
-        <p className="mt-2 text-sm text-[var(--muted)]">回答來源限於已匯入之法規與函釋與題庫知識庫</p>
+        <p className="mt-2 text-sm text-[var(--muted)]">回答來源限於已匯入之法規／函釋資料庫（檢索並整合分析）</p>
       </div>
       <nav className="flex flex-wrap items-center gap-3 text-sm">
         <Link href="/regulations" className="no-underline hover:underline">

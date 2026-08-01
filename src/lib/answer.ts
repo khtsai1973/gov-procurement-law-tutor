@@ -125,36 +125,59 @@ function buildDeterministicBidderCountAnswer(
   return null;
 }
 
-function buildDeterministicAnswer(question: string, chunks: ChunkWithReg[]): string | null {
-  if (isBelowThresholdSupervisionQuery(question)) {
-    return buildBelowThresholdSupervisionAnswer();
+function appendCorpusExcerpts(answer: string, chunks: ChunkWithReg[]): string {
+  if (chunks.length === 0) return answer;
+  if (answer.includes("—— 檢索摘錄 ——") || answer.includes("—— 法規／函釋檢索摘錄 ——")) {
+    return answer;
   }
-  if (isCurrentThresholdFiguresQuery(question)) {
-    return buildCurrentThresholdFiguresAnswer();
-  }
-  if (isSmallPurchaseThresholdQuery(question)) {
-    return buildSmallPurchaseThresholdAnswer();
-  }
-  if (isProcurementAmountDefinitionQuery(question)) {
-    return buildProcurementAmountDefinitionAnswer();
-  }
-  return (
-    buildDeterministicBidderCountAnswer(question, chunks) ??
-    buildDeterministicTierAnswer(question, chunks)
-  );
+  const excerpts = chunks.slice(0, 3).map((c, i) => {
+    const article = c.content.match(/^###\s*(第[\d\-]+\s*條)/m)?.[1];
+    const label = article ? `${c.regulation.title}｜${article}` : c.regulation.title;
+    return `【片段${i + 1}｜${label}】\n${c.content.slice(0, 700)}${c.content.length > 700 ? "…" : ""}`;
+  });
+  return `${answer}\n\n—— 法規／函釋檢索摘錄 ——\n${excerpts.join("\n\n")}`;
 }
 
-const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索增強生成）模式：僅能依據檢索系統取回之全文片段作答（非摘要或杜撰）。
+function buildDeterministicAnswer(question: string, chunks: ChunkWithReg[]): string | null {
+  let base: string | null = null;
+  if (isBelowThresholdSupervisionQuery(question)) {
+    base = buildBelowThresholdSupervisionAnswer();
+  } else if (isCurrentThresholdFiguresQuery(question)) {
+    base = buildCurrentThresholdFiguresAnswer();
+  } else if (isSmallPurchaseThresholdQuery(question)) {
+    base = buildSmallPurchaseThresholdAnswer();
+  } else if (isProcurementAmountDefinitionQuery(question)) {
+    base = buildProcurementAmountDefinitionAnswer();
+  } else {
+    base =
+      buildDeterministicBidderCountAnswer(question, chunks) ??
+      buildDeterministicTierAnswer(question, chunks);
+  }
+  if (!base) return null;
+  // FAQ 類確定性結論仍附上檢索摘錄，方便對照法規／函釋原文
+  if (
+    isBelowThresholdSupervisionQuery(question) ||
+    isCurrentThresholdFiguresQuery(question) ||
+    isSmallPurchaseThresholdQuery(question) ||
+    isProcurementAmountDefinitionQuery(question)
+  ) {
+    return appendCorpusExcerpts(base, chunks);
+  }
+  return base;
+}
+
+const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索增強生成）模式：僅能依據檢索系統自「法規／函釋資料庫」取回之全文片段作答（非摘要或杜撰）。
 
 主題範圍（最優先）：
 - 本站僅回答與「政府採購法及其子法、工程會函釋／公告、招標／決標／履約／爭議等採購實務」有關之問題。
+- 回答來源嚴格限定於已匯入之法規／函釋資料庫全文片段；不得引用題庫導引、模擬考題、教材筆記或外部知識作為論據。
 - 若使用者問題與上述主題無關（例如閒聊、天氣、程式設計、一般法律以外之採購法無關問題、其他考試科目等），請直接且僅回覆：${OFF_TOPIC_REPLY}
 - 離題時不要引用片段、不要條列說明、不要補充建議。
 
 檢索與作答流程（與本站說明一致）：
-1. 系統已自「法規／函釋清單」及題庫檢索整合分析全文片段（非摘要）以找出解答；請依這些片段作答，先寫 1～2 句結論，再以條列說明，每一重要論點後標註 [片段N]。
-2. 若使用者訊息含「（題庫導引：…）」、「【系統級距判定導引…】」或「【系統開標家數判定導引…】」，表示檢索／系統已提供分析方向；正式論點仍須來自 [片段N] 全文，並與導引交叉驗證。
-3. 應整合、對照多則全文片段（含不同法規、函釋與題庫導引）；仍須標註 [片段N]，並區分「片段已載明」與「依多則片段綜合推論」。
+1. 系統已自「法規／函釋資料庫」檢索全文片段（非摘要）並整合分析以找出解答；請依這些片段作答，先寫 1～2 句結論，再以條列說明，每一重要論點後標註 [片段N]。
+2. 若使用者訊息含「【系統級距判定導引…】」或「【系統開標家數判定導引…】」，表示系統已提供分析方向；正式論點仍須來自 [片段N] 全文，並與導引交叉驗證。
+3. 應整合、對照多則法規／函釋全文片段；仍須標註 [片段N]，並區分「片段已載明」與「依多則片段綜合推論」。
 4. 檢索片段仍不足以涵蓋問題重點時，開頭寫「檢索片段中未足以完整說明」，分別列出「已提及」「未提及」，並建議使用者至本站「法規／函釋清單」查閱全文（非摘要）。
 5. 若問題過於笼统、缺少適用法規所需之關鍵事實（例如未說明採購標的、採購金額、程序階段、招標或決標方式），仍先依檢索片段盡可能作答；在條列說明之後另設「建議補充資訊」小節，列出 2～4 項使用者若能補充可使答案更精準之事實類型（例如標的類型、金額是否含稅、是否屬限制性招標、是否已組評選委員會），勿捏造條文。若片段已足夠完整作答，可省略此小節。
 
@@ -187,54 +210,48 @@ const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索�
 export async function generateGroundedAnswer(
   question: string,
   chunks: ChunkWithReg[],
-  options?: { questionBankHint?: string },
 ): Promise<AnswerResult> {
   if (!isOnTopicQuestion(question)) {
     return { answer: OFF_TOPIC_REPLY, model: "off-topic" };
   }
 
   if (chunks.length === 0) {
-    // 未達公告金額監辦時機有明確條文結論，即使檢索空也先給確定性回答
-    if (isBelowThresholdSupervisionQuery(question)) {
-      return {
-        answer: buildBelowThresholdSupervisionAnswer(),
-        model: "below-threshold-supervision-rules",
-      };
-    }
-    if (isCurrentThresholdFiguresQuery(question)) {
-      return {
-        answer: buildCurrentThresholdFiguresAnswer(),
-        model: "current-threshold-figures",
-      };
-    }
-    if (isSmallPurchaseThresholdQuery(question)) {
-      return {
-        answer: buildSmallPurchaseThresholdAnswer(),
-        model: "small-purchase-threshold",
-      };
-    }
-    if (isProcurementAmountDefinitionQuery(question)) {
-      return {
-        answer: buildProcurementAmountDefinitionAnswer(),
-        model: "procurement-amount-definition",
-      };
+    // 少數明確條文結論：即使檢索空也先給確定性回答（仍標明須對照法規／函釋）
+    const emptyDeterministic = buildDeterministicAnswer(question, []);
+    if (emptyDeterministic) {
+      const model = isBelowThresholdSupervisionQuery(question)
+        ? "below-threshold-supervision-rules"
+        : isCurrentThresholdFiguresQuery(question)
+          ? "current-threshold-figures"
+          : isSmallPurchaseThresholdQuery(question)
+            ? "small-purchase-threshold"
+            : isProcurementAmountDefinitionQuery(question)
+              ? "procurement-amount-definition"
+              : "amount-tier-rules";
+      return { answer: emptyDeterministic, model };
     }
 
     const [regCount, chunkCount] = await Promise.all([
-      prisma.regulation.count(),
-      prisma.docChunk.count(),
+      prisma.regulation.count({
+        where: { tier: { in: ["LAW", "REGULATION", "ADMIN_RULE", "INTERPRETATION"] } },
+      }),
+      prisma.docChunk.count({
+        where: {
+          regulation: { tier: { in: ["LAW", "REGULATION", "ADMIN_RULE", "INTERPRETATION"] } },
+        },
+      }),
     ]);
 
     let answer: string;
     if (regCount === 0) {
       answer =
-        "法規清單尚未建立。請在專案目錄執行：npm run db:init（或 npm run db:push 後 npm run db:seed），再重新提問。";
+        "法規／函釋清單尚未建立。請在專案目錄執行：npm run db:init（或 npm run db:push 後 npm run db:seed），再重新提問。";
     } else if (chunkCount === 0) {
       answer =
-        "知識庫尚未載入。請在專案目錄執行：npm run corpus:ingest，或登入管理者後按「載入／更新知識庫」。";
+        "法規／函釋知識庫尚未載入。請在專案目錄執行：npm run corpus:ingest，或登入管理者後按「載入／更新知識庫」。";
     } else {
       answer =
-        "找不到與您問題相關的全文匹配（非摘要）。系統已嘗試法規／函釋清單與題庫輔助檢索。請至「法規／函釋清單」查閱全文，或改以較具體的法規／函釋用語重新提問。";
+        "找不到與您問題相關的法規／函釋全文匹配（非摘要）。本站回答僅限法規／函釋資料庫範圍。請至「法規／函釋清單」查閱全文，或改以較具體的法規／函釋用語重新提問。";
     }
 
     return { answer, model: "no-chunks" };
@@ -308,9 +325,6 @@ export async function generateGroundedAnswer(
 
   const client = new OpenAI({ apiKey });
   const context = formatRagContext(chunks);
-  const bankNote = options?.questionBankHint
-    ? `\n\n（題庫導引：${options.questionBankHint}）`
-    : "";
   const guideNote = systemGuidance ? `\n\n${systemGuidance}` : "";
 
   try {
@@ -321,7 +335,7 @@ export async function generateGroundedAnswer(
         { role: "system", content: RAG_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `以下為檢索系統自法規／函釋清單依問題挑選的全文片段（非摘要）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${bankNote}${guideNote}\n\n請整合上列片段作答；若為金額級距或開標家數問題，須給出明確結論。特別注意：第22條第1項第9款不適用財物／工程，不可與財物級距結論錯誤搭配「依第9款第一次開標1家」。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
+          content: `以下為檢索系統自「法規／函釋資料庫」依問題挑選的全文片段（非摘要；不含題庫）：\n\n${context}\n\n---\n\n使用者問題：\n${question}${guideNote}\n\n請僅依上列法規／函釋片段檢索並整合分析作答；若為金額級距或開標家數問題，須給出明確結論。特別注意：第22條第1項第9款不適用財物／工程，不可與財物級距結論錯誤搭配「依第9款第一次開標1家」。\n（若此問題與政府採購法規教學無關，請只回覆：${OFF_TOPIC_REPLY}）`,
         },
       ],
     });

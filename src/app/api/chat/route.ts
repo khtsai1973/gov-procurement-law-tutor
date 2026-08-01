@@ -6,7 +6,6 @@ import { ensureKnowledgeBase } from "@/lib/bootstrap-knowledge";
 import { ensureFeedbackSchema } from "@/lib/ensure-feedback-schema";
 import prisma from "@/lib/prisma";
 import { retrieveForRag } from "@/lib/rag";
-import { matchQuestionBank } from "@/lib/question-bank";
 import { getSession } from "@/lib/get-session";
 import { OFF_TOPIC_REPLY, isOnTopicQuestion } from "@/lib/topic-scope";
 
@@ -86,15 +85,14 @@ export async function POST(req: Request) {
     }
 
     await ensureKnowledgeBase();
-    const { chunks, mode: retrievalMode, questionBankUsed } = await retrieveForRag(question);
-    const bankMatch = questionBankUsed ? await matchQuestionBank(question) : null;
-    const { answer, model, warning } = await generateGroundedAnswer(question, chunks, {
-      questionBankHint: bankMatch?.hintAnswer,
-    });
+    // 回答僅依法規／函釋資料庫檢索結果；題庫不作為論據來源
+    const { chunks, mode: retrievalMode } = await retrieveForRag(question);
+    const { answer, model, warning } = await generateGroundedAnswer(question, chunks);
 
     const sources: { title: string; tier: string; slug: string }[] = [];
     const seenSlug = new Set<string>();
     for (const c of chunks) {
+      if (c.regulation.tier === "QUESTION_BANK") continue;
       if (seenSlug.has(c.regulation.slug)) continue;
       seenSlug.add(c.regulation.slug);
       sources.push({

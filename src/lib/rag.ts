@@ -5,10 +5,13 @@ import {
   isAmountTierClassificationQuery,
 } from "@/lib/amount-tier";
 import { isBelowThresholdSupervisionQuery } from "@/lib/below-threshold-supervision";
+import { isCurrentThresholdFiguresQuery } from "@/lib/current-threshold-figures";
 import {
   isOpeningBidderCountQuery,
   openingBidderExpansionTerms,
 } from "@/lib/opening-bidder-count";
+import { isProcurementAmountDefinitionQuery } from "@/lib/procurement-amount-definition";
+import { isSmallPurchaseThresholdQuery } from "@/lib/small-purchase-threshold";
 import {
   canUseEmbeddings,
   cosineSimilarity,
@@ -18,6 +21,9 @@ import {
 import { prisma } from "@/lib/prisma";
 import { matchQuestionBank } from "@/lib/question-bank";
 import type { QuestionBankMatch } from "@/lib/question-bank-types";
+
+/** 問答檢索僅限法規／函釋資料庫（不含題庫分類） */
+const RAG_ALLOWED_TIERS = new Set(["LAW", "REGULATION", "ADMIN_RULE", "INTERPRETATION"]);
 
 export type ChunkWithReg = DocChunk & { regulation: Regulation };
 
@@ -112,13 +118,11 @@ function expandQuery(query: string, bank?: QuestionBankMatch): string {
   if (isOpeningBidderCountQuery(query)) {
     extras.push(...openingBidderExpansionTerms(query));
   }
+  // 題庫僅作關鍵詞擴展，不注入導引文字，避免回答脫離法規／函釋原文
   if (bank?.keywords.length) extras.push(...bank.keywords);
   const unique = [...new Set(extras)];
-  if (unique.length === 0 && !bank?.hintAnswer) return query;
-  const parts = [query];
-  if (unique.length > 0) parts.push(`（相關關鍵詞：${unique.join("、")}）`);
-  if (bank?.hintAnswer) parts.push(`（題庫導引：${bank.hintAnswer}）`);
-  return parts.join("\n");
+  if (unique.length === 0) return query;
+  return `${query}\n（相關關鍵詞：${unique.join("、")}）`;
 }
 
 function queryTerms(query: string, bank?: QuestionBankMatch): string[] {
@@ -329,9 +333,11 @@ export async function retrieveForRag(
   query: string,
   topK = ragTopK(),
 ): Promise<{ chunks: ChunkWithReg[]; mode: string; questionBankUsed?: boolean }> {
-  const all = await prisma.docChunk.findMany({
+  const loaded = await prisma.docChunk.findMany({
     include: { regulation: true },
   });
+  // 限定法規／函釋資料庫範圍；題庫 chunks 不進入回答檢索
+  const all = loaded.filter((c) => RAG_ALLOWED_TIERS.has(c.regulation.tier));
 
   if (all.length === 0) {
     return { chunks: [], mode: "empty" };
@@ -380,13 +386,13 @@ export async function retrieveForRag(
 
   const baseCorpus = corpus.length > 0 ? corpus : all;
 
-  // 1) 先自法規／函釋清單檢索（不加題庫）
+  // 1) 先自法規／函釋資料庫檢索
   let scored = await scoreAllChunks(baseCorpus, query, undefined);
   scored.sort((a, b) => b.score - a.score);
   let hasSignal = scored.some((s) => s.score > 0.1);
   const topScore = scored[0]?.score ?? 0;
 
-  // 2) 不足以直接作答時，再以題庫輔助擴展檢索
+  // 2) 訊號不足時，僅用題庫關鍵詞擴展查詢，仍只對法規／函釋片段打分
   let questionBankUsed = false;
   if (!hasSignal || topScore < 0.15) {
     const bank = await matchQuestionBank(query);
@@ -403,13 +409,13 @@ export async function retrieveForRag(
     if (weak.length > 0) {
       return {
         chunks: weak.map((s) => s.chunk),
-        mode: questionBankUsed ? "rag-weak-match+question-bank" : "rag-weak-match",
+        mode: questionBankUsed ? "rag-weak-match+keyword-expand" : "rag-weak-match",
         questionBankUsed,
       };
     }
     return {
       chunks: [],
-      mode: questionBankUsed ? "no-match+question-bank" : "no-match",
+      mode: questionBankUsed ? "no-match+keyword-expand" : "no-match",
       questionBankUsed,
     };
   }
@@ -462,20 +468,27 @@ export async function retrieveForRag(
     ensureSlug("most-advantageous-tender-operations-manual", /公開評選|家數|三家/);
   }
 
+  const ensureSlug = (slug: string, contentTest?: RegExp) => {
+    if (chunks.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
+      return;
+    }
+    const hit = scored.find(
+      (s) =>
+        s.chunk.regulation.slug === slug &&
+        (!contentTest || contentTest.test(s.chunk.content)),
+    );
+    if (!hit) return;
+    chunks = [hit.chunk, ...chunks.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
+  };
+
   if (isBelowThresholdSupervisionQuery(query)) {
-    const ensureSlug = (slug: string, contentTest?: RegExp) => {
-      if (chunks.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
-        return;
-      }
-      const hit = scored.find(
-        (s) =>
-          s.chunk.regulation.slug === slug &&
-          (!contentTest || contentTest.test(s.chunk.content)),
-      );
-      if (!hit) return;
-      chunks = [hit.chunk, ...chunks.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
-    };
     ensureSlug("below-threshold-supervision-rules", /十分之一|監辦/);
+  }
+  if (isCurrentThresholdFiguresQuery(query) || isSmallPurchaseThresholdQuery(query)) {
+    ensureSlug("pcc-procurement-amount-thresholds");
+  }
+  if (isProcurementAmountDefinitionQuery(query)) {
+    ensureSlug("gpa-enforcement-rules", /第 6 條|選購或後續擴充|招標前認定/);
   }
 
   const modeBase =
@@ -485,7 +498,8 @@ export async function retrieveForRag(
 
   return {
     chunks,
-    mode: questionBankUsed ? `${modeBase}+question-bank` : modeBase,
+    // questionBankUsed 僅表示用題庫關鍵詞擴展查詢；回答片段仍全部來自法規／函釋
+    mode: questionBankUsed ? `${modeBase}+keyword-expand` : modeBase,
     questionBankUsed,
   };
 }

@@ -76,13 +76,8 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
         setNotice(null);
       } else if (data.warning === "openai-unavailable" || data.model === "keyword-fallback") {
         setNotice("目前以 RAG 檢索摘錄回覆（未使用 OpenAI 生成）。");
-      } else if (
-        typeof data.retrievalMode === "string" &&
-        data.retrievalMode.includes("question-bank")
-      ) {
-        setNotice("法規／函釋與題庫檢索後整合多則片段作答。");
       } else if (typeof data.retrievalMode === "string" && data.retrievalMode.startsWith("rag-")) {
-        setNotice(`已自法規／函釋清單及題庫檢索全文並產生回答（${data.retrievalMode}）。`);
+        setNotice(`已限定於法規／函釋資料庫檢索並整合分析作答（${data.retrievalMode}）。`);
       }
     } catch {
       setError("無法連線，請稍後再試。");
@@ -107,13 +102,13 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
       <div className="chat-block-header rounded-lg p-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold">提問（限知識庫範圍）</h1>
+            <h1 className="text-xl font-semibold">提問（限法規／函釋資料庫）</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              提問送出後，系統會自
+              提問送出後，系統會限定於
               <Link href="/regulations" className="no-underline hover:underline">
-                「法規／函釋／題庫清單」
+                「法規／函釋」資料庫
               </Link>
-              及題庫 檢索整合分析全文（非摘要）以找出解答（仍須有檢索依據）。與政府採購法規無關之問題將直接回覆「非本主題的範圍」。
+              檢索全文（非摘要）並整合分析以找出正確解答。題庫僅供練習／模擬考試，不作為回答論據。與政府採購法規無關之問題將直接回覆「非本主題的範圍」。
             </p>
           </div>
         </div>
@@ -221,9 +216,9 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
                   <span />
                   <span />
                 </span>
-                <p className="text-sm font-semibold text-amber-900">正在檢索法規並產生回答</p>
+                <p className="text-sm font-semibold text-amber-900">正在檢索法規／函釋並整合分析</p>
               </div>
-              <p className="mt-2 text-xs text-amber-800/80">比對法規／函釋與題庫中，請稍候…</p>
+              <p className="mt-2 text-xs text-amber-800/80">限定法規／函釋資料庫範圍比對中，請稍候…</p>
               <div className="chat-loading-bar mt-3" aria-hidden="true">
                 <span className="chat-loading-bar-fill" />
               </div>
