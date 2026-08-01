@@ -5,6 +5,10 @@ import {
   buildBelowThresholdSupervisionAnswer,
   isBelowThresholdSupervisionQuery,
 } from "@/lib/below-threshold-supervision";
+import {
+  buildCurrentThresholdFiguresAnswer,
+  isCurrentThresholdFiguresQuery,
+} from "@/lib/current-threshold-figures";
 import { analyzeOpeningBidderCount } from "@/lib/opening-bidder-count";
 import { formatRagContext, type ChunkWithReg } from "@/lib/rag";
 import prisma from "@/lib/prisma";
@@ -117,6 +121,9 @@ function buildDeterministicAnswer(question: string, chunks: ChunkWithReg[]): str
   if (isBelowThresholdSupervisionQuery(question)) {
     return buildBelowThresholdSupervisionAnswer();
   }
+  if (isCurrentThresholdFiguresQuery(question)) {
+    return buildCurrentThresholdFiguresAnswer();
+  }
   return (
     buildDeterministicBidderCountAnswer(question, chunks) ??
     buildDeterministicTierAnswer(question, chunks)
@@ -138,6 +145,7 @@ const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索�
 5. 若問題過於笼统、缺少適用法規所需之關鍵事實（例如未說明採購標的、採購金額、程序階段、招標或決標方式），仍先依檢索片段盡可能作答；在條列說明之後另設「建議補充資訊」小節，列出 2～4 項使用者若能補充可使答案更精準之事實類型（例如標的類型、金額是否含稅、是否屬限制性招標、是否已組評選委員會），勿捏造條文。若片段已足夠完整作答，可省略此小節。
 
 金額級距／門檻歸類（重要，應主動整合分析）：
+- 當使用者詢問「今年／現行查核金額、公告金額各是多少」且片段已有門檻表時，結論須寫明：查核金額為工程及財物 5,000 萬、勞務 1,000 萬；公告金額一律 150 萬（新臺幣），並引用 [片段N]。
 - 當使用者給出採購金額，並詢問屬哪一級距（或是否達公告／查核／巨額），且片段中已有工程會門檻表或等同數字時：
   (a) 先依片段認定標的類別：資訊服務／專業服務／技術服務等屬「勞務」（採購法對工程、財物、勞務之定義）；工程、財物各用其門檻。
   (b) 將使用者金額與該類別「小額／公告金額／查核金額／巨額」門檻比較（得做大小比較與級距歸屬，這屬於依片段綜合推論，不是捏造）。
@@ -177,6 +185,12 @@ export async function generateGroundedAnswer(
         model: "below-threshold-supervision-rules",
       };
     }
+    if (isCurrentThresholdFiguresQuery(question)) {
+      return {
+        answer: buildCurrentThresholdFiguresAnswer(),
+        model: "current-threshold-figures",
+      };
+    }
 
     const [regCount, chunkCount] = await Promise.all([
       prisma.regulation.count(),
@@ -204,12 +218,19 @@ export async function generateGroundedAnswer(
   const bidderGuidance = analyzeOpeningBidderCount(question)?.guidance;
   const systemGuidance = [tierGuidance, bidderGuidance].filter(Boolean).join("\n\n");
 
-  // 監辦時機：優先使用確定性回答，避免與「公告金額以上會同監辦」混淆
+  // 監辦時機／現行門檻數字：優先使用確定性回答，避免 LLM 誤答
   const deterministicPreferred = buildDeterministicAnswer(question, chunks);
   if (deterministicPreferred && isBelowThresholdSupervisionQuery(question)) {
     return {
       answer: deterministicPreferred,
       model: "below-threshold-supervision-rules",
+      warning: !apiKey ? "openai-unavailable" : undefined,
+    };
+  }
+  if (deterministicPreferred && isCurrentThresholdFiguresQuery(question)) {
+    return {
+      answer: deterministicPreferred,
+      model: "current-threshold-figures",
       warning: !apiKey ? "openai-unavailable" : undefined,
     };
   }
@@ -225,7 +246,9 @@ export async function generateGroundedAnswer(
             ? "art22-scope-guard"
             : bidder?.minQualifiedVendors != null
               ? "opening-bidder-rules"
-              : "amount-tier-rules",
+              : isCurrentThresholdFiguresQuery(question)
+                ? "current-threshold-figures"
+                : "amount-tier-rules",
         warning: !apiKey ? "openai-unavailable" : undefined,
       };
     }
