@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { TeacherGuidanceReplyForm } from "@/components/TeacherGuidanceReplyForm";
 import { ensureMockExamGuidanceSchema } from "@/lib/ensure-mock-exam-guidance-schema";
 import { getSession } from "@/lib/get-session";
+import { maskEmail } from "@/lib/pii";
 import prisma from "@/lib/prisma";
 import { canAccessTeacher } from "@/lib/roles";
+import { withRlsBypass } from "@/lib/with-user-rls";
 
 export const dynamic = "force-dynamic";
 
@@ -17,21 +19,22 @@ export default async function TeacherGuidancePage() {
 
   await ensureMockExamGuidanceSchema();
 
-  const requests = await prisma.mockExamSupplement.findMany({
-    where: { guidanceRequestedAt: { not: null } },
-    orderBy: [{ guidanceRepliedAt: "asc" }, { guidanceRequestedAt: "desc" }],
-    take: 100,
-    include: {
-      user: { select: { id: true, email: true, name: true, nickname: true } },
-    },
+  const { requests, itemMap } = await withRlsBypass(async (tx) => {
+    const requests = await tx.mockExamSupplement.findMany({
+      where: { guidanceRequestedAt: { not: null } },
+      orderBy: [{ guidanceRepliedAt: "asc" }, { guidanceRequestedAt: "desc" }],
+      take: 100,
+      include: {
+        user: { select: { id: true, email: true, name: true, nickname: true } },
+      },
+    });
+    const itemKeys = [...new Set(requests.map((r) => r.itemKey))];
+    const items = await tx.questionBankItem.findMany({
+      where: { key: { in: itemKeys } },
+      select: { key: true, question: true, category: true, hintAnswer: true },
+    });
+    return { requests, itemMap: new Map(items.map((i) => [i.key, i])) };
   });
-
-  const itemKeys = [...new Set(requests.map((r) => r.itemKey))];
-  const items = await prisma.questionBankItem.findMany({
-    where: { key: { in: itemKeys } },
-    select: { key: true, question: true, category: true, hintAnswer: true },
-  });
-  const itemMap = new Map(items.map((i) => [i.key, i]));
 
   const pending = requests.filter((r) => !r.guidanceRepliedAt);
   const replied = requests.filter((r) => !!r.guidanceRepliedAt);
@@ -117,7 +120,7 @@ function GuidanceList({
           {rows.map((r) => {
             const item = itemMap.get(r.itemKey);
             const student =
-              r.user.nickname || r.user.name || r.user.email || r.user.id;
+              r.user.nickname || r.user.name || maskEmail(r.user.email) || r.user.id;
             return (
               <li
                 key={r.id}
@@ -126,7 +129,7 @@ function GuidanceList({
                 <div className="flex flex-wrap items-start justify-between gap-2 text-xs text-[var(--muted)]">
                   <span>
                     學員：{student}
-                    {r.user.email ? `（${r.user.email}）` : ""}
+                    {r.user.email ? `（${maskEmail(r.user.email)}）` : ""}
                   </span>
                   <span>
                     提問時間：

@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { generateGroundedAnswer } from "@/lib/answer";
+import { assertSameOrigin, requireUser } from "@/lib/authz";
 import { ensureKnowledgeBase } from "@/lib/bootstrap-knowledge";
 import { ensureFeedbackSchema } from "@/lib/ensure-feedback-schema";
-import prisma from "@/lib/prisma";
+import { ensureRlsSchema } from "@/lib/ensure-rls-schema";
+import { redactForLog } from "@/lib/pii";
+import { sanitizeUserText } from "@/lib/prompt-injection";
+import { rateLimit } from "@/lib/rate-limit";
 import { retrieveForRag } from "@/lib/rag";
-import { getSession } from "@/lib/get-session";
 import { OFF_TOPIC_REPLY, isOnTopicQuestion } from "@/lib/topic-scope";
+import { withUserRls } from "@/lib/with-user-rls";
 
 const bodySchema = z
   .object({
@@ -15,7 +19,7 @@ const bodySchema = z
     message: z.string().optional(),
   })
   .transform((data) => ({
-    question: (data.question ?? data.message ?? "").trim(),
+    question: sanitizeUserText(data.question ?? data.message ?? ""),
   }))
   .pipe(
     z.object({
@@ -26,24 +30,23 @@ const bodySchema = z
     }),
   );
 
-async function resolveUserId(session: {
-  user?: { id?: string; email?: string | null };
-}) {
-  if (session.user?.id) return session.user.id;
-  if (!session.user?.email) return null;
-  const dbUser = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-  return dbUser?.id ?? null;
-}
-
 export async function POST(req: Request) {
-  const session = await getSession();
-  const userId = session ? await resolveUserId(session) : null;
+  const originError = assertSameOrigin(req);
+  if (originError) return originError;
 
-  if (!userId) {
-    return NextResponse.json({ error: "請先登入" }, { status: 401 });
+  const authed = await requireUser();
+  if (!authed.ok) return authed.response;
+  const userId = authed.user.id;
+
+  const limited = rateLimit(`chat:${userId}`, { limit: 30, windowMs: 60_000 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "提問過於頻繁，請稍後再試" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      },
+    );
   }
 
   let json: unknown;
@@ -62,19 +65,21 @@ export async function POST(req: Request) {
   const question = parsed.data.question;
 
   try {
-    await ensureFeedbackSchema();
+    await Promise.all([ensureFeedbackSchema(), ensureRlsSchema()]);
 
     if (!isOnTopicQuestion(question)) {
-      const row = await prisma.userQuestion.create({
-        data: {
-          userId,
-          question,
-          answer: OFF_TOPIC_REPLY,
-          sources: JSON.stringify([]),
-          answerModel: "off-topic",
-          retrievalMode: "off-topic",
-        },
-      });
+      const row = await withUserRls(userId, (tx) =>
+        tx.userQuestion.create({
+          data: {
+            userId,
+            question,
+            answer: OFF_TOPIC_REPLY,
+            sources: JSON.stringify([]),
+            answerModel: "off-topic",
+            retrievalMode: "off-topic",
+          },
+        }),
+      );
       return NextResponse.json({
         questionId: row.id,
         answer: OFF_TOPIC_REPLY,
@@ -85,7 +90,6 @@ export async function POST(req: Request) {
     }
 
     await ensureKnowledgeBase();
-    // 回答僅依法規／函釋資料庫檢索結果；題庫不作為論據來源
     const { chunks, mode: retrievalMode } = await retrieveForRag(question);
     const { answer, model, warning } = await generateGroundedAnswer(question, chunks);
 
@@ -103,16 +107,18 @@ export async function POST(req: Request) {
       if (sources.length >= 5) break;
     }
 
-    const row = await prisma.userQuestion.create({
-      data: {
-        userId,
-        question,
-        answer,
-        sources: JSON.stringify(sources),
-        answerModel: model,
-        retrievalMode,
-      },
-    });
+    const row = await withUserRls(userId, (tx) =>
+      tx.userQuestion.create({
+        data: {
+          userId,
+          question,
+          answer,
+          sources: JSON.stringify(sources),
+          answerModel: model,
+          retrievalMode,
+        },
+      }),
+    );
 
     return NextResponse.json({
       questionId: row.id,
@@ -123,7 +129,7 @@ export async function POST(req: Request) {
       retrievalMode,
     });
   } catch (err) {
-    console.error("[chat] unexpected error:", err);
+    console.error("[chat] unexpected error:", redactForLog(String(err), 200));
     return NextResponse.json(
       { error: "處理問題時發生錯誤，請稍後再試。" },
       { status: 500 },

@@ -6,6 +6,7 @@ import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 import { canAccessTeacher, roleLabel } from "@/lib/roles";
 import { loadAllStudentsLearning } from "@/lib/teacher-stats";
+import { withRlsBypass } from "@/lib/with-user-rls";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +30,14 @@ export default async function TeacherHomePage() {
             "@/lib/ensure-mock-exam-guidance-schema"
           );
           await ensureMockExamGuidanceSchema();
-          return prisma.mockExamSupplement.count({
-            where: {
-              guidanceRequestedAt: { not: null },
-              guidanceRepliedAt: null,
-            },
-          });
+          return withRlsBypass((tx) =>
+            tx.mockExamSupplement.count({
+              where: {
+                guidanceRequestedAt: { not: null },
+                guidanceRepliedAt: null,
+              },
+            }),
+          );
         } catch {
           return 0;
         }

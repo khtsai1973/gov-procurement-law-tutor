@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { assertSameOrigin, requireUser } from "@/lib/authz";
 import { ensureFeedbackSchema } from "@/lib/ensure-feedback-schema";
-import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/get-session";
+import { sanitizeUserText } from "@/lib/prompt-injection";
+import { rateLimit } from "@/lib/rate-limit";
+import { withUserRls } from "@/lib/with-user-rls";
 
 const bodySchema = z.object({
   questionId: z.string().min(1, "缺少提問編號"),
@@ -14,27 +16,26 @@ const bodySchema = z.object({
     .string()
     .max(1000, "回饋文字請精簡於 1000 字內")
     .optional()
-    .transform((v) => (v ?? "").trim() || null),
+    .transform((v) => sanitizeUserText(v ?? "", 1000) || null),
 });
 
-async function resolveUserId(session: {
-  user?: { id?: string; email?: string | null };
-}) {
-  if (session.user?.id) return session.user.id;
-  if (!session.user?.email) return null;
-  const dbUser = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-  return dbUser?.id ?? null;
-}
-
 export async function POST(req: Request) {
-  const session = await getSession();
-  const userId = session ? await resolveUserId(session) : null;
+  const originError = assertSameOrigin(req);
+  if (originError) return originError;
 
-  if (!userId) {
-    return NextResponse.json({ error: "請先登入" }, { status: 401 });
+  const authed = await requireUser();
+  if (!authed.ok) return authed.response;
+  const userId = authed.user.id;
+
+  const limited = rateLimit(`feedback:${userId}`, { limit: 60, windowMs: 60_000 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "操作過於頻繁，請稍後再試" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterSec) },
+      },
+    );
   }
 
   let json: unknown;
@@ -62,29 +63,31 @@ export async function POST(req: Request) {
     );
   }
 
-  const row = await prisma.userQuestion.findFirst({
-    where: { id: questionId, userId },
-    select: { id: true },
+  const updated = await withUserRls(userId, async (tx) => {
+    const row = await tx.userQuestion.findFirst({
+      where: { id: questionId, userId },
+      select: { id: true },
+    });
+    if (!row) return null;
+    return tx.userQuestion.update({
+      where: { id: questionId },
+      data: {
+        feedback,
+        feedbackComment: comment,
+        feedbackAt: new Date(),
+      },
+      select: {
+        id: true,
+        feedback: true,
+        feedbackComment: true,
+        feedbackAt: true,
+      },
+    });
   });
 
-  if (!row) {
+  if (!updated) {
     return NextResponse.json({ error: "找不到對應的提問紀錄" }, { status: 404 });
   }
-
-  const updated = await prisma.userQuestion.update({
-    where: { id: questionId },
-    data: {
-      feedback,
-      feedbackComment: comment,
-      feedbackAt: new Date(),
-    },
-    select: {
-      id: true,
-      feedback: true,
-      feedbackComment: true,
-      feedbackAt: true,
-    },
-  });
 
   return NextResponse.json({
     ok: true,

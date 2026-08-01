@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/get-session";
 import { mockExamTypeLabel } from "@/lib/mock-exam";
+import { maskEmail } from "@/lib/pii";
 import { canAccessTeacher, roleLabel } from "@/lib/roles";
 import {
   loadAllStudentsLearning,
@@ -85,7 +86,7 @@ export default async function TeacherStudentsPage({
                       <div className="font-medium">
                         {s.nickname ?? s.name ?? "（未設定暱稱）"}
                       </div>
-                      <div className="text-xs text-[var(--muted)]">{s.email}</div>
+                      <div className="text-xs text-[var(--muted)]">{maskEmail(s.email)}</div>
                     </td>
                     <td className="py-2 pr-3">{roleLabel(s.role)}</td>
                     <td className="py-2 pr-3">{s.examSessionCount}</td>
@@ -122,9 +123,9 @@ export default async function TeacherStudentsPage({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-base font-semibold">
-                    {detail.nickname ?? detail.name ?? detail.email ?? "學員"}｜詳細學習資料
+                    {detail.nickname ?? detail.name ?? maskEmail(detail.email) ?? "學員"}｜詳細學習資料
                   </h2>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{detail.email}</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">{maskEmail(detail.email)}</p>
                 </div>
                 <Link href="/teacher/students" className="text-sm no-underline hover:underline">
                   關閉詳細
