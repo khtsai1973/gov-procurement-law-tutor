@@ -39,7 +39,7 @@
         "pcc-procurement-amount-thresholds",
         "below-threshold-bidding-rules"
       ],
-      "hintAnswer": "小額採購與「未達公告金額」等概念可能並存但適用規範不同；請對照門檻彙整與未達公告金額相關辦法，並依本案採購金額級距判斷。"
+      "hintAnswer": "結論：台灣中央機關的小額採購金額門檻為新臺幣15萬元以下（即公告金額150萬元的十分之一以下）。地方機關另定，均不得逾公告金額十分之一。請對照知識庫工程會門檻彙整。"
     },
     {
       "key": "threshold-mega-procurement",
