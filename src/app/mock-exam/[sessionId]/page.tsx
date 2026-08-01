@@ -116,7 +116,9 @@ export default async function MockExamSessionPage({ params }: PageProps) {
                 <th className="py-2 pr-3 font-medium">您的答案</th>
                 <th className="py-2 pr-3 font-medium">參考答案</th>
                 <th className="py-2 pr-3 font-medium">結果</th>
-                <th className="py-2 font-medium">來源註記</th>
+                <th className="py-2 pr-3 font-medium">來源註記</th>
+                <th className="py-2 pr-3 font-medium">我的補充筆記</th>
+                <th className="py-2 font-medium">老師指導內容</th>
               </tr>
             </thead>
             <tbody>
@@ -144,7 +146,15 @@ export default async function MockExamSessionPage({ params }: PageProps) {
                       <span className="text-[var(--muted)]">無法評分</span>
                     )}
                   </td>
-                  <td className="py-3 text-xs text-[var(--muted)]">{a.sourceNote ?? "—"}</td>
+                  <td className="py-3 pr-3 text-xs text-[var(--muted)] max-w-[12rem] whitespace-pre-wrap">
+                    {a.sourceNote ?? "—"}
+                  </td>
+                  <td className="py-3 pr-3 text-xs text-[var(--muted)] max-w-[12rem] whitespace-pre-wrap">
+                    {a.supplement ?? "—"}
+                  </td>
+                  <td className="py-3 text-xs text-[var(--muted)] max-w-[14rem] whitespace-pre-wrap">
+                    {a.teacherGuidance ?? "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -37,6 +37,9 @@ type QuestionState = MockExamQuestionPayload & {
   supplementDraft: string;
   supplementSaving: boolean;
   supplementSaved: boolean;
+  guidanceAskDraft: string;
+  guidanceAsking: boolean;
+  guidanceAskMsg: string | null;
 };
 
 type MockExamPanelProps = {
@@ -226,6 +229,9 @@ export function MockExamPanel({
         supplementDraft: "",
         supplementSaving: false,
         supplementSaved: false,
+        guidanceAskDraft: "",
+        guidanceAsking: false,
+        guidanceAskMsg: null,
       }));
       if (loaded.length === 0) {
         setError("沒有可用的題目");
@@ -295,11 +301,14 @@ export function MockExamPanel({
 
       setQuestions((prev) => {
         const next = [...prev];
+        const reveal = data as MockExamRevealResult;
         next[currentIndex] = {
           ...next[currentIndex]!,
-          revealed: data as MockExamRevealResult,
+          revealed: reveal,
           sourceNoteDraft: (data.sourceNote as string | null) ?? "",
           supplementDraft: (data.supplement as string | null) ?? "",
+          guidanceAskDraft: reveal.guidanceAskNote ?? "",
+          guidanceAskMsg: null,
         };
         return next;
       });
@@ -383,6 +392,76 @@ export function MockExamPanel({
       next[currentIndex] = { ...next[currentIndex]!, supplementDraft: value, supplementSaved: false };
       return next;
     });
+  }
+
+  function updateGuidanceAskDraft(value: string) {
+    setQuestions((prev) => {
+      const next = [...prev];
+      next[currentIndex] = { ...next[currentIndex]!, guidanceAskDraft: value, guidanceAskMsg: null };
+      return next;
+    });
+  }
+
+  async function askTeacherGuidance(index: number) {
+    const q = questions[index];
+    if (!q) return;
+
+    setQuestions((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index]!, guidanceAsking: true, guidanceAskMsg: null };
+      return next;
+    });
+
+    try {
+      const res = await fetch("/api/mock-exam/ask-guidance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: q.key,
+          askNote: q.guidanceAskDraft,
+          supplement: q.supplementDraft,
+          sourceNote: q.sourceNoteDraft,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setQuestions((prev) => {
+        const next = [...prev];
+        const cur = next[index]!;
+        if (!res.ok) {
+          next[index] = {
+            ...cur,
+            guidanceAsking: false,
+            guidanceAskMsg: typeof data.error === "string" ? data.error : "送出失敗",
+          };
+          return next;
+        }
+        next[index] = {
+          ...cur,
+          guidanceAsking: false,
+          guidanceAskMsg: "已送出，等待老師回覆",
+          revealed: cur.revealed
+            ? {
+                ...cur.revealed,
+                guidanceRequestedAt:
+                  (data.guidanceRequestedAt as string | null) ?? new Date().toISOString(),
+                guidanceAskNote: (data.guidanceAskNote as string | null) ?? cur.guidanceAskDraft,
+                teacherGuidance: null,
+              }
+            : cur.revealed,
+        };
+        return next;
+      });
+    } catch {
+      setQuestions((prev) => {
+        const next = [...prev];
+        next[index] = {
+          ...next[index]!,
+          guidanceAsking: false,
+          guidanceAskMsg: "無法連線",
+        };
+        return next;
+      });
+    }
   }
 
   const categoryQueryNorm = categoryQuery.trim().toLowerCase();
@@ -814,21 +893,75 @@ export function MockExamPanel({
                     className="mt-2 w-full rounded-lg border border-[var(--border)] p-3 text-sm"
                     placeholder="例：依採購法第○條，或工程會函釋…"
                   />
-                  <button
-                    type="button"
-                    onClick={() => saveSupplement(currentIndex)}
-                    disabled={
-                      current.supplementSaving ||
-                      (!current.supplementDraft.trim() && !current.sourceNoteDraft.trim())
-                    }
-                    className="mt-2 rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {current.supplementSaving
-                      ? "儲存中…"
-                      : current.supplementSaved
-                        ? "已儲存"
-                        : "儲存註記與補充"}
-                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium" htmlFor="guidance-ask">
+                    想問老師的問題（選填）
+                  </label>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">
+                    按「請老師指導」後，老師可於工作台看到此題並回覆「老師指導內容」。
+                  </p>
+                  <textarea
+                    id="guidance-ask"
+                    value={current.guidanceAskDraft}
+                    onChange={(e) => updateGuidanceAskDraft(e.target.value)}
+                    rows={2}
+                    className="mt-2 w-full rounded-lg border border-[var(--border)] p-3 text-sm"
+                    placeholder="例：這題與第○條的關係能否再說明…"
+                  />
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => saveSupplement(currentIndex)}
+                      disabled={
+                        current.supplementSaving ||
+                        (!current.supplementDraft.trim() && !current.sourceNoteDraft.trim())
+                      }
+                      className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {current.supplementSaving
+                        ? "儲存中…"
+                        : current.supplementSaved
+                          ? "已儲存"
+                          : "儲存註記與補充"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => askTeacherGuidance(currentIndex)}
+                      disabled={current.guidanceAsking}
+                      className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-50"
+                    >
+                      {current.guidanceAsking
+                        ? "送出中…"
+                        : current.revealed.guidanceRequestedAt
+                          ? "再次請老師指導"
+                          : "請老師指導"}
+                    </button>
+                  </div>
+                  {current.guidanceAskMsg ? (
+                    <p className="mt-2 text-sm text-[var(--muted)]">{current.guidanceAskMsg}</p>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium" htmlFor="teacher-guidance">
+                    老師指導內容
+                  </label>
+                  {current.revealed.teacherGuidance ? (
+                    <div
+                      id="teacher-guidance"
+                      className="mt-2 whitespace-pre-wrap rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-950"
+                    >
+                      {current.revealed.teacherGuidance}
+                    </div>
+                  ) : (
+                    <p id="teacher-guidance" className="mt-2 text-sm text-[var(--muted)]">
+                      {current.revealed.guidanceRequestedAt
+                        ? "已送出提問，等待老師回覆。"
+                        : "尚未請老師指導。"}
+                    </p>
+                  )}
                 </div>
 
                 {current.revealError ? (

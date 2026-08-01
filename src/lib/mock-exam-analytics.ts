@@ -49,8 +49,25 @@ export async function loadMockExamSessionDetail(
   });
   const itemMap = new Map(items.map((i) => [i.key, i]));
 
+  const { ensureMockExamGuidanceSchema } = await import(
+    "@/lib/ensure-mock-exam-guidance-schema"
+  );
+  await ensureMockExamGuidanceSchema();
+
+  const supplements = await prisma.mockExamSupplement.findMany({
+    where: { userId, itemKey: { in: itemKeys } },
+    select: {
+      itemKey: true,
+      supplement: true,
+      sourceNote: true,
+      teacherGuidance: true,
+    },
+  });
+  const supplementMap = new Map(supplements.map((s) => [s.itemKey, s]));
+
   const answers = session.answers.map((a) => {
     const item = itemMap.get(a.itemKey);
+    const note = supplementMap.get(a.itemKey);
     return {
       questionIndex: a.questionIndex,
       itemKey: a.itemKey,
@@ -60,7 +77,9 @@ export async function loadMockExamSessionDetail(
       referenceAnswer: a.referenceAnswer,
       isCorrect: a.isCorrect,
       revealed: a.revealed,
-      sourceNote: a.sourceNote,
+      sourceNote: a.sourceNote ?? note?.sourceNote ?? null,
+      supplement: note?.supplement ?? null,
+      teacherGuidance: note?.teacherGuidance ?? null,
       hintAnswer: item?.hintAnswer ?? null,
     };
   });
