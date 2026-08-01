@@ -11,6 +11,10 @@ import {
 } from "@/lib/current-threshold-figures";
 import { analyzeOpeningBidderCount } from "@/lib/opening-bidder-count";
 import {
+  buildProcurementAmountDefinitionAnswer,
+  isProcurementAmountDefinitionQuery,
+} from "@/lib/procurement-amount-definition";
+import {
   buildSmallPurchaseThresholdAnswer,
   isSmallPurchaseThresholdQuery,
 } from "@/lib/small-purchase-threshold";
@@ -131,6 +135,9 @@ function buildDeterministicAnswer(question: string, chunks: ChunkWithReg[]): str
   if (isSmallPurchaseThresholdQuery(question)) {
     return buildSmallPurchaseThresholdAnswer();
   }
+  if (isProcurementAmountDefinitionQuery(question)) {
+    return buildProcurementAmountDefinitionAnswer();
+  }
   return (
     buildDeterministicBidderCountAnswer(question, chunks) ??
     buildDeterministicTierAnswer(question, chunks)
@@ -154,6 +161,7 @@ const RAG_SYSTEM_PROMPT = `你是政府採購法教學助教，採 RAG（檢索�
 金額級距／門檻歸類（重要，應主動整合分析）：
 - 當使用者詢問「今年／現行查核金額、公告金額各是多少」且片段已有門檻表時，結論須寫明：查核金額為工程及財物 5,000 萬、勞務 1,000 萬；公告金額一律 150 萬（新臺幣），並引用 [片段N]。
 - 當使用者詢問「小額採購金額門檻是多少」且片段已有門檻表時，結論須寫明：中央機關為新臺幣 15 萬元以下（即公告金額 150 萬元之十分之一以下），並引用 [片段N]；地方機關另定，勿臆測。
+- 當使用者詢問「採購金額如何認定／是否含稅、後續擴充或選購」時，結論須依施行細則第 6 條：招標前認定；預估選購或後續擴充應計入；除招標文件另有規定外原則含稅（營業稅），並引用 [片段N]。
 - 當使用者給出採購金額，並詢問屬哪一級距（或是否達公告／查核／巨額），且片段中已有工程會門檻表或等同數字時：
   (a) 先依片段認定標的類別：資訊服務／專業服務／技術服務等屬「勞務」（採購法對工程、財物、勞務之定義）；工程、財物各用其門檻。
   (b) 將使用者金額與該類別「小額／公告金額／查核金額／巨額」門檻比較（得做大小比較與級距歸屬，這屬於依片段綜合推論，不是捏造）。
@@ -203,6 +211,12 @@ export async function generateGroundedAnswer(
       return {
         answer: buildSmallPurchaseThresholdAnswer(),
         model: "small-purchase-threshold",
+      };
+    }
+    if (isProcurementAmountDefinitionQuery(question)) {
+      return {
+        answer: buildProcurementAmountDefinitionAnswer(),
+        model: "procurement-amount-definition",
       };
     }
 
@@ -255,6 +269,13 @@ export async function generateGroundedAnswer(
       warning: !apiKey ? "openai-unavailable" : undefined,
     };
   }
+  if (deterministicPreferred && isProcurementAmountDefinitionQuery(question)) {
+    return {
+      answer: deterministicPreferred,
+      model: "procurement-amount-definition",
+      warning: !apiKey ? "openai-unavailable" : undefined,
+    };
+  }
 
   if (!apiKey || aiDisabled) {
     const deterministic = deterministicPreferred ?? buildDeterministicAnswer(question, chunks);
@@ -271,7 +292,9 @@ export async function generateGroundedAnswer(
                 ? "current-threshold-figures"
                 : isSmallPurchaseThresholdQuery(question)
                   ? "small-purchase-threshold"
-                  : "amount-tier-rules",
+                  : isProcurementAmountDefinitionQuery(question)
+                    ? "procurement-amount-definition"
+                    : "amount-tier-rules",
         warning: !apiKey ? "openai-unavailable" : undefined,
       };
     }

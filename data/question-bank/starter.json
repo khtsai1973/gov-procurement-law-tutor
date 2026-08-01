@@ -27,7 +27,7 @@
       "question": "採購金額如何認定？是否含稅、後續擴充或選購？",
       "keywords": ["採購金額", "認定", "含稅", "後續擴充", "選購", "預算"],
       "relatedSlugs": ["government-procurement-act", "gpa-enforcement-rules"],
-      "hintAnswer": "依使用者說明的標的與契約結構，對照採購法及施行細則關於採購金額計算、後續擴充、選購併計之條文；必要時請使用者提供預算科目與契約架構。"
+      "hintAnswer": "結論：依《政府採購法施行細則》第6條，採購金額應於招標前認定，且必須計入預估之選購或後續擴充項目金額；除招標文件另有規定外，原則上應為含稅金額（包含營業稅）。"
     },
     {
       "key": "threshold-small-purchase",
