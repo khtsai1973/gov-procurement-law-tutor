@@ -91,7 +91,11 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <h1 className="text-xl font-semibold">開始學習</h1>
         <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-          請先使用 Google 帳號登入；登入後本站會保存您的提問紀錄，並僅在已匯入之法規／函釋摘錄範圍內產生回答。
+          請先
+          <Link href="/register" className="mx-1 underline">
+            申請註冊
+          </Link>
+          並經管理者核准後，再以 Google 帳號登入。登入後本站會保存您的提問紀錄，並僅在已匯入之法規／函釋摘錄範圍內產生回答。
         </p>
       </section>
     );

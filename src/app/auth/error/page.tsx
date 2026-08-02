@@ -9,7 +9,7 @@ const hints: Record<string, string> = {
     "Google 已驗證成功，但資料庫尚未建立 User 資料表。請對 DATABASE_URL 指向的 Postgres 執行 db:init（見 DEPLOY.md），完成後再登入。",
   Configuration: "伺服器設定有誤。請檢查 AUTH_SECRET / NEXTAUTH_SECRET 與 Google 憑證。",
   AccessDenied:
-    "Google 拒絕登入。若 OAuth 仍為「測試中」，僅測試使用者清單內的 Gmail 可登入；公開使用須發布為「正式版」（見 GOOGLE-OAUTH.md）。",
+    "Google 拒絕登入。若 OAuth 仍為「測試中」，僅測試使用者清單內的 Gmail 可登入；公開使用須發布為「正式版」（見 GOOGLE-OAUTH.md）。若尚未申請註冊，請先至「申請註冊」送出申請並等候管理者核准。",
   Verification: "登入驗證失敗，請再試一次。",
   Default: "登入時發生錯誤。",
 };
@@ -87,9 +87,14 @@ npm run corpus:rag-init   # 選填，語意檢索需 embedding`}
         </ul>
       )}
 
-      <Link href="/" className="mt-6 inline-block text-sm underline">
-        返回首頁
-      </Link>
+      <div className="mt-6 flex flex-wrap gap-4 text-sm">
+        <Link href="/register" className="underline">
+          申請註冊
+        </Link>
+        <Link href="/" className="underline">
+          返回首頁
+        </Link>
+      </div>
     </section>
   );
 }

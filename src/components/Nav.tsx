@@ -55,22 +55,29 @@ export async function Nav() {
               </button>
             </form>
           </>
-        ) : googleReady ? (
-          <form action={loginWithGoogle}>
-            <button
-              type="submit"
-              className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-white hover:opacity-90"
-            >
-              以 Google 登入
-            </button>
-          </form>
         ) : (
-          <Link
-            href="/auth/setup"
-            className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-900 no-underline hover:bg-amber-100"
-          >
-            設定 Google 登入
-          </Link>
+          <>
+            <Link href="/register" className="no-underline hover:underline">
+              申請註冊
+            </Link>
+            {googleReady ? (
+              <form action={loginWithGoogle}>
+                <button
+                  type="submit"
+                  className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-white hover:opacity-90"
+                >
+                  以 Google 登入
+                </button>
+              </form>
+            ) : (
+              <Link
+                href="/auth/setup"
+                className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-900 no-underline hover:bg-amber-100"
+              >
+                設定 Google 登入
+              </Link>
+            )}
+          </>
         )}
       </nav>
     </header>
