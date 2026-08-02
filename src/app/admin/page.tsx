@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/get-session";
 import { IngestForm } from "@/components/IngestForm";
 import { formatPercent, loadAnswerFeedbackStats } from "@/lib/answer-feedback-stats";
+import { ensureRegistrationSchema } from "@/lib/ensure-registration-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,14 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [syncs, feedbackStats] = await Promise.all([
+  await ensureRegistrationSchema().catch(() => undefined);
+
+  const [syncs, feedbackStats, pendingRegistrations] = await Promise.all([
     prisma.knowledgeSync.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
     loadAnswerFeedbackStats(),
+    prisma.registrationApplication
+      .count({ where: { status: "PENDING" } })
+      .catch(() => 0),
   ]);
 
   return (
@@ -24,7 +30,30 @@ export default async function AdminPage() {
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold">管理者：知識庫維護</h1>
+            <h1 className="text-xl font-semibold">管理者工作台</h1>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              可審核註冊申請、維護知識庫與檢視回答品質回饋。
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href="/admin/registrations"
+                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white no-underline hover:bg-blue-800"
+              >
+                註冊申請審核
+                {pendingRegistrations > 0 ? `（${pendingRegistrations}）` : ""}
+              </Link>
+            </div>
+          </div>
+          <Link href="/" className="text-sm no-underline hover:underline">
+            ← 回到問答
+          </Link>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">知識庫維護</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">
               將每部法規／函釋整理成 UTF-8 純文字 Markdown，檔名必須為{" "}
               <code className="rounded bg-gray-100 px-1">slug.md</code>，置於專案根目錄{" "}
@@ -38,9 +67,6 @@ export default async function AdminPage() {
               <li>最後修改日期與來源連結可在資料表 regulation 中維護，或擴充管理介面編修。</li>
             </ul>
           </div>
-          <Link href="/" className="text-sm no-underline hover:underline">
-            ← 回到問答
-          </Link>
         </div>
 
         <div className="mt-6">

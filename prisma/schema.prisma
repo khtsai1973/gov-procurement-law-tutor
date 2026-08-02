@@ -28,6 +28,13 @@ enum AnswerFeedback {
   DOWN
 }
 
+/// 訪客註冊申請審核狀態
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -43,6 +50,25 @@ model User {
   examSupplements MockExamSupplement[]
   mockExamSessions MockExamSession[]
   unitMaterials UnitMaterial[]
+}
+
+/// 訪客註冊申請（可申請老師或一般使用者；由管理者審核後始可 Google 登入加入）
+model RegistrationApplication {
+  id            String             @id @default(cuid())
+  /// 正規化小寫信箱
+  email         String             @unique
+  name          String?
+  /// 僅允許 USER 或 TEACHER（應用層驗證）
+  requestedRole Role
+  note          String?
+  status        RegistrationStatus @default(PENDING)
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewNote    String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([status, createdAt])
 }
 
 /// 老師製作的單元教材（學員可閱讀已發布者）
