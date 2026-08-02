@@ -7,7 +7,7 @@ import { SessionProvider } from "@/components/SessionProvider";
 
 const noto = Noto_Sans_TC({ subsets: ["latin"], variable: "--font-noto-sans", weight: ["400", "500", "700"] });
 
-export const dynamic = "force-dynamic";
+// 不在 root layout 強制 dynamic，讓公開頁可靜態／快取；需即時資料的頁面各自宣告 force-dynamic
 
 export const metadata: Metadata = {
   title: "政府採購法互動教學",

@@ -1,0 +1,134 @@
+{
+  "generated_at": "2026-08-02T13:20:22.628Z",
+  "base_url": "https://gov-procurement-law-tutor.vercel.app",
+  "threshold_ms": 500,
+  "warm_n": 8,
+  "evaluation": "warm anonymous public pages (/ and /register)",
+  "pass": true,
+  "paths": [
+    {
+      "path": "/",
+      "url": "https://gov-procurement-law-tutor.vercel.app/",
+      "cold": {
+        "http_code": 200,
+        "ttfb_ms": 72.2,
+        "total_ms": 83.1
+      },
+      "warm": {
+        "n": 8,
+        "min_ms": 48.4,
+        "max_ms": 86.8,
+        "mean_ms": 66.9,
+        "p50_ms": 63.3,
+        "p95_ms": 86.8
+      },
+      "http_ok": true,
+      "pass": true
+    },
+    {
+      "path": "/register",
+      "url": "https://gov-procurement-law-tutor.vercel.app/register",
+      "cold": {
+        "http_code": 200,
+        "ttfb_ms": 81.4,
+        "total_ms": 101.7
+      },
+      "warm": {
+        "n": 8,
+        "min_ms": 53.2,
+        "max_ms": 128.7,
+        "mean_ms": 66.6,
+        "p50_ms": 57.3,
+        "p95_ms": 128.7
+      },
+      "http_ok": true,
+      "pass": true
+    }
+  ],
+  "raw_samples": {
+    "/": [
+      {
+        "http_code": 200,
+        "ttfb_ms": 80.5,
+        "total_ms": 81.1
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 52.3,
+        "total_ms": 54.4
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 48.4,
+        "total_ms": 50
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 63.3,
+        "total_ms": 63.5
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 86.8,
+        "total_ms": 87.2
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 66.7,
+        "total_ms": 68.5
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 81.6,
+        "total_ms": 91.4
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 55.2,
+        "total_ms": 57.4
+      }
+    ],
+    "/register": [
+      {
+        "http_code": 200,
+        "ttfb_ms": 68.2,
+        "total_ms": 68.2
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 53.2,
+        "total_ms": 55.8
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 57.6,
+        "total_ms": 59.6
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 128.7,
+        "total_ms": 131.7
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 55.6,
+        "total_ms": 56.8
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 58.4,
+        "total_ms": 59.2
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 57.3,
+        "total_ms": 57.8
+      },
+      {
+        "http_code": 200,
+        "ttfb_ms": 54.1,
+        "total_ms": 56
+      }
+    ]
+  }
+}

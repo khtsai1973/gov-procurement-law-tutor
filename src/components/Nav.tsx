@@ -1,12 +1,11 @@
 import Link from "next/link";
 
-import { loginWithGoogle, logout } from "@/app/actions/auth";
+import { AuthNavControls } from "@/components/AuthNavControls";
 import { Logo } from "@/components/Logo";
 import { isGoogleOAuthConfigured } from "@/lib/google-oauth-config";
-import { getSession } from "@/lib/get-session";
 
-export async function Nav() {
-  const session = await getSession();
+/** 公開導覽不 await session，降低首頁／註冊頁 TTFB */
+export function Nav() {
   const googleReady = isGoogleOAuthConfigured();
 
   return (
@@ -15,7 +14,9 @@ export async function Nav() {
         <Link href="/" className="group inline-flex items-center gap-3 no-underline">
           <Logo size={44} showWordmark />
         </Link>
-        <p className="mt-2 text-sm text-[var(--muted)]">回答來源限於已匯入之法規／函釋資料庫（檢索並整合分析）</p>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          回答來源限於已匯入之法規／函釋資料庫（檢索並整合分析）
+        </p>
       </div>
       <nav className="flex flex-wrap items-center gap-3 text-sm">
         <Link href="/regulations" className="no-underline hover:underline">
@@ -30,55 +31,7 @@ export async function Nav() {
         <Link href="/mock-exam" className="no-underline hover:underline">
           模擬考試
         </Link>
-        {session?.user ? (
-          <>
-            <Link href="/my-questions" className="no-underline hover:underline">
-              我的提問紀錄
-            </Link>
-            {session.user.role === "TEACHER" || session.user.role === "ADMIN" ? (
-              <Link href="/teacher" className="no-underline hover:underline">
-                老師
-              </Link>
-            ) : null}
-            {session.user.role === "ADMIN" ? (
-              <Link href="/admin" className="no-underline hover:underline">
-                管理者
-              </Link>
-            ) : null}
-            <span className="text-[var(--muted)]">{session.user.nickname ?? session.user.email}</span>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-[var(--fg)] hover:bg-gray-50"
-              >
-                登出
-              </button>
-            </form>
-          </>
-        ) : (
-          <>
-            <Link href="/register" className="no-underline hover:underline">
-              申請註冊
-            </Link>
-            {googleReady ? (
-              <form action={loginWithGoogle}>
-                <button
-                  type="submit"
-                  className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-white hover:opacity-90"
-                >
-                  以 Google 登入
-                </button>
-              </form>
-            ) : (
-              <Link
-                href="/auth/setup"
-                className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-900 no-underline hover:bg-amber-100"
-              >
-                設定 Google 登入
-              </Link>
-            )}
-          </>
-        )}
+        <AuthNavControls googleReady={googleReady} />
       </nav>
     </header>
   );

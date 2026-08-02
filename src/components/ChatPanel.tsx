@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerFeedback } from "@/components/AnswerFeedback";
@@ -9,7 +10,10 @@ import { SCENARIO_TEMPLATES } from "@/lib/scenario-templates";
 
 type Source = { title: string; tier: string; slug: string };
 
-export function ChatPanel({ signedIn }: { signedIn: boolean }) {
+/** 登入態由客戶端讀取，避免首頁 server 等待 session／DB */
+export function ChatPanel() {
+  const { status } = useSession();
+  const signedIn = status === "authenticated";
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [questionId, setQuestionId] = useState<string | null>(null);
@@ -84,6 +88,14 @@ export function ChatPanel({ signedIn }: { signedIn: boolean }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (status === "loading") {
+    return (
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+        <p className="text-sm text-[var(--muted)]">載入中…</p>
+      </section>
+    );
   }
 
   if (!signedIn) {

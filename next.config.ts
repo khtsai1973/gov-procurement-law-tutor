@@ -34,9 +34,12 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "4mb",
     },
   },
-  // 確保 Vercel serverless 可讀取題庫／語料檔以便管理者重匯與自動遷移
+  // 僅管理／匯入相關路由需要題庫與語料檔，避免所有 serverless 函式打包過大拖慢冷啟動
   outputFileTracingIncludes: {
-    "/*": ["./data/question-bank/**/*", "./data/corpus/**/*"],
+    "/admin": ["./data/question-bank/**/*", "./data/corpus/**/*"],
+    "/admin/:path*": ["./data/question-bank/**/*", "./data/corpus/**/*"],
+    "/api/admin/:path*": ["./data/question-bank/**/*", "./data/corpus/**/*"],
+    "/teacher/:path*": ["./data/question-bank/**/*"],
   },
   async headers() {
     return [
