@@ -4,10 +4,10 @@ import { z } from "zod";
 import { generateGroundedAnswer } from "@/lib/answer";
 import { assertSameOrigin, requireUser } from "@/lib/authz";
 import { ensureKnowledgeBase } from "@/lib/bootstrap-knowledge";
+import { classifyInput, sanitizeUserText } from "@/lib/defense";
 import { ensureFeedbackSchema } from "@/lib/ensure-feedback-schema";
 import { ensureRlsSchema } from "@/lib/ensure-rls-schema";
 import { redactForLog } from "@/lib/pii";
-import { sanitizeUserText } from "@/lib/prompt-injection";
 import { rateLimit } from "@/lib/rate-limit";
 import { retrieveForRag } from "@/lib/rag";
 import { OFF_TOPIC_REPLY, isOnTopicQuestion } from "@/lib/topic-scope";
@@ -64,6 +64,45 @@ export async function POST(req: Request) {
 
   const question = parsed.data.question;
 
+  // 輸入層（Serverless）：與 Edge middleware 雙重把關
+  const inputVerdict = classifyInput(question);
+  if (!inputVerdict.allowed) {
+    try {
+      await Promise.all([ensureFeedbackSchema(), ensureRlsSchema()]);
+      const row = await withUserRls(userId, (tx) =>
+        tx.userQuestion.create({
+          data: {
+            userId,
+            question,
+            answer: OFF_TOPIC_REPLY,
+            sources: JSON.stringify([]),
+            answerModel: "prompt-injection-blocked",
+            retrievalMode: "input-guard",
+          },
+        }),
+      );
+      return NextResponse.json({
+        questionId: row.id,
+        answer: OFF_TOPIC_REPLY,
+        sources: [],
+        model: "prompt-injection-blocked",
+        retrievalMode: "input-guard",
+        defense: "input-layer",
+      });
+    } catch (err) {
+      console.error("[chat] input-guard persist error:", redactForLog(String(err), 200));
+      return NextResponse.json(
+        {
+          answer: OFF_TOPIC_REPLY,
+          sources: [],
+          model: "prompt-injection-blocked",
+          defense: "input-layer",
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   try {
     await Promise.all([ensureFeedbackSchema(), ensureRlsSchema()]);
 
@@ -86,12 +125,16 @@ export async function POST(req: Request) {
         sources: [],
         model: "off-topic",
         retrievalMode: "off-topic",
+        defense: "input-layer",
       });
     }
 
     await ensureKnowledgeBase();
     const { chunks, mode: retrievalMode } = await retrieveForRag(question);
-    const { answer, model, warning } = await generateGroundedAnswer(question, chunks);
+    const { answer, model, warning, defense } = await generateGroundedAnswer(
+      question,
+      chunks,
+    );
 
     const sources: { title: string; tier: string; slug: string }[] = [];
     const seenSlug = new Set<string>();
@@ -127,6 +170,7 @@ export async function POST(req: Request) {
       model,
       warning,
       retrievalMode,
+      defense,
     });
   } catch (err) {
     console.error("[chat] unexpected error:", redactForLog(String(err), 200));

@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  classifyInput,
+  extractQuestionFromJsonBody,
+} from "@/lib/defense/input-guard";
+
 const PROTECTED_PREFIXES = ["/admin", "/teacher", "/my-questions"];
 
 function hasSessionCookie(req: NextRequest): boolean {
@@ -11,8 +16,31 @@ function hasSessionCookie(req: NextRequest): boolean {
   );
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // 輸入層（Edge）：提問 API 先做 Jailbreak 關鍵字過濾，不進後端 RAG
+  if (pathname === "/api/chat" && req.method === "POST") {
+    try {
+      const raw = await req.clone().text();
+      const question = extractQuestionFromJsonBody(raw);
+      if (question) {
+        const verdict = classifyInput(question);
+        if (!verdict.allowed) {
+          return NextResponse.json(
+            {
+              error: "非本主題的範圍",
+              defense: "input-layer",
+              reason: verdict.reason,
+            },
+            { status: 400 },
+          );
+        }
+      }
+    } catch {
+      // 解析失敗交由 route 處理
+    }
+  }
 
   // 變更類 API：同站 Origin 檢查（Bearer 密鑰呼叫除外）
   if (

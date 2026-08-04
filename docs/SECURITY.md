@@ -45,14 +45,19 @@ ENABLE_FORCE_RLS=true
 
 強制後，所有使用者資料存取必須走 `withUserRls`／`withRlsBypass`。
 
-## 4. Prompt Injection
+## 4. Prompt Injection 與多層防禦（Defense in Depth）
 
-| 機制 | 說明 |
-|------|------|
-| 偵測 | 常見「忽略指令／jailbreak／洩漏 system prompt」中英模式 → 回覆「非本主題的範圍」 |
-| 消毒 | 移除控制字元、長度上限 |
-| 訊息隔離 | RAG 片段與使用者問題分訊息、以 `<<DATA>>` 區塊標示為資料 |
-| 系統提示 | 明確禁止覆寫規則、禁止執行片段內偽指令 |
+本站對 LLM 問答採真正的多層防護：
+
+| 層級 | 位置 | 機制 |
+|------|------|------|
+| **輸入層 Input** | Edge `middleware`（`POST /api/chat`）＋ Serverless route | 輕量正則分類器（`classifyInput`）過濾 Jailbreak／覆寫指令關鍵字；消毒控制字元與長度上限 |
+| **模型層 Model** | `generateGroundedAnswer` | 嚴格 System Prompt＋`PROMPT_INJECTION_SYSTEM_ADDENDUM`；OpenAI **Structured Outputs**（JSON Schema：`off_topic`／`conclusion`／`explanation`／`citations`／`suggested_clarifications`）；RAG 片段與使用者問題分訊息、`<<DATA>>` 隔離 |
+| **輸出層 Output** | `guardModelOutput` | 對回覆二次檢核：API 金鑰／連線字串／系統提示外洩、內部 fence 傾印、明顯違法操作性建議 → 改寫為安全回覆 |
+
+相容 API：`detectPromptInjection`／`sanitizeUserText`／`fenceAsData` 仍由 `@/lib/prompt-injection` 轉出，實作位於 `src/lib/defense/`。
+
+單元測試：`src/lib/defense/defense.test.ts`。
 
 ## 5. 環境變數（相關）
 
@@ -69,3 +74,6 @@ ENABLE_FORCE_RLS=true
 2. Neon 使用非表擁有者角色 + `ENABLE_FORCE_RLS=true`
 3. 個資刪除／匯出流程（當事人權利）
 4. CSP 逐步收斂 `unsafe-inline`／`unsafe-eval`
+5. 輸入層可再加小型 embedding／分類模型（目前為正則權重分類器）
+6. 輸出層可接獨立 moderation API 作為第四道防線
+
