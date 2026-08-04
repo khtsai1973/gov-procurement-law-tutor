@@ -7,6 +7,8 @@ export const questionBankEntrySchema = z.object({
   relatedSlugs: z.array(z.string().min(1)),
   hintAnswer: z.string().optional(),
   category: z.string().min(1),
+  /** 可選：顯式知識標籤（受控詞彙）；缺省時由規則自 category／keywords 推導 */
+  knowledgeTags: z.array(z.string().min(1)).optional(),
 });
 
 export const questionBankFileSchema = z.object({

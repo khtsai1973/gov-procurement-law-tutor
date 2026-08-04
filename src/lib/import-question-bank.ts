@@ -3,6 +3,7 @@ import path from "node:path";
 
 import type { PrismaClient } from "@prisma/client";
 
+import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
 import { questionBankFileSchema, type QuestionBankEntry } from "@/lib/question-bank-types";
 import { syncQuestionBankRegulations } from "@/lib/question-bank-corpus";
 import { coerceOfficialCategory } from "@/lib/question-bank-categories";
@@ -48,9 +49,11 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
         continue;
       }
       for (const item of parsed.items) {
+        const category = coerceOfficialCategory(item.category);
         byKey.set(item.key, {
           ...item,
-          category: coerceOfficialCategory(item.category),
+          category,
+          knowledgeTags: resolveKnowledgeTags({ ...item, category }),
         });
       }
     } catch (e) {
@@ -64,9 +67,11 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
       const bundled = await import("../../data/question-bank/gpa-full-question-bank.json");
       const parsed = questionBankFileSchema.parse(bundled.default ?? bundled);
       for (const item of parsed.items) {
+        const category = coerceOfficialCategory(item.category);
         byKey.set(item.key, {
           ...item,
-          category: coerceOfficialCategory(item.category),
+          category,
+          knowledgeTags: resolveKnowledgeTags({ ...item, category }),
         });
       }
       console.log(`[question-bank] loaded ${byKey.size} item(s) from bundled JSON fallback`);
@@ -112,6 +117,7 @@ export async function importQuestionBank(
             relatedSlugs: item.relatedSlugs,
             hintAnswer: item.hintAnswer ?? null,
             category: item.category,
+            knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
           },
           update: {
             question: item.question,
@@ -119,6 +125,7 @@ export async function importQuestionBank(
             relatedSlugs: item.relatedSlugs,
             hintAnswer: item.hintAnswer ?? null,
             category: item.category,
+            knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
           },
         }),
       ),
@@ -175,6 +182,7 @@ export async function replaceQuestionBankFromDisk(
         relatedSlugs: item.relatedSlugs,
         hintAnswer: item.hintAnswer ?? null,
         category: item.category,
+        knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
       })),
       skipDuplicates: true,
     });

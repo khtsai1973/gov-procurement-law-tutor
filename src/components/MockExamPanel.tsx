@@ -26,6 +26,9 @@ import {
   type MockExamRegulationLink,
   type MockExamRevealResult,
 } from "@/lib/mock-exam";
+import { ExamDiagnosticsPanel } from "@/components/ExamDiagnosticsPanel";
+import { computeKnowledgeRadar } from "@/lib/knowledge-radar";
+import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
 
 type Phase = "setup" | "exam" | "summary";
 
@@ -515,6 +518,20 @@ export function MockExamPanel({
       category: q.category,
       isCorrect: q.revealed?.isCorrect ?? null,
       revealed: !!q.revealed,
+    })),
+  );
+  const summaryRadar = computeKnowledgeRadar(
+    questions.map((q) => ({
+      isCorrect: q.revealed?.isCorrect ?? null,
+      revealed: !!q.revealed,
+      tags:
+        q.knowledgeTags?.length > 0
+          ? q.knowledgeTags
+          : resolveKnowledgeTags({
+              category: q.category,
+              question: q.question,
+              relatedSlugs: q.relatedSlugs,
+            }),
     })),
   );
 
@@ -1055,6 +1072,7 @@ export function MockExamPanel({
               <MockExamSingleSessionCharts
                 breakdown={summaryBreakdown}
                 categoryStats={summaryCategoryStats}
+                radar={summaryRadar}
                 compact
               />
             </div>
@@ -1066,6 +1084,15 @@ export function MockExamPanel({
               </p>
             ) : null}
           </div>
+
+          {finishSaved && sessionId ? (
+            <ExamDiagnosticsPanel
+              sessionId={sessionId}
+              autoStart
+              questionType={examType}
+              initialRadar={summaryRadar}
+            />
+          ) : null}
 
           {history}
           {analytics}

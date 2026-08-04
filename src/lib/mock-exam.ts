@@ -1,5 +1,7 @@
 import type { QuestionBankItem } from "@prisma/client";
 
+import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
+
 export type MockExamQuestionType = "TRUE_FALSE" | "MULTIPLE_CHOICE";
 
 export type MockExamOption = {
@@ -12,6 +14,8 @@ export type MockExamQuestionPayload = {
   question: string;
   type: MockExamQuestionType;
   category: string;
+  /** 受控知識標籤（規則解析後） */
+  knowledgeTags: string[];
   options: MockExamOption[];
   relatedSlugs: string[];
 };
@@ -121,6 +125,7 @@ export function toMockExamQuestionPayload(item: QuestionBankItem): MockExamQuest
     question: item.question,
     type,
     category: item.category,
+    knowledgeTags: resolveKnowledgeTags(item),
     options: getMockExamOptions(item, type),
     relatedSlugs: item.relatedSlugs,
   };
@@ -257,6 +262,8 @@ export type MockExamSessionDetail = MockExamHistoryRow & {
   answers: MockExamSessionAnswerDetail[];
   breakdown: MockExamAnswerBreakdown;
   categoryStats: MockExamCategoryStat[];
+  /** 確定性知識標籤雷達 */
+  knowledgeRadar: import("@/lib/knowledge-radar").KnowledgeRadarSnapshot;
 };
 
 export function computeAnswerBreakdown(

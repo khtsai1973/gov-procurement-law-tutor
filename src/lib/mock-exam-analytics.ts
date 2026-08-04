@@ -1,4 +1,9 @@
 import {
+  computeKnowledgeRadar,
+  type KnowledgeRadarSnapshot,
+} from "@/lib/knowledge-radar";
+import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
+import {
   computeAnswerBreakdown,
   computeCategoryStats,
   mockExamTypeLabel,
@@ -43,9 +48,20 @@ export async function loadMockExamSessionDetail(
   if (!session) return null;
 
   const itemKeys = session.answers.map((a) => a.itemKey);
+  const { ensureDiagnosticsSchema } = await import("@/lib/ensure-diagnostics-schema");
+  await ensureDiagnosticsSchema().catch(() => undefined);
+
   const items = await prisma.questionBankItem.findMany({
     where: { key: { in: itemKeys } },
-    select: { key: true, question: true, category: true, hintAnswer: true },
+    select: {
+      key: true,
+      question: true,
+      category: true,
+      hintAnswer: true,
+      keywords: true,
+      relatedSlugs: true,
+      knowledgeTags: true,
+    },
   });
   const itemMap = new Map(items.map((i) => [i.key, i]));
 
@@ -84,12 +100,24 @@ export async function loadMockExamSessionDetail(
     };
   });
 
+  const knowledgeRadar: KnowledgeRadarSnapshot = computeKnowledgeRadar(
+    session.answers.map((a) => {
+      const item = itemMap.get(a.itemKey);
+      return {
+        isCorrect: a.isCorrect,
+        revealed: a.revealed,
+        tags: item ? resolveKnowledgeTags(item) : ["招標程序"],
+      };
+    }),
+  );
+
   return {
     ...toHistoryRow(session),
     requestedCount: session.requestedCount,
     answers,
     breakdown: computeAnswerBreakdown(answers),
     categoryStats: computeCategoryStats(answers),
+    knowledgeRadar,
   };
 }
 

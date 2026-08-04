@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { ExamDiagnosticsPanel } from "@/components/ExamDiagnosticsPanel";
 import { MockExamSingleSessionCharts } from "@/components/MockExamSingleSessionCharts";
+import { loadSessionDiagnosis } from "@/lib/exam-diagnostics";
 import {
   formatAnswerLabel,
   formatDuration,
@@ -26,6 +28,7 @@ export default async function MockExamSessionPage({ params }: PageProps) {
   const { sessionId } = await params;
   const detail = await loadMockExamSessionDetail(auth.user.id, sessionId);
   if (!detail) notFound();
+  const diagnosis = await loadSessionDiagnosis(auth.user.id, sessionId);
 
   const pct = scorePct(detail.correctCount, detail.gradableCount);
   const avgSecPerQ =
@@ -100,9 +103,18 @@ export default async function MockExamSessionPage({ params }: PageProps) {
           <MockExamSingleSessionCharts
             breakdown={detail.breakdown}
             categoryStats={detail.categoryStats}
+            radar={detail.knowledgeRadar}
           />
         </div>
       </div>
+
+      <ExamDiagnosticsPanel
+        sessionId={detail.id}
+        autoStart={!diagnosis?.summary}
+        questionType={detail.questionType}
+        initialDiagnosis={diagnosis?.summary ? diagnosis : null}
+        initialRadar={detail.knowledgeRadar}
+      />
 
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <h2 className="text-base font-semibold">逐題明細</h2>
