@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-08-04T23:53:42.085Z",
+  "mode": "offline",
+  "framework": "ragas-inspired-ts",
+  "thresholds": {
+    "faithfulness": 0.7,
+    "answer_relevance": 0.7,
+    "ttfb_p95_ms": 500
+  },
+  "summary": {
+    "n": 7,
+    "faithfulness_mean": 0.862,
+    "answer_relevance_mean": 1,
+    "context_recall_mean": 0.821,
+    "pass": true
+  },
+  "cases": [
+    {
+      "id": "threshold-figures",
+      "question": "今年的查核金額、公告金額各是多少？",
+      "kind": "deterministic",
+      "answer_preview": "結論：現行政府採購法的查核金額為工程及財物採購新臺幣 5,000 萬元、勞務採購新臺幣 1,000 萬元；公告金額則一律為新臺幣 150 萬元。\n\n說明：\n1. 查核金額（新臺幣）：工程 5,000 萬元、財物 5,000 萬元、勞務 1,000 萬元。\n2. 公告金額（新臺幣）：工程、財物、勞務一律為 150 萬元。\n3. 法源：政府採購法第 12 條第 ",
+      "faithfulness": 0.869,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "current-threshold-figures"
+    },
+    {
+      "id": "small-purchase",
+      "question": "中央機關小額採購金額門檻是多少？",
+      "kind": "deterministic",
+      "answer_preview": "結論：台灣中央機關的小額採購金額門檻為新臺幣 15 萬元以下（即公告金額 150 萬元的十分之一以下）。\n\n說明：\n1. 中央機關小額採購金額由主管機關（工程會）定之，現行為新臺幣 15 萬元以下（工程、財物、勞務皆同）。\n2. 公告金額為新臺幣 150 萬元，小額採購門檻相當於公告金額十分之一以下。\n3. 法源：政府採購法第 47 條第 3 項；地方機關小",
+      "faithfulness": 0.638,
+      "answer_relevance": 1,
+      "context_recall": 0.75,
+      "latency_ms": 0,
+      "model": "small-purchase-threshold"
+    },
+    {
+      "id": "amount-definition",
+      "question": "採購金額如何認定？是否含稅、後續擴充或選購？",
+      "kind": "deterministic",
+      "answer_preview": "結論：依據台灣《政府採購法施行細則》第 6 條規定，採購金額應於招標前認定，且必須計入預估之選購或後續擴充項目金額，同時除招標文件另有規定外，原則上應為含稅金額（包含營業稅）。\n\n說明：\n1. 認定時點：巨額、查核金額以上、公告金額以上或小額採購，均依採購金額於招標前認定（《政府採購法施行細則》第 6 條本文）。\n2. 選購／後續擴充：招標文件含有選購或後續",
+      "faithfulness": 0.7,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "procurement-amount-definition"
+    },
+    {
+      "id": "below-threshold-supervision",
+      "question": "未達公告金額之採購，何時應會同監辦？",
+      "kind": "deterministic",
+      "answer_preview": "結論：未達公告金額採購在金額逾公告金額十分之一，且進行開標、比價、議價、決標及驗收時，承辦單位應通知主（會）計或有關單位派員監辦；若金額在公告金額十分之一以下，則免通知。\n\n說明：\n1. 《中央機關未達公告金額採購監辦辦法》第 2 條：機關辦理未達公告金額而逾公告金額十分之一之採購，承辦採購單位於開標、比價、議價、決標及驗收時，應通知機關首長或其授權人員指定",
+      "faithfulness": 0.825,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "below-threshold-supervision-rules"
+    },
+    {
+      "id": "off-topic-weather",
+      "question": "今天台北天氣如何？",
+      "kind": "off_topic",
+      "answer_preview": "非本主題的範圍",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 0,
+      "latency_ms": 0,
+      "model": "off-topic"
+    },
+    {
+      "id": "rag-open-tender-three",
+      "question": "公開招標第一次開標，至少需要幾家合格廠商？",
+      "kind": "rag_gold",
+      "answer_preview": "結論：公開招標第一次開標，合格廠商應達三家以上（採購法第 48 條、施行細則第 55 條）。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-reference"
+    },
+    {
+      "id": "rag-art22-scope",
+      "question": "第22條第1項第9款公開評選限制性招標，是否適用財物採購？",
+      "kind": "rag_gold",
+      "answer_preview": "結論：第22條第1項第9款僅適用委託專業／技術／資訊／社福服務（勞務），不適用財物採購，亦不適用工程採購。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-reference"
+    }
+  ],
+  "latency": {
+    "note": "案例 latency_ms 為離線答案產生耗時；頁面 TTFB 請另跑 npm run ttfb:check（目標 p95 < 500ms）。串流互動見 /api/chat SSE。"
+  }
+}

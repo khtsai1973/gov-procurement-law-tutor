@@ -65,14 +65,84 @@ export function ChatPanel() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmed }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify({ question: trimmed, stream: true }),
       });
-      const data = await res.json().catch(() => ({}));
+
+      const contentType = res.headers.get("content-type") ?? "";
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         setError(typeof data.error === "string" ? data.error : "伺服器錯誤");
         return;
       }
+
+      // SSE 串流：先顯示狀態／逐步輸出，降低體感等待
+      if (contentType.includes("text/event-stream") && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let acc = "";
+        let meta: {
+          model?: string;
+          retrievalMode?: string;
+          warning?: string;
+        } = {};
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const chunks = buffer.split("\n\n");
+          buffer = chunks.pop() ?? "";
+          for (const block of chunks) {
+            const line = block.split("\n").find((l) => l.startsWith("data: "));
+            if (!line) continue;
+            let ev: Record<string, unknown>;
+            try {
+              ev = JSON.parse(line.slice(6)) as Record<string, unknown>;
+            } catch {
+              continue;
+            }
+            if (ev.type === "status" && ev.stage === "retrieve") {
+              setNotice("正在檢索法規／函釋…");
+            } else if (ev.type === "status" && ev.stage === "generate") {
+              setNotice("正在整合分析作答…");
+            } else if (ev.type === "delta" && typeof ev.text === "string") {
+              acc += ev.text;
+              setAnswer(acc);
+              setLoading(false);
+            } else if (ev.type === "error") {
+              setError(typeof ev.error === "string" ? ev.error : "伺服器錯誤");
+            } else if (ev.type === "done") {
+              setQuestionId(typeof ev.questionId === "string" ? ev.questionId : null);
+              setSources(Array.isArray(ev.sources) ? (ev.sources as Source[]) : []);
+              meta = {
+                model: typeof ev.model === "string" ? ev.model : undefined,
+                retrievalMode:
+                  typeof ev.retrievalMode === "string" ? ev.retrievalMode : undefined,
+                warning: typeof ev.warning === "string" ? ev.warning : undefined,
+              };
+            }
+          }
+        }
+
+        if (meta.model === "off-topic" || meta.retrievalMode === "off-topic") {
+          setNotice(null);
+        } else if (meta.warning === "openai-unavailable" || meta.model === "keyword-fallback") {
+          setNotice("目前以 RAG 檢索摘錄回覆（未使用 OpenAI 生成）。");
+        } else if (typeof meta.retrievalMode === "string" && meta.retrievalMode.startsWith("rag-")) {
+          setNotice(`已限定於法規／函釋資料庫檢索並整合分析作答（${meta.retrievalMode}）。`);
+        } else if (acc) {
+          setNotice(null);
+        }
+        return;
+      }
+
+      // 相容：非串流 JSON
+      const data = await res.json().catch(() => ({}));
       setAnswer(data.answer ?? "");
       setQuestionId(typeof data.questionId === "string" ? data.questionId : null);
       setSources(Array.isArray(data.sources) ? data.sources : []);

@@ -28,7 +28,9 @@
     "corpus:question-bank-from-pdf": "npm run corpus:parse-question-bank-pdf && npm run corpus:import-question-bank",
     "corpus:parse-question-bank-text": "tsx scripts/parse-question-bank-from-text.ts",
     "presentation:generate": "node scripts/generate-presentation.mjs",
-    "ttfb:check": "node scripts/ttfb-check.mjs"
+    "ttfb:check": "node scripts/ttfb-check.mjs",
+    "rag:eval": "tsx scripts/rag-eval.ts",
+    "test:rag-eval": "tsx --test src/lib/rag-eval/metrics.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

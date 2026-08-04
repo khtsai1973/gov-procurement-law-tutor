@@ -40,3 +40,8 @@ npm run ttfb:check
 ## 部署後再量一次
 
 程式優化合併至 `main` 並完成 Vercel Production 部署後，再執行 `ttfb:check`，把新的 `ttfb-*.md` 當作正式證據附件。
+
+## 與 RAG 評測／串流
+
+- 問答 API 支援 SSE（`stream: true`），前端可漸進顯示，降低體感等待。
+- Faithfulness／Answer Relevance 見 `docs/RAG-EVAL.md`（`npm run rag:eval`）。

@@ -4,6 +4,12 @@ import { z } from "zod";
 import { generateGroundedAnswer } from "@/lib/answer";
 import { assertSameOrigin, requireUser } from "@/lib/authz";
 import { ensureKnowledgeBase } from "@/lib/bootstrap-knowledge";
+import {
+  chunkTextForStream,
+  createChatSseResponse,
+  encodeSse,
+  type ChatStreamEvent,
+} from "@/lib/chat-stream";
 import { classifyInput, sanitizeUserText } from "@/lib/defense";
 import { ensureFeedbackSchema } from "@/lib/ensure-feedback-schema";
 import { ensureRlsSchema } from "@/lib/ensure-rls-schema";
@@ -17,9 +23,11 @@ const bodySchema = z
   .object({
     question: z.string().optional(),
     message: z.string().optional(),
+    stream: z.boolean().optional(),
   })
   .transform((data) => ({
     question: sanitizeUserText(data.question ?? data.message ?? ""),
+    stream: Boolean(data.stream),
   }))
   .pipe(
     z.object({
@@ -27,8 +35,36 @@ const bodySchema = z
         .string()
         .min(2, "請輸入至少 2 個字")
         .max(4000, "問題過長，請精簡後再試"),
+      stream: z.boolean(),
     }),
   );
+
+type SourceRow = { title: string; tier: string; slug: string };
+
+function collectSources(
+  chunks: Awaited<ReturnType<typeof retrieveForRag>>["chunks"],
+): SourceRow[] {
+  const sources: SourceRow[] = [];
+  const seenSlug = new Set<string>();
+  for (const c of chunks) {
+    if (c.regulation.tier === "QUESTION_BANK") continue;
+    if (seenSlug.has(c.regulation.slug)) continue;
+    seenSlug.add(c.regulation.slug);
+    sources.push({
+      title: c.regulation.title,
+      tier: c.regulation.tier,
+      slug: c.regulation.slug,
+    });
+    if (sources.length >= 5) break;
+  }
+  return sources;
+}
+
+function wantsStream(req: Request, bodyStream: boolean): boolean {
+  if (bodyStream) return true;
+  const accept = req.headers.get("accept") ?? "";
+  return accept.includes("text/event-stream");
+}
 
 export async function POST(req: Request) {
   const originError = assertSameOrigin(req);
@@ -63,6 +99,7 @@ export async function POST(req: Request) {
   }
 
   const question = parsed.data.question;
+  const stream = wantsStream(req, parsed.data.stream);
 
   // 輸入層（Serverless）：與 Edge middleware 雙重把關
   const inputVerdict = classifyInput(question);
@@ -81,14 +118,26 @@ export async function POST(req: Request) {
           },
         }),
       );
-      return NextResponse.json({
+      const payload = {
         questionId: row.id,
         answer: OFF_TOPIC_REPLY,
-        sources: [],
+        sources: [] as SourceRow[],
         model: "prompt-injection-blocked",
         retrievalMode: "input-guard",
         defense: "input-layer",
-      });
+      };
+      if (stream) {
+        return createChatSseResponse(
+          sseFromFinal(payload.answer, {
+            questionId: payload.questionId,
+            sources: payload.sources,
+            model: payload.model,
+            retrievalMode: payload.retrievalMode,
+            defense: payload.defense,
+          }),
+        );
+      }
+      return NextResponse.json(payload);
     } catch (err) {
       console.error("[chat] input-guard persist error:", redactForLog(String(err), 200));
       return NextResponse.json(
@@ -101,6 +150,10 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+  }
+
+  if (stream) {
+    return createChatSseResponse(ssePipeline(userId, question));
   }
 
   try {
@@ -135,20 +188,7 @@ export async function POST(req: Request) {
       question,
       chunks,
     );
-
-    const sources: { title: string; tier: string; slug: string }[] = [];
-    const seenSlug = new Set<string>();
-    for (const c of chunks) {
-      if (c.regulation.tier === "QUESTION_BANK") continue;
-      if (seenSlug.has(c.regulation.slug)) continue;
-      seenSlug.add(c.regulation.slug);
-      sources.push({
-        title: c.regulation.title,
-        tier: c.regulation.tier,
-        slug: c.regulation.slug,
-      });
-      if (sources.length >= 5) break;
-    }
+    const sources = collectSources(chunks);
 
     const row = await withUserRls(userId, (tx) =>
       tx.userQuestion.create({
@@ -179,4 +219,107 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
+}
+
+function sseFromFinal(
+  answer: string,
+  done: Omit<Extract<ChatStreamEvent, { type: "done" }>, "type">,
+): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(encodeSse({ type: "status", stage: "generate" })));
+      for (const part of chunkTextForStream(answer)) {
+        controller.enqueue(encoder.encode(encodeSse({ type: "delta", text: part })));
+      }
+      controller.enqueue(encoder.encode(encodeSse({ type: "done", ...done })));
+      controller.close();
+    },
+  });
+}
+
+function ssePipeline(userId: string, question: string): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream({
+    async start(controller) {
+      const send = (event: ChatStreamEvent) => {
+        controller.enqueue(encoder.encode(encodeSse(event)));
+      };
+      try {
+        send({ type: "status", stage: "retrieve" });
+        await Promise.all([ensureFeedbackSchema(), ensureRlsSchema()]);
+
+        if (!isOnTopicQuestion(question)) {
+          const row = await withUserRls(userId, (tx) =>
+            tx.userQuestion.create({
+              data: {
+                userId,
+                question,
+                answer: OFF_TOPIC_REPLY,
+                sources: JSON.stringify([]),
+                answerModel: "off-topic",
+                retrievalMode: "off-topic",
+              },
+            }),
+          );
+          send({ type: "status", stage: "generate" });
+          for (const part of chunkTextForStream(OFF_TOPIC_REPLY)) {
+            send({ type: "delta", text: part });
+          }
+          send({
+            type: "done",
+            questionId: row.id,
+            sources: [],
+            model: "off-topic",
+            retrievalMode: "off-topic",
+            defense: "input-layer",
+          });
+          controller.close();
+          return;
+        }
+
+        await ensureKnowledgeBase();
+        const { chunks, mode: retrievalMode } = await retrieveForRag(question);
+        send({ type: "status", stage: "generate" });
+        const { answer, model, warning, defense } = await generateGroundedAnswer(
+          question,
+          chunks,
+        );
+        const sources = collectSources(chunks);
+
+        for (const part of chunkTextForStream(answer)) {
+          send({ type: "delta", text: part });
+        }
+
+        send({ type: "status", stage: "persist" });
+        const row = await withUserRls(userId, (tx) =>
+          tx.userQuestion.create({
+            data: {
+              userId,
+              question,
+              answer,
+              sources: JSON.stringify(sources),
+              answerModel: model,
+              retrievalMode,
+            },
+          }),
+        );
+
+        send({
+          type: "done",
+          questionId: row.id,
+          sources,
+          model,
+          warning,
+          retrievalMode,
+          defense,
+        });
+        controller.close();
+      } catch (err) {
+        console.error("[chat/stream] error:", redactForLog(String(err), 200));
+        send({ type: "error", error: "處理問題時發生錯誤，請稍後再試。" });
+        controller.close();
+      }
+    },
+  });
 }
