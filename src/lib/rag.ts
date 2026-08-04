@@ -27,6 +27,73 @@ const RAG_ALLOWED_TIERS = new Set(["LAW", "REGULATION", "ADMIN_RULE", "INTERPRET
 
 export type ChunkWithReg = DocChunk & { regulation: Regulation };
 
+function isParentChunk(c: Pick<DocChunk, "chunkRole">): boolean {
+  return c.chunkRole === "PARENT";
+}
+
+function isChildChunk(c: Pick<DocChunk, "chunkRole">): boolean {
+  return c.chunkRole !== "PARENT";
+}
+
+/**
+ * 搜尋命中 CHILD 後，展開為 PARENT（完整條文上下文）。
+ * 舊扁平資料（無 parentId／無 PARENT）則沿用命中片段本身。
+ */
+export function expandHitsToParentContext(
+  hits: ChunkWithReg[],
+  byId: Map<string, ChunkWithReg>,
+): ChunkWithReg[] {
+  const out: ChunkWithReg[] = [];
+  const seen = new Set<string>();
+  for (const hit of hits) {
+    const parent = hit.parentId ? byId.get(hit.parentId) : undefined;
+    const ctx = parent && isParentChunk(parent) ? parent : hit;
+    if (seen.has(ctx.id)) continue;
+    seen.add(ctx.id);
+    out.push(ctx);
+  }
+  return out;
+}
+
+/**
+ * Contextual RAG：母法條文命中時，嘗試附上施行細則中提及同條號的 Parent。
+ */
+export function enrichWithRelatedEnforcementParents(
+  parents: ChunkWithReg[],
+  allChunks: ChunkWithReg[],
+  maxExtra = 2,
+): ChunkWithReg[] {
+  if (maxExtra <= 0) return parents;
+  const allParents = allChunks.filter(isParentChunk);
+  const out = [...parents];
+  const seen = new Set(out.map((c) => c.id));
+  let added = 0;
+
+  for (const p of parents) {
+    if (added >= maxExtra) break;
+    if (p.regulation.slug !== "government-procurement-act") continue;
+    const key = (p.articleKey ?? "").replace(/\s+/g, "");
+    if (!key) continue;
+
+    const related = allParents.find((c) => {
+      if (seen.has(c.id)) return false;
+      if (c.regulation.slug !== "gpa-enforcement-rules") return false;
+      const body = c.content.replace(/\s+/g, "");
+      return (
+        body.includes(key) ||
+        body.includes(`本法${key}`) ||
+        body.includes(`採購法${key}`) ||
+        (p.articleKey != null && c.content.includes(p.articleKey))
+      );
+    });
+    if (!related) continue;
+    seen.add(related.id);
+    out.push(related);
+    added += 1;
+  }
+  return out;
+}
+
 const STOP = new Set(
   "的 了 是 在 有 和 與 或 及 等 對 於 為 之 可 應 得 不得 要 會 可以 是否 何 哪 如何 什麼 幾 次 嗎 呢 吧".split(
     " ",
@@ -260,6 +327,10 @@ function diversityPenalty(selected: ChunkWithReg[], candidate: ChunkWithReg, vec
     if (sel.regulationId === candidate.regulationId) {
       maxSim = Math.max(maxSim, 0.9);
     }
+    // 同一 Parent 底下的多個 Child：視為高度重複
+    if (sel.parentId && candidate.parentId && sel.parentId === candidate.parentId) {
+      maxSim = Math.max(maxSim, 0.95);
+    }
     const selVec = parseEmbedding(sel.embedding);
     if (selVec && vec) {
       maxSim = Math.max(maxSim, cosineSimilarity(selVec, vec));
@@ -327,19 +398,31 @@ const PREFER_CORE_LAW =
   /議價|比減|減價|限制性招標|協商|底價|公告金額|查核金額|巨額|金額級距|金額門檻|小額採購|採購金額|後續擴充|公開評選|開標|合格廠商|幾家/;
 
 /**
- * RAG 檢索：擴展查詢 → 混合向量+關鍵字打分 → 取較大候選池 → MMR 多樣化 → 回傳 topK 片段
+ * RAG 檢索：擴展查詢 →（Child）混合向量+關鍵字打分 → MMR → 展開 Parent 上下文
+ * →（可選）附上對應施行細則 Parent → 回傳 topK 片段給模型
  */
 export async function retrieveForRag(
   query: string,
   topK = ragTopK(),
 ): Promise<{ chunks: ChunkWithReg[]; mode: string; questionBankUsed?: boolean }> {
+  const { ensureDocChunkHierarchySchema } = await import(
+    "@/lib/ensure-doc-chunk-hierarchy-schema"
+  );
+  await ensureDocChunkHierarchySchema().catch((e) => {
+    console.warn("[rag] ensureDocChunkHierarchySchema:", e);
+  });
+
   const loaded = await prisma.docChunk.findMany({
     include: { regulation: true },
   });
   // 限定法規／函釋資料庫範圍；題庫 chunks 不進入回答檢索
   const all = loaded.filter((c) => RAG_ALLOWED_TIERS.has(c.regulation.tier));
+  const byId = new Map(all.map((c) => [c.id, c]));
+  const hasHierarchy = all.some(isParentChunk);
+  // Parent-Child：僅以 CHILD 做搜尋；舊扁平資料則全部可搜
+  const searchable = hasHierarchy ? all.filter(isChildChunk) : all;
 
-  if (all.length === 0) {
+  if (searchable.length === 0) {
     return { chunks: [], mode: "empty" };
   }
 
@@ -351,7 +434,7 @@ export async function retrieveForRag(
   const amountTierQ = thresholdQ || /等標期|招標期限|未達公告金額/.test(query);
 
   const corpus = amountTierQ
-    ? all.filter(
+    ? searchable.filter(
         (c) =>
           THRESHOLD_INTERP_SLUGS.has(c.regulation.slug) ||
           AMOUNT_TIER_REGULATION_SLUGS.has(c.regulation.slug) ||
@@ -365,7 +448,7 @@ export async function retrieveForRag(
               /資訊服務|專業服務|技術服務/.test(c.content))),
       )
     : bidderCountQ
-      ? all.filter(
+      ? searchable.filter(
           (c) =>
             CORE_LAW_SLUGS.has(c.regulation.slug) ||
             c.regulation.slug === "most-advantageous-tender-operations-manual" ||
@@ -374,7 +457,7 @@ export async function retrieveForRag(
             /三家|開標|合格廠商|公開評選|限制性招標|第四十八|第二十二/.test(c.content),
         )
       : PREFER_CORE_LAW.test(query)
-        ? all.filter(
+        ? searchable.filter(
             (c) =>
               c.regulation.tier === "LAW" ||
               c.regulation.tier === "REGULATION" ||
@@ -382,11 +465,11 @@ export async function retrieveForRag(
               THRESHOLD_INTERP_SLUGS.has(c.regulation.slug) ||
               c.regulation.slug === "most-advantageous-tender-operations-manual",
           )
-        : all;
+        : searchable;
 
-  const baseCorpus = corpus.length > 0 ? corpus : all;
+  const baseCorpus = corpus.length > 0 ? corpus : searchable;
 
-  // 1) 先自法規／函釋資料庫檢索
+  // 1) 先自法規／函釋資料庫檢索（Child）
   let scored = await scoreAllChunks(baseCorpus, query, undefined);
   scored.sort((a, b) => b.score - a.score);
   let hasSignal = scored.some((s) => s.score > 0.1);
@@ -405,11 +488,19 @@ export async function retrieveForRag(
   }
 
   if (!hasSignal) {
-    const weak = scored.filter((s) => s.score > 0.06).slice(0, topK);
-    if (weak.length > 0) {
+    const weakChildren = scored.filter((s) => s.score > 0.06).slice(0, topK).map((s) => s.chunk);
+    if (weakChildren.length > 0) {
+      let weakParents = expandHitsToParentContext(weakChildren, byId);
+      if (hasHierarchy) {
+        weakParents = enrichWithRelatedEnforcementParents(weakParents, all, 2);
+      }
       return {
-        chunks: weak.map((s) => s.chunk),
-        mode: questionBankUsed ? "rag-weak-match+keyword-expand" : "rag-weak-match",
+        chunks: weakParents.slice(0, topK + 2),
+        mode: questionBankUsed
+          ? "rag-weak-match+keyword-expand+parent-child"
+          : hasHierarchy
+            ? "rag-weak-match+parent-child"
+            : "rag-weak-match",
         questionBankUsed,
       };
     }
@@ -421,21 +512,21 @@ export async function retrieveForRag(
   }
 
   const candidates = scored.slice(0, poolSize);
-  let chunks = mmrSelect(candidates, topK, ragMmrLambda());
+  let childHits = mmrSelect(candidates, topK, ragMmrLambda());
 
-  if (thresholdQ && !chunks.some((c) => THRESHOLD_INTERP_SLUGS.has(c.regulation.slug))) {
+  if (thresholdQ && !childHits.some((c) => THRESHOLD_INTERP_SLUGS.has(c.regulation.slug))) {
     const bestInterp = scored.find((s) => THRESHOLD_INTERP_SLUGS.has(s.chunk.regulation.slug));
-    if (bestInterp && chunks.length > 0) {
-      chunks = [bestInterp.chunk, ...chunks.slice(0, topK - 1)];
+    if (bestInterp && childHits.length > 0) {
+      childHits = [bestInterp.chunk, ...childHits.slice(0, topK - 1)];
     } else if (bestInterp) {
-      chunks = [bestInterp.chunk];
+      childHits = [bestInterp.chunk];
     }
   }
 
   // 級距歸類：確保門檻彙整＋採購法類別定義片段同時在場，便於整合分析
   if (classifyQ) {
     const ensureSlug = (slug: string, contentTest?: RegExp) => {
-      if (chunks.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
+      if (childHits.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
         return;
       }
       const hit = scored.find(
@@ -444,7 +535,7 @@ export async function retrieveForRag(
           (!contentTest || contentTest.test(s.chunk.content)),
       );
       if (!hit) return;
-      chunks = [hit.chunk, ...chunks.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
+      childHits = [hit.chunk, ...childHits.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
     };
     ensureSlug("pcc-procurement-amount-thresholds");
     ensureSlug("government-procurement-act", /本法所稱勞務|本法所稱工程|本法所稱財物|資訊服務/);
@@ -452,7 +543,7 @@ export async function retrieveForRag(
 
   if (bidderCountQ) {
     const ensureSlug = (slug: string, contentTest?: RegExp) => {
-      if (chunks.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
+      if (childHits.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
         return;
       }
       const hit = scored.find(
@@ -461,7 +552,7 @@ export async function retrieveForRag(
           (!contentTest || contentTest.test(s.chunk.content)),
       );
       if (!hit) return;
-      chunks = [hit.chunk, ...chunks.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
+      childHits = [hit.chunk, ...childHits.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
     };
     ensureSlug("gpa-enforcement-rules", /三家以上合格廠商|公開招標/);
     ensureSlug("government-procurement-act", /第 48 條|三家以上合格廠商|限制性招標/);
@@ -469,7 +560,7 @@ export async function retrieveForRag(
   }
 
   const ensureSlug = (slug: string, contentTest?: RegExp) => {
-    if (chunks.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
+    if (childHits.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
       return;
     }
     const hit = scored.find(
@@ -478,7 +569,7 @@ export async function retrieveForRag(
         (!contentTest || contentTest.test(s.chunk.content)),
     );
     if (!hit) return;
-    chunks = [hit.chunk, ...chunks.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
+    childHits = [hit.chunk, ...childHits.filter((c) => c.id !== hit.chunk.id)].slice(0, topK);
   };
 
   if (isBelowThresholdSupervisionQuery(query)) {
@@ -491,15 +582,23 @@ export async function retrieveForRag(
     ensureSlug("gpa-enforcement-rules", /第 6 條|選購或後續擴充|招標前認定/);
   }
 
+  let chunks = expandHitsToParentContext(childHits, byId);
+  if (hasHierarchy) {
+    chunks = enrichWithRelatedEnforcementParents(chunks, all, 2).slice(0, topK + 2);
+  }
+
   const modeBase =
-    canUseEmbeddings() && all.some((c) => parseEmbedding(c.embedding))
+    canUseEmbeddings() && searchable.some((c) => parseEmbedding(c.embedding))
       ? "rag-hybrid-mmr"
       : "rag-keyword-mmr";
+  const hierarchyTag = hasHierarchy ? "+parent-child" : "";
 
   return {
     chunks,
     // questionBankUsed 僅表示用題庫關鍵詞擴展查詢；回答片段仍全部來自法規／函釋
-    mode: questionBankUsed ? `${modeBase}+keyword-expand` : modeBase,
+    mode: questionBankUsed
+      ? `${modeBase}+keyword-expand${hierarchyTag}`
+      : `${modeBase}${hierarchyTag}`,
     questionBankUsed,
   };
 }
@@ -510,12 +609,18 @@ export async function retrieveChunks(query: string, take: number): Promise<Chunk
   return chunks;
 }
 
-/** 供 LLM 使用的上下文（含條號提示） */
+/** 供 LLM 使用的上下文（Parent 完整條文／背景） */
 export function formatRagContext(chunks: ChunkWithReg[]): string {
   return chunks
     .map((c, i) => {
-      const article = c.content.match(/^###\s*(第[\d\-]+\s*條)/m)?.[1];
-      const label = article ? `${c.regulation.title}｜${article}` : c.regulation.title;
+      const article =
+        c.articleKey ??
+        c.content.match(/^###\s*(第[\d\-]+\s*條)/m)?.[1] ??
+        c.content.match(/條號：\s*(第\s*[\d\-]+\s*條)/)?.[1];
+      const role = isParentChunk(c) ? "完整條文" : "片段";
+      const label = article
+        ? `${c.regulation.title}｜${article}｜${role}`
+        : `${c.regulation.title}｜${role}`;
       return `【片段${i + 1}｜${label}】\n${c.content}`;
     })
     .join("\n\n---\n\n");

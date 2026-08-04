@@ -4,7 +4,8 @@ import path from "node:path";
 import { RegulationTier } from "@prisma/client";
 
 import { canUseEmbeddings, embedTexts } from "@/lib/embeddings";
-import { chunkMarkdownForRag } from "@/lib/chunk-text";
+import { chunkMarkdownParentChild } from "@/lib/chunk-text";
+import { ensureDocChunkHierarchySchema } from "@/lib/ensure-doc-chunk-hierarchy-schema";
 import { prisma } from "@/lib/prisma";
 import { loadQuestionBankMarkdownForRegulation } from "@/lib/question-bank-corpus";
 
@@ -18,6 +19,18 @@ const STUB_TEMPLATE = (title: string) =>
 function embeddingSchemaMissing(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return msg.includes("Unknown argument `embedding`") || msg.includes("no such column: embedding");
+}
+
+function hierarchySchemaMissing(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes("Unknown argument `chunkRole`") ||
+    msg.includes("Unknown argument `parentId`") ||
+    msg.includes("Unknown argument `articleKey`") ||
+    msg.includes("no such column: chunkRole") ||
+    msg.includes("column \"chunkRole\"") ||
+    msg.includes("column \"parentId\"")
+  );
 }
 
 async function attachEmbeddings(chunkIds: string[], contents: string[]) {
@@ -58,7 +71,7 @@ async function attachEmbeddings(chunkIds: string[], contents: string[]) {
 
 async function ingestOneRegulation(
   reg: Awaited<ReturnType<typeof prisma.regulation.findMany>>[number],
-): Promise<{ chunks: number; embedded: number }> {
+): Promise<{ chunks: number; parents: number; children: number; embedded: number }> {
   const filePath = path.join(CORPUS_DIR, `${reg.slug}.md`);
   let raw: string;
 
@@ -74,29 +87,76 @@ async function ingestOneRegulation(
     }
   }
 
-  const chunks = chunkMarkdownForRag(raw, reg.title);
+  const plan = chunkMarkdownParentChild(raw, reg.title);
+  // 先刪 CHILD 再刪 PARENT，避免自參照 FK 順序問題
+  await prisma.docChunk.deleteMany({
+    where: { regulationId: reg.id, chunkRole: "CHILD" },
+  });
   await prisma.docChunk.deleteMany({ where: { regulationId: reg.id } });
 
-  if (chunks.length === 0) return { chunks: 0, embedded: 0 };
+  if (plan.units.length === 0) {
+    return { chunks: 0, parents: 0, children: 0, embedded: 0 };
+  }
 
-  const created = await prisma.docChunk.createManyAndReturn({
-    data: chunks.map((content, chunkIndex) => ({
-      regulationId: reg.id,
-      content,
-      chunkIndex,
-    })),
-  });
+  let chunkIndex = 0;
+  let parentCount = 0;
+  let childCount = 0;
+  const childIds: string[] = [];
+  const childContents: string[] = [];
 
-  const embedded = await attachEmbeddings(
-    created.map((c) => c.id),
-    created.map((c) => c.content),
-  );
+  try {
+    for (const unit of plan.units) {
+      const parent = await prisma.docChunk.create({
+        data: {
+          regulationId: reg.id,
+          content: unit.parentContent,
+          chunkIndex: chunkIndex++,
+          chunkRole: "PARENT",
+          articleKey: unit.articleKey,
+          embedding: null,
+        },
+      });
+      parentCount += 1;
 
-  return { chunks: created.length, embedded };
+      for (const childContent of unit.children) {
+        const child = await prisma.docChunk.create({
+          data: {
+            regulationId: reg.id,
+            content: childContent,
+            chunkIndex: chunkIndex++,
+            chunkRole: "CHILD",
+            parentId: parent.id,
+            articleKey: unit.articleKey,
+          },
+        });
+        childCount += 1;
+        childIds.push(child.id);
+        childContents.push(child.content);
+      }
+    }
+  } catch (e) {
+    if (hierarchySchemaMissing(e)) {
+      console.warn(
+        "[ingest] DocChunk 尚無 Parent-Child 欄位，請執行 ensureDocChunkHierarchySchema / db:push 後重試",
+      );
+      throw e;
+    }
+    throw e;
+  }
+
+  const embedded = await attachEmbeddings(childIds, childContents);
+
+  return {
+    chunks: parentCount + childCount,
+    parents: parentCount,
+    children: childCount,
+    embedded,
+  };
 }
 
 /** 僅重新 ingest 指定 slug（NotebookLM 匯入後常用） */
 export async function ingestRegulationSlugs(slugs: string[], triggeredBy: string) {
+  await ensureDocChunkHierarchySchema();
   const unique = [...new Set(slugs)];
   const regulations = await prisma.regulation.findMany({
     where: { slug: { in: unique } },
@@ -104,11 +164,15 @@ export async function ingestRegulationSlugs(slugs: string[], triggeredBy: string
   });
 
   let chunkTotal = 0;
+  let parentTotal = 0;
+  let childTotal = 0;
   let embeddedTotal = 0;
 
   for (const reg of regulations) {
     const result = await ingestOneRegulation(reg);
     chunkTotal += result.chunks;
+    parentTotal += result.parents;
+    childTotal += result.children;
     embeddedTotal += result.embedded;
   }
 
@@ -120,21 +184,33 @@ export async function ingestRegulationSlugs(slugs: string[], triggeredBy: string
     data: {
       triggeredBy,
       status: "ok",
-      message: `ingested slugs=${unique.join(",")}, chunks=${chunkTotal}${embedNote}`,
+      message: `ingested slugs=${unique.join(",")}, parents=${parentTotal}, children=${childTotal}, chunks=${chunkTotal}${embedNote}`,
     },
   });
 
-  return { chunkTotal, regulationCount: regulations.length, embeddedTotal, slugs: unique };
+  return {
+    chunkTotal,
+    parentTotal,
+    childTotal,
+    regulationCount: regulations.length,
+    embeddedTotal,
+    slugs: unique,
+  };
 }
 
 export async function ingestCorpus(triggeredBy: string) {
+  await ensureDocChunkHierarchySchema();
   const regulations = await prisma.regulation.findMany({ orderBy: { slug: "asc" } });
   let chunkTotal = 0;
+  let parentTotal = 0;
+  let childTotal = 0;
   let embeddedTotal = 0;
 
   for (const reg of regulations) {
     const result = await ingestOneRegulation(reg);
     chunkTotal += result.chunks;
+    parentTotal += result.parents;
+    childTotal += result.children;
     embeddedTotal += result.embedded;
   }
 
@@ -146,9 +222,15 @@ export async function ingestCorpus(triggeredBy: string) {
     data: {
       triggeredBy,
       status: "ok",
-      message: `ingested chunks=${chunkTotal}, regulations=${regulations.length}${embedNote}`,
+      message: `ingested parents=${parentTotal}, children=${childTotal}, chunks=${chunkTotal}, regulations=${regulations.length}${embedNote}`,
     },
   });
 
-  return { chunkTotal, regulationCount: regulations.length, embeddedTotal };
+  return {
+    chunkTotal,
+    parentTotal,
+    childTotal,
+    regulationCount: regulations.length,
+    embeddedTotal,
+  };
 }

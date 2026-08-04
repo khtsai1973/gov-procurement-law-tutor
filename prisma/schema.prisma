@@ -147,10 +147,22 @@ model DocChunk {
   content      String
   chunkIndex   Int
   /// OpenAI embedding JSON 陣列；有值時啟用語意檢索（較接近 NotebookLM）
+  /// Parent-Child：僅 CHILD（小切片）寫入 embedding；PARENT 供命中後餵給模型
   embedding    String?
+  /// PARENT＝粗切片（完整條文上下文）；CHILD＝小切片（向量／關鍵字搜尋）
+  chunkRole    String     @default("CHILD")
+  /// CHILD 指向所屬 PARENT；舊資料可為 null（扁平切片，搜尋與上下文皆用自身）
+  parentId     String?
+  parent       DocChunk?  @relation("ParentChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children     DocChunk[] @relation("ParentChildren")
+  /// 條號鍵，如「第 48 條」，便於 Contextual 擴展（對應施行細則）
+  articleKey   String?
   createdAt    DateTime   @default(now())
 
   @@index([regulationId])
+  @@index([chunkRole])
+  @@index([parentId])
+  @@index([articleKey])
 }
 
 model UserQuestion {
