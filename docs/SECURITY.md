@@ -18,8 +18,9 @@
 | 機制 | 說明 |
 |------|------|
 | 最小必要顯示 | 老師介面以 `maskEmail` 遮罩學員信箱（例：`al***@domain`） |
+| 匿名化班級儀表板 | `/teacher/dashboard` 僅輸出彙總 KPI／分布／雷達；`assertNoPiiKeys` 禁止 `email`／`name`／`nickname`／`userId` JSON key |
 | 日誌 | 錯誤日誌對自由文字截斷（`redactForLog`） |
-| 資料範圍 | 學員僅能讀寫自己的提問／模考／補充；老師可跨學員檢視教學所需資料 |
+| 資料範圍 | 學員僅能讀寫自己的提問／模考／補充；老師可跨學員檢視教學所需資料（個別頁）或僅看匿名彙總（儀表板） |
 
 **建議**：正式環境於 Neon 開啟加密與存取稽核；定期檢視 `ADMIN_EMAILS`／`TEACHER_EMAILS`。
 

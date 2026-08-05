@@ -48,9 +48,14 @@ export default async function TeacherStudentsPage({
               檢視所有學員的模擬考試成績、提問次數與近期學習活動。
             </p>
           </div>
-          <Link href="/teacher" className="text-sm no-underline hover:underline">
-            ← 老師工作台
-          </Link>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link href="/teacher" className="no-underline hover:underline">
+              ← 老師工作台
+            </Link>
+            <Link href="/teacher/dashboard" className="no-underline hover:underline">
+              匿名化班級儀表板
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 overflow-x-auto">

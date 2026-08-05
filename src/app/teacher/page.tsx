@@ -53,7 +53,7 @@ export default async function TeacherHomePage() {
           <div>
             <h1 className="text-xl font-semibold">老師工作台</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              身分：{roleLabel(session.user.role)}。可製作單元教材、管理題庫，並檢視學員學習成績。
+              身分：{roleLabel(session.user.role)}。可製作單元教材、管理題庫，並檢視全體匿名化統計或個別學員資料。
             </p>
           </div>
           <Link href="/" className="text-sm no-underline hover:underline">
@@ -86,6 +86,12 @@ export default async function TeacherHomePage() {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
+            href="/teacher/dashboard"
+            className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white no-underline hover:bg-blue-800"
+          >
+            匿名化班級儀表板
+          </Link>
+          <Link
             href="/teacher/materials"
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white no-underline hover:bg-blue-800"
           >
@@ -108,7 +114,7 @@ export default async function TeacherHomePage() {
             href="/teacher/students"
             className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--fg)] no-underline hover:bg-slate-50"
           >
-            學員成績與學習資料
+            學員成績與學習資料（遮罩）
           </Link>
           <Link
             href="/materials"
