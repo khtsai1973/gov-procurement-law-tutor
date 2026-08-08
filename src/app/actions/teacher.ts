@@ -6,11 +6,22 @@ import { z } from "zod";
 import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
+import {
+  OFFICIAL_QUESTION_BANK_CATEGORIES,
+  isOfficialQuestionBankCategory,
+} from "@/lib/question-bank-categories";
 import { canAccessTeacher } from "@/lib/roles";
 
 const materialSchema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(1, "請填寫標題").max(200),
+  category: z
+    .string()
+    .trim()
+    .min(1, "請選擇主題分類")
+    .refine(isOfficialQuestionBankCategory, {
+      message: `主題分類須為正式 ${OFFICIAL_QUESTION_BANK_CATEGORIES.length} 類之一`,
+    }),
   unitCode: z.string().trim().max(40).optional().nullable(),
   summary: z.string().trim().max(500).optional().nullable(),
   content: z.string().trim().min(1, "請填寫教材內容").max(50000),
@@ -42,6 +53,7 @@ export async function saveUnitMaterial(raw: unknown) {
     const data = parsed.data;
     const payload = {
       title: data.title,
+      category: data.category,
       unitCode: data.unitCode || null,
       summary: data.summary || null,
       content: data.content,

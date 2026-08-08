@@ -26,6 +26,7 @@ export async function ensureTeacherSchema(): Promise<void> {
       CREATE TABLE IF NOT EXISTS "UnitMaterial" (
         "id" TEXT NOT NULL,
         "title" TEXT NOT NULL,
+        "category" TEXT NOT NULL DEFAULT '政府採購全生命週期概論',
         "unitCode" TEXT,
         "summary" TEXT,
         "content" TEXT NOT NULL,
@@ -36,6 +37,11 @@ export async function ensureTeacherSchema(): Promise<void> {
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "UnitMaterial_pkey" PRIMARY KEY ("id")
       )
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "UnitMaterial"
+      ADD COLUMN IF NOT EXISTS "category" TEXT NOT NULL DEFAULT '政府採購全生命週期概論'
     `);
 
     await prisma.$executeRawUnsafe(`
@@ -51,6 +57,12 @@ export async function ensureTeacherSchema(): Promise<void> {
 
     await prisma.$executeRawUnsafe(
       `CREATE INDEX IF NOT EXISTS "UnitMaterial_published_sortOrder_idx" ON "UnitMaterial"("published", "sortOrder")`,
+    );
+    await prisma.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "UnitMaterial_published_category_sortOrder_idx" ON "UnitMaterial"("published", "category", "sortOrder")`,
+    );
+    await prisma.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "UnitMaterial_category_idx" ON "UnitMaterial"("category")`,
     );
     await prisma.$executeRawUnsafe(
       `CREATE INDEX IF NOT EXISTS "UnitMaterial_authorId_idx" ON "UnitMaterial"("authorId")`,

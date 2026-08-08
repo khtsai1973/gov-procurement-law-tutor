@@ -48,3 +48,10 @@ export function normalizeToOfficialCategory(raw: string): string | null {
 export function coerceOfficialCategory(raw: string): string {
   return normalizeToOfficialCategory(raw) ?? "政府採購全生命週期概論";
 }
+
+export function isOfficialQuestionBankCategory(raw: string): boolean {
+  return OFFICIAL_CATEGORY_SET.has(raw.trim());
+}
+
+/** 教材／題庫共用的主題分類選項（正式 14 類） */
+export const TOPIC_CATEGORY_OPTIONS = OFFICIAL_QUESTION_BANK_CATEGORIES;
