@@ -95,7 +95,7 @@ export function UnitMaterialForm({
           ))}
         </select>
         <span className="mt-1 block text-xs text-[var(--muted)]">
-          請依正式 14 類主題分類製作教材；儲存後會返回單元教材功能頁。內容可匯出 PPTX 簡報。
+          請依正式 14 類主題分類製作教材；儲存後會返回單元教材功能頁。簡報請先排版再匯出 PPTX。
         </span>
       </label>
 
@@ -181,12 +181,12 @@ export function UnitMaterialForm({
           返回單元教材
         </Link>
         {initial?.id ? (
-          <a
-            href={`/api/teacher/materials/${initial.id}/presentation`}
+          <Link
+            href={`/teacher/materials/${initial.id}/presentation`}
             className="rounded-md border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-800 no-underline hover:bg-indigo-100"
           >
-            下載簡報（PPTX）
-          </a>
+            簡報排版／匯出
+          </Link>
         ) : null}
         {initial?.id ? (
           <button
