@@ -14,7 +14,17 @@ export default async function TeacherAnonymousDashboardPage() {
     redirect("/");
   }
 
-  const data = await loadAnonymousCohortDashboard();
+  let data: Awaited<ReturnType<typeof loadAnonymousCohortDashboard>> | null = null;
+  let loadError: string | null = null;
+  try {
+    data = await loadAnonymousCohortDashboard();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[teacher/dashboard] load failed:", msg);
+    loadError = msg.includes("does not exist")
+      ? "資料庫欄位尚未補齊（例如 knowledgeTags／教材 category）。請重新整理以觸發自動遷移；若仍失敗請執行 db:push。"
+      : "載入匿名化統計失敗，請稍後再試。";
+  }
 
   return (
     <section className="space-y-6">
@@ -43,7 +53,13 @@ export default async function TeacherAnonymousDashboardPage() {
         </div>
       </div>
 
-      <TeacherAnonymousDashboardCharts data={data} />
+      {loadError || !data ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+          {loadError ?? "無法載入統計資料"}
+        </div>
+      ) : (
+        <TeacherAnonymousDashboardCharts data={data} />
+      )}
     </section>
   );
 }

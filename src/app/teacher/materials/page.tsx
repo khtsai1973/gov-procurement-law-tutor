@@ -21,20 +21,67 @@ export default async function TeacherMaterialsPage({
     redirect("/");
   }
 
-  await ensureTeacherSchema();
+  try {
+    await ensureTeacherSchema();
+  } catch (e) {
+    console.error("[teacher/materials] ensureTeacherSchema failed:", e);
+  }
   const sp = searchParams ? await searchParams : {};
   const editId = sp.edit?.trim() || null;
   const filterCategory = sp.category?.trim() || null;
 
-  const [materials, editing] = await Promise.all([
-    prisma.unitMaterial.findMany({
-      orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { updatedAt: "desc" }],
-      include: { author: { select: { email: true, name: true } } },
-    }),
-    editId
-      ? prisma.unitMaterial.findUnique({ where: { id: editId } })
-      : Promise.resolve(null),
-  ]);
+  const authorSelect = { author: { select: { email: true, name: true } } } as const;
+  let materials: Array<{
+    id: string;
+    title: string;
+    category: string;
+    unitCode: string | null;
+    summary: string | null;
+    content: string;
+    sortOrder: number;
+    published: boolean;
+    authorId: string;
+    createdAt: Date;
+    updatedAt: Date;
+    author: { email: string | null; name: string | null };
+  }> = [];
+  let editing: {
+    id: string;
+    title: string;
+    category: string;
+    unitCode: string | null;
+    summary: string | null;
+    content: string;
+    sortOrder: number;
+    published: boolean;
+  } | null = null;
+  try {
+    const [list, one] = await Promise.all([
+      prisma.unitMaterial.findMany({
+        orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { updatedAt: "desc" }],
+        include: authorSelect,
+      }),
+      editId
+        ? prisma.unitMaterial.findUnique({ where: { id: editId } })
+        : Promise.resolve(null),
+    ]);
+    materials = list;
+    editing = one;
+  } catch (e) {
+    console.error("[teacher/materials] query failed, retry ensure:", e);
+    await ensureTeacherSchema();
+    const [list, one] = await Promise.all([
+      prisma.unitMaterial.findMany({
+        orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
+        include: authorSelect,
+      }),
+      editId
+        ? prisma.unitMaterial.findUnique({ where: { id: editId } })
+        : Promise.resolve(null),
+    ]);
+    materials = list;
+    editing = one;
+  }
 
   const filtered = filterCategory
     ? materials.filter((m) => m.category === filterCategory)
