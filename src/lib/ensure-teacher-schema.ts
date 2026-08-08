@@ -39,9 +39,23 @@ export async function ensureTeacherSchema(): Promise<void> {
       )
     `);
 
+    // 分兩步：先可空再補預設，降低 Neon／連線池對「ADD NOT NULL」的偶發失敗
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "UnitMaterial"
-      ADD COLUMN IF NOT EXISTS "category" TEXT NOT NULL DEFAULT '政府採購全生命週期概論'
+      ADD COLUMN IF NOT EXISTS "category" TEXT
+    `);
+    await prisma.$executeRawUnsafe(`
+      UPDATE "UnitMaterial"
+      SET "category" = '政府採購全生命週期概論'
+      WHERE "category" IS NULL OR BTRIM("category") = ''
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "UnitMaterial"
+      ALTER COLUMN "category" SET DEFAULT '政府採購全生命週期概論'
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "UnitMaterial"
+      ALTER COLUMN "category" SET NOT NULL
     `);
 
     await prisma.$executeRawUnsafe(`

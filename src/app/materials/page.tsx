@@ -13,26 +13,64 @@ export default async function MaterialsPage({
 }: {
   searchParams?: Promise<{ id?: string; category?: string }>;
 }) {
-  await ensureTeacherSchema();
+  try {
+    await ensureTeacherSchema();
+  } catch (e) {
+    console.error("[materials] ensureTeacherSchema failed:", e);
+  }
   const session = await getSession();
   const sp = searchParams ? await searchParams : {};
   const focusId = sp.id?.trim() || null;
   const filterCategory = sp.category?.trim() || null;
 
-  const materials = await prisma.unitMaterial.findMany({
-    where: { published: true },
-    orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { updatedAt: "desc" }],
-    select: {
-      id: true,
-      title: true,
-      category: true,
-      unitCode: true,
-      summary: true,
-      content: true,
-      updatedAt: true,
-      author: { select: { name: true, nickname: true } },
-    },
-  });
+  let materials: {
+    id: string;
+    title: string;
+    category: string;
+    unitCode: string | null;
+    summary: string | null;
+    content: string;
+    updatedAt: Date;
+    author: { name: string | null; nickname: string | null };
+  }[] = [];
+  try {
+    materials = await prisma.unitMaterial.findMany({
+      where: { published: true },
+      orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { updatedAt: "desc" }],
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        unitCode: true,
+        summary: true,
+        content: true,
+        updatedAt: true,
+        author: { select: { name: true, nickname: true } },
+      },
+    });
+  } catch (e) {
+    console.error("[materials] query with category failed, retrying ensure:", e);
+    try {
+      await ensureTeacherSchema();
+      materials = await prisma.unitMaterial.findMany({
+        where: { published: true },
+        orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          unitCode: true,
+          summary: true,
+          content: true,
+          updatedAt: true,
+          author: { select: { name: true, nickname: true } },
+        },
+      });
+    } catch (e2) {
+      console.error("[materials] fallback query failed:", e2);
+      materials = [];
+    }
+  }
 
   const availableCategories = TOPIC_CATEGORY_OPTIONS.filter((cat) =>
     materials.some((m) => m.category === cat),

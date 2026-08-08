@@ -2,10 +2,11 @@
  * 老師用：全體學員匿名化統計（僅彙總，不輸出可識別個資）。
  */
 
+import { ensureDiagnosticsSchema } from "@/lib/ensure-diagnostics-schema";
+import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
 import { computeKnowledgeRadar, type KnowledgeRadarSnapshot } from "@/lib/knowledge-radar";
 import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
 import { mockExamTypeLabel, scorePct } from "@/lib/mock-exam";
-import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
 import { withRlsBypass } from "@/lib/with-user-rls";
 
 export type ScoreBucket = {
@@ -91,7 +92,8 @@ function weekKey(d: Date): { week: string; label: string } {
  * 回傳物件保證不含 email／name／nickname／userId。
  */
 export async function loadAnonymousCohortDashboard(): Promise<AnonymousCohortDashboard> {
-  await ensureTeacherSchema();
+  // knowledgeTags 由診斷 schema 補齊；缺欄位時 Prisma select 會直接讓整頁 500
+  await Promise.all([ensureTeacherSchema(), ensureDiagnosticsSchema()]);
 
   const data = await withRlsBypass(async (tx) => {
     const users = await tx.user.findMany({

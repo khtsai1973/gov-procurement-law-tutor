@@ -15,7 +15,24 @@ async function loadItems(): Promise<QuestionBankItem[]> {
   if (cache && now - cache.loadedAt < CACHE_MS) {
     return cache.items;
   }
-  const items = await prisma.questionBankItem.findMany();
+  // 僅取比對所需欄位，避免正式庫尚未補 knowledgeTags 時 findMany() 全欄位爆炸
+  const rows = await prisma.questionBankItem.findMany({
+    select: {
+      id: true,
+      key: true,
+      question: true,
+      keywords: true,
+      relatedSlugs: true,
+      hintAnswer: true,
+      category: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+  const items: QuestionBankItem[] = rows.map((r) => ({
+    ...r,
+    knowledgeTags: [],
+  }));
   cache = { items, loadedAt: now };
   return items;
 }
