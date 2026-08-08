@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { contentToSlides, presentationFileName } from "@/lib/material-presentation";
+import {
+  contentToSlides,
+  normalizeSlides,
+  presentationFileName,
+} from "@/lib/material-presentation";
 
 describe("contentToSlides", () => {
   it("builds cover from title/category/summary", () => {
@@ -32,5 +36,23 @@ describe("contentToSlides", () => {
 describe("presentationFileName", () => {
   it("sanitizes illegal path characters", () => {
     assert.equal(presentationFileName({ title: "A/B:C", unitCode: "U1" }), "U1-A_B_C.pptx");
+  });
+});
+
+describe("normalizeSlides", () => {
+  it("accepts edited slide payloads", () => {
+    const slides = normalizeSlides([
+      { title: "封面", bullets: ["類別"], paragraphs: [] },
+      { title: "  ", bullets: ["  A  ", ""], paragraphs: ["說明"] },
+    ]);
+    assert.equal(slides?.length, 2);
+    assert.deepEqual(slides?.[1]?.bullets, ["A"]);
+    assert.deepEqual(slides?.[1]?.paragraphs, ["說明"]);
+  });
+
+  it("rejects empty or invalid", () => {
+    assert.equal(normalizeSlides([]), null);
+    assert.equal(normalizeSlides(null), null);
+    assert.equal(normalizeSlides([{ title: "", bullets: [], paragraphs: [] }]), null);
   });
 });

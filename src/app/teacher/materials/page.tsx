@@ -120,7 +120,7 @@ export default async function TeacherMaterialsPage({
 
         {justSaved ? (
           <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
-            教材已儲存。可在下方列表編輯，或點「下載簡報」匯出 PPTX。
+            教材已儲存，已返回單元教材頁。可繼續編輯，或點「簡報排版」調整後再匯出 PPTX。
           </div>
         ) : null}
 
@@ -249,12 +249,12 @@ export default async function TeacherMaterialsPage({
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm">
-                        <a
-                          href={`/api/teacher/materials/${m.id}/presentation`}
+                        <Link
+                          href={`/teacher/materials/${m.id}/presentation`}
                           className="no-underline hover:underline"
                         >
-                          下載簡報
-                        </a>
+                          簡報排版
+                        </Link>
                         <Link
                           href={`/teacher/materials?edit=${m.id}${
                             filterCategory

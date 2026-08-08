@@ -1,5 +1,6 @@
 /**
  * 將單元教材內容切成簡報投影片，並輸出 PPTX（PptxGenJS）。
+ * 老師需先在排版頁調整投影片，再匯出檔案。
  */
 
 export type MaterialSlide = {
@@ -17,8 +18,16 @@ export type MaterialPresentationInput = {
   content: string;
 };
 
+export type BuildPptxOptions = {
+  /** 已排版的投影片；未提供時才由 content 自動切分（供學員下載） */
+  slides?: MaterialSlide[];
+  /** 封面後第一張是否仍用封面版型（預設：第一張為封面） */
+  coverAsTitleSlide?: boolean;
+};
+
 const MAX_BULLETS_PER_SLIDE = 8;
 const MAX_CHARS_PER_BULLET = 160;
+const MAX_SLIDES = 40;
 
 function stripMdInline(text: string): string {
   return text
@@ -127,7 +136,35 @@ export function contentToSlides(input: MaterialPresentationInput): MaterialSlide
     }
   }
 
-  return slides.filter((s) => s.title || s.bullets.length || s.paragraphs.length);
+  return slides
+    .filter((s) => s.title || s.bullets.length || s.paragraphs.length)
+    .slice(0, MAX_SLIDES);
+}
+
+/** 正規化／驗證老師排版後的投影片 */
+export function normalizeSlides(raw: unknown): MaterialSlide[] | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_SLIDES) return null;
+  const slides: MaterialSlide[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") return null;
+    const row = item as Record<string, unknown>;
+    const title = String(row.title ?? "").trim().slice(0, 120);
+    const bullets = Array.isArray(row.bullets)
+      ? row.bullets
+          .map((b) => String(b ?? "").trim().slice(0, MAX_CHARS_PER_BULLET))
+          .filter(Boolean)
+          .slice(0, MAX_BULLETS_PER_SLIDE)
+      : [];
+    const paragraphs = Array.isArray(row.paragraphs)
+      ? row.paragraphs
+          .map((p) => String(p ?? "").trim().slice(0, MAX_CHARS_PER_BULLET * 2))
+          .filter(Boolean)
+          .slice(0, MAX_BULLETS_PER_SLIDE)
+      : [];
+    if (!title && bullets.length === 0 && paragraphs.length === 0) continue;
+    slides.push({ title: title || "（未命名投影片）", bullets, paragraphs });
+  }
+  return slides.length > 0 ? slides : null;
 }
 
 function safeFileBase(name: string): string {
@@ -140,7 +177,10 @@ export function presentationFileName(input: Pick<MaterialPresentationInput, "tit
 }
 
 /** 產生 PPTX 二進位（ArrayBuffer） */
-export async function buildMaterialPptx(input: MaterialPresentationInput): Promise<ArrayBuffer> {
+export async function buildMaterialPptx(
+  input: MaterialPresentationInput,
+  options: BuildPptxOptions = {},
+): Promise<ArrayBuffer> {
   const PptxGenJS = (await import("pptxgenjs")).default;
   const pptx = new PptxGenJS();
   pptx.author = "Gov Procurement Law Tutor";
@@ -157,7 +197,8 @@ export async function buildMaterialPptx(input: MaterialPresentationInput): Promi
     bg: "F8FAFC",
   };
 
-  const slides = contentToSlides(input);
+  const slides = options.slides?.length ? options.slides : contentToSlides(input);
+  const coverAsTitleSlide = options.coverAsTitleSlide !== false;
 
   slides.forEach((s, index) => {
     const slide = pptx.addSlide();
@@ -171,7 +212,7 @@ export async function buildMaterialPptx(input: MaterialPresentationInput): Promi
       line: { color: colors.accent },
     });
 
-    if (index === 0) {
+    if (index === 0 && coverAsTitleSlide) {
       slide.addText(s.title, {
         x: 0.6,
         y: 2.0,
