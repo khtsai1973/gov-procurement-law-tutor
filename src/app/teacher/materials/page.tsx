@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function TeacherMaterialsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ edit?: string; category?: string }>;
+  searchParams?: Promise<{ edit?: string; category?: string; saved?: string; highlight?: string }>;
 }) {
   const session = await getSession();
   if (!session?.user?.id || !canAccessTeacher(session.user.role)) {
@@ -29,6 +29,11 @@ export default async function TeacherMaterialsPage({
   const sp = searchParams ? await searchParams : {};
   const editId = sp.edit?.trim() || null;
   const filterCategory = sp.category?.trim() || null;
+  const justSaved = sp.saved === "1";
+  const highlightId = sp.highlight?.trim() || null;
+  const listHref = filterCategory
+    ? `/teacher/materials?category=${encodeURIComponent(filterCategory)}`
+    : "/teacher/materials";
 
   const authorSelect = { author: { select: { email: true, name: true } } } as const;
   let materials: Array<{
@@ -106,12 +111,18 @@ export default async function TeacherMaterialsPage({
               預覽學員教材頁
             </Link>
             {editId ? (
-              <Link href="/teacher/materials" className="no-underline hover:underline">
-                新增教材
+              <Link href={listHref} className="no-underline hover:underline">
+                返回單元教材列表
               </Link>
             ) : null}
           </div>
         </div>
+
+        {justSaved ? (
+          <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
+            教材已儲存。可在下方列表編輯，或點「下載簡報」匯出 PPTX。
+          </div>
+        ) : null}
 
         <div className="mt-6">
           <h2 className="text-base font-semibold">
@@ -120,6 +131,7 @@ export default async function TeacherMaterialsPage({
           <div className="mt-4">
             <UnitMaterialForm
               key={editing?.id ?? "new"}
+              listHref={listHref}
               initial={
                 editing
                   ? {
@@ -208,7 +220,10 @@ export default async function TeacherMaterialsPage({
                   {group.items.map((m) => (
                     <li
                       key={m.id}
-                      className="flex flex-wrap items-start justify-between gap-3 py-3"
+                      id={`material-${m.id}`}
+                      className={`flex flex-wrap items-start justify-between gap-3 py-3 ${
+                        highlightId === m.id ? "rounded-md bg-emerald-50/80 px-2" : ""
+                      }`}
                     >
                       <div className="min-w-0">
                         <div className="text-sm font-medium">
@@ -233,12 +248,24 @@ export default async function TeacherMaterialsPage({
                           作者：{m.author.name ?? m.author.email ?? "—"}｜排序 {m.sortOrder}
                         </p>
                       </div>
-                      <Link
-                        href={`/teacher/materials?edit=${m.id}`}
-                        className="shrink-0 text-sm no-underline hover:underline"
-                      >
-                        編輯
-                      </Link>
+                      <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm">
+                        <a
+                          href={`/api/teacher/materials/${m.id}/presentation`}
+                          className="no-underline hover:underline"
+                        >
+                          下載簡報
+                        </a>
+                        <Link
+                          href={`/teacher/materials?edit=${m.id}${
+                            filterCategory
+                              ? `&category=${encodeURIComponent(filterCategory)}`
+                              : ""
+                          }`}
+                          className="no-underline hover:underline"
+                        >
+                          編輯
+                        </Link>
+                      </div>
                     </li>
                   ))}
                 </ul>

@@ -61,6 +61,7 @@ export async function saveUnitMaterial(raw: unknown) {
       published: data.published,
     };
 
+    let savedId = data.id ?? "";
     if (data.id) {
       const existing = await prisma.unitMaterial.findUnique({ where: { id: data.id } });
       if (!existing) return { ok: false as const, error: "找不到教材" };
@@ -71,19 +72,21 @@ export async function saveUnitMaterial(raw: unknown) {
         where: { id: data.id },
         data: payload,
       });
+      savedId = data.id;
     } else {
-      await prisma.unitMaterial.create({
+      const created = await prisma.unitMaterial.create({
         data: {
           ...payload,
           authorId: session.user.id,
         },
       });
+      savedId = created.id;
     }
 
     revalidatePath("/teacher");
     revalidatePath("/teacher/materials");
     revalidatePath("/materials");
-    return { ok: true as const };
+    return { ok: true as const, id: savedId };
   } catch (e) {
     const message = e instanceof Error ? e.message : "儲存失敗";
     return { ok: false as const, error: message };

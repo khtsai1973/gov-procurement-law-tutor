@@ -181,18 +181,28 @@ export default async function MaterialsPage({
 
               {current ? (
                 <article className="min-w-0">
-                  <p className="text-xs font-medium text-[var(--muted)]">{current.category}</p>
-                  <h2 className="mt-1 text-lg font-semibold">
-                    {current.unitCode ? `${current.unitCode}｜` : ""}
-                    {current.title}
-                  </h2>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {current.author.nickname ?? current.author.name ?? "老師"}｜更新於{" "}
-                    {new Intl.DateTimeFormat("zh-TW", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(current.updatedAt)}
-                  </p>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-medium text-[var(--muted)]">{current.category}</p>
+                      <h2 className="mt-1 text-lg font-semibold">
+                        {current.unitCode ? `${current.unitCode}｜` : ""}
+                        {current.title}
+                      </h2>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        {current.author.nickname ?? current.author.name ?? "老師"}｜更新於{" "}
+                        {new Intl.DateTimeFormat("zh-TW", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(current.updatedAt)}
+                      </p>
+                    </div>
+                    <a
+                      href={`/api/materials/${current.id}/presentation`}
+                      className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm text-indigo-800 no-underline hover:bg-indigo-100"
+                    >
+                      下載簡報（PPTX）
+                    </a>
+                  </div>
                   {current.summary ? (
                     <p className="mt-3 text-sm text-[var(--muted)]">{current.summary}</p>
                   ) : null}
