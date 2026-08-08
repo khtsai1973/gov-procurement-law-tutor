@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -19,13 +20,24 @@ export type UnitMaterialFormValues = {
 
 export function UnitMaterialForm({
   initial,
+  listHref = "/teacher/materials",
 }: {
   initial?: UnitMaterialFormValues;
+  /** 儲存／返回後要回到的單元教材功能頁 */
+  listHref?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  function goToMaterialsList(extra?: { saved?: boolean; id?: string }) {
+    const url = new URL(listHref, window.location.origin);
+    if (extra?.saved) url.searchParams.set("saved", "1");
+    if (extra?.id) url.searchParams.set("highlight", extra.id);
+    router.push(`${url.pathname}${url.search}`);
+    router.refresh();
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -47,11 +59,8 @@ export function UnitMaterialForm({
         setError(result.error);
         return;
       }
-      setOkMsg("已儲存");
-      router.refresh();
-      if (!initial?.id) {
-        router.push("/teacher/materials");
-      }
+      setOkMsg("已儲存，正在返回單元教材…");
+      goToMaterialsList({ saved: true, id: result.id });
     });
   }
 
@@ -65,8 +74,7 @@ export function UnitMaterialForm({
         setError(result.error);
         return;
       }
-      router.push("/teacher/materials");
-      router.refresh();
+      goToMaterialsList();
     });
   }
 
@@ -87,7 +95,7 @@ export function UnitMaterialForm({
           ))}
         </select>
         <span className="mt-1 block text-xs text-[var(--muted)]">
-          請依正式 14 類主題分類製作教材，學員可依分類閱讀。
+          請依正式 14 類主題分類製作教材；儲存後會返回單元教材功能頁。內容可匯出 PPTX 簡報。
         </span>
       </label>
 
@@ -141,7 +149,9 @@ export function UnitMaterialForm({
           required
           rows={14}
           defaultValue={initial?.content ?? ""}
-          placeholder="可使用 Markdown 或純文字撰寫單元教材…"
+          placeholder={
+            "建議使用 Markdown 標題分段，匯出簡報時會自動切成投影片，例如：\n\n## 學習目標\n- 重點一\n- 重點二\n\n## 法規依據\n說明文字…"
+          }
           className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2 font-mono text-sm"
         />
       </label>
@@ -162,8 +172,22 @@ export function UnitMaterialForm({
           disabled={pending}
           className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
         >
-          {pending ? "儲存中…" : "儲存教材"}
+          {pending ? "儲存中…" : "儲存並返回單元教材"}
         </button>
+        <Link
+          href={listHref}
+          className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm text-[var(--fg)] no-underline hover:bg-slate-50"
+        >
+          返回單元教材
+        </Link>
+        {initial?.id ? (
+          <a
+            href={`/api/teacher/materials/${initial.id}/presentation`}
+            className="rounded-md border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-800 no-underline hover:bg-indigo-100"
+          >
+            下載簡報（PPTX）
+          </a>
+        ) : null}
         {initial?.id ? (
           <button
             type="button"

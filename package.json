@@ -35,10 +35,11 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
     "@prisma/client": "^6.19.0",
-    "prisma": "^6.19.0",
     "next": "^15.1.0",
     "next-auth": "^5.0.0-beta.25",
     "openai": "^4.77.0",
+    "pptxgenjs": "^3.12.0",
+    "prisma": "^6.19.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0",
