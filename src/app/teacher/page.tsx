@@ -95,7 +95,7 @@ export default async function TeacherHomePage() {
             href="/teacher/materials"
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white no-underline hover:bg-blue-800"
           >
-            依主題分類製作教材
+            單元教材首頁
           </Link>
           <Link
             href="/teacher/question-bank"

@@ -36,7 +36,7 @@ export default async function TeacherMaterialPresentationPage({
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <h1 className="text-xl font-semibold">找不到教材</h1>
         <Link href="/teacher/materials" className="mt-4 inline-block text-sm underline">
-          返回單元教材
+          返回單元教材首頁
         </Link>
       </section>
     );

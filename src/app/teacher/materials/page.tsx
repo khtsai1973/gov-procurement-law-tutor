@@ -14,7 +14,13 @@ export const dynamic = "force-dynamic";
 export default async function TeacherMaterialsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ edit?: string; category?: string; saved?: string; highlight?: string }>;
+  searchParams?: Promise<{
+    edit?: string;
+    new?: string;
+    category?: string;
+    saved?: string;
+    highlight?: string;
+  }>;
 }) {
   const session = await getSession();
   if (!session?.user?.id || !canAccessTeacher(session.user.role)) {
@@ -28,12 +34,18 @@ export default async function TeacherMaterialsPage({
   }
   const sp = searchParams ? await searchParams : {};
   const editId = sp.edit?.trim() || null;
+  const isNew = sp.new === "1" || sp.new === "true";
+  const showForm = Boolean(editId || isNew);
   const filterCategory = sp.category?.trim() || null;
   const justSaved = sp.saved === "1";
   const highlightId = sp.highlight?.trim() || null;
-  const listHref = filterCategory
+
+  const homeHref = filterCategory
     ? `/teacher/materials?category=${encodeURIComponent(filterCategory)}`
     : "/teacher/materials";
+  const newHref = filterCategory
+    ? `/teacher/materials?new=1&category=${encodeURIComponent(filterCategory)}`
+    : "/teacher/materials?new=1";
 
   const authorSelect = { author: { select: { email: true, name: true } } } as const;
   let materials: Array<{
@@ -88,6 +100,11 @@ export default async function TeacherMaterialsPage({
     editing = one;
   }
 
+  if (editId && !editing) {
+    // 編輯目標不存在時回到首頁
+    redirect(homeHref);
+  }
+
   const filtered = filterCategory
     ? materials.filter((m) => m.category === filterCategory)
     : materials;
@@ -98,9 +115,10 @@ export default async function TeacherMaterialsPage({
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold">依主題分類製作教材</h1>
+            <p className="text-xs text-[var(--muted)]">老師功能</p>
+            <h1 className="mt-1 text-xl font-semibold">單元教材首頁</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              選擇正式 14 類主題後撰寫單元內容；勾選「發布」後，學員可於「單元教材」依分類閱讀。
+              依正式 14 類主題管理教材。儲存後會回到本頁列表；簡報請先排版再匯出。
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
@@ -110,28 +128,42 @@ export default async function TeacherMaterialsPage({
             <Link href="/materials" className="no-underline hover:underline">
               預覽學員教材頁
             </Link>
-            {editId ? (
-              <Link href={listHref} className="no-underline hover:underline">
-                返回單元教材列表
+            {showForm ? (
+              <Link href={homeHref} className="font-medium no-underline hover:underline">
+                返回單元教材首頁
               </Link>
-            ) : null}
+            ) : (
+              <Link
+                href={newHref}
+                className="rounded-md bg-[var(--accent)] px-3 py-1.5 font-medium text-white no-underline hover:bg-blue-800"
+              >
+                新增教材
+              </Link>
+            )}
           </div>
         </div>
 
         {justSaved ? (
           <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
-            教材已儲存，已返回單元教材頁。可繼續編輯，或點「簡報排版」調整後再匯出 PPTX。
+            教材已儲存，已回到單元教材首頁。可在下方列表繼續編輯或進行簡報排版。
           </div>
         ) : null}
+      </div>
 
-        <div className="mt-6">
-          <h2 className="text-base font-semibold">
-            {editing ? `編輯：${editing.title}` : "新增單元教材"}
-          </h2>
+      {showForm ? (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-base font-semibold">
+              {editing ? `編輯：${editing.title}` : "新增單元教材"}
+            </h2>
+            <Link href={homeHref} className="text-sm no-underline hover:underline">
+              ← 返回單元教材首頁
+            </Link>
+          </div>
           <div className="mt-4">
             <UnitMaterialForm
               key={editing?.id ?? "new"}
-              listHref={listHref}
+              categoryFilter={filterCategory}
               initial={
                 editing
                   ? {
@@ -162,19 +194,26 @@ export default async function TeacherMaterialsPage({
             />
           </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-base font-semibold">
-            已建立教材（{filtered.length}
+            教材列表（{filtered.length}
             {filterCategory ? `／篩選「${filterCategory}」` : ""}）
           </h2>
-          {filterCategory ? (
-            <Link href="/teacher/materials" className="text-sm no-underline hover:underline">
-              清除分類篩選
-            </Link>
-          ) : null}
+          <div className="flex flex-wrap gap-3 text-sm">
+            {filterCategory ? (
+              <Link href="/teacher/materials" className="no-underline hover:underline">
+                清除分類篩選
+              </Link>
+            ) : null}
+            {!showForm ? (
+              <Link href={newHref} className="no-underline hover:underline">
+                新增教材
+              </Link>
+            ) : null}
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -210,7 +249,12 @@ export default async function TeacherMaterialsPage({
         </div>
 
         {groups.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--muted)]">尚無教材，請先新增。</p>
+          <p className="mt-4 text-sm text-[var(--muted)]">
+            尚無教材。
+            <Link href={newHref} className="ml-2 underline">
+              新增第一筆
+            </Link>
+          </p>
         ) : (
           <div className="mt-5 space-y-6">
             {groups.map((group) => (

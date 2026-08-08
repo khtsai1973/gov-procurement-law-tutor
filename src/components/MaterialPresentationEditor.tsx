@@ -128,8 +128,8 @@ export function MaterialPresentationEditor({
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href={listHref} className="no-underline hover:underline">
-            ← 返回單元教材
+          <Link href={listHref} className="font-medium no-underline hover:underline">
+            ← 返回單元教材首頁
           </Link>
           <Link
             href={`/teacher/materials?edit=${materialId}`}

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { deleteUnitMaterial, saveUnitMaterial } from "@/app/actions/teacher";
@@ -18,25 +17,40 @@ export type UnitMaterialFormValues = {
   published: boolean;
 };
 
+/** 單元教材首頁（列表），不含 edit／new */
+export const TEACHER_MATERIALS_HOME = "/teacher/materials";
+
+function buildHomeHref(extra?: { saved?: boolean; id?: string; category?: string | null }) {
+  const url = new URL(TEACHER_MATERIALS_HOME, "https://local.invalid");
+  if (extra?.category) url.searchParams.set("category", extra.category);
+  if (extra?.saved) url.searchParams.set("saved", "1");
+  if (extra?.id) url.searchParams.set("highlight", extra.id);
+  const q = url.searchParams.toString();
+  return q ? `${TEACHER_MATERIALS_HOME}?${q}` : TEACHER_MATERIALS_HOME;
+}
+
 export function UnitMaterialForm({
   initial,
-  listHref = "/teacher/materials",
+  /** 篩選中的分類（儲存後帶回首頁篩選，但不帶 edit） */
+  categoryFilter = null,
 }: {
   initial?: UnitMaterialFormValues;
-  /** 儲存／返回後要回到的單元教材功能頁 */
-  listHref?: string;
+  categoryFilter?: string | null;
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
 
-  function goToMaterialsList(extra?: { saved?: boolean; id?: string }) {
-    const url = new URL(listHref, window.location.origin);
-    if (extra?.saved) url.searchParams.set("saved", "1");
-    if (extra?.id) url.searchParams.set("highlight", extra.id);
-    router.push(`${url.pathname}${url.search}`);
-    router.refresh();
+  const homeHref = buildHomeHref({ category: categoryFilter });
+
+  /** 強制整頁導向首頁，避免 App Router 同路徑 query 軟導覽卡住編輯表單 */
+  function goHome(extra?: { saved?: boolean; id?: string }) {
+    const href = buildHomeHref({
+      category: categoryFilter,
+      saved: extra?.saved,
+      id: extra?.id,
+    });
+    window.location.assign(href);
   }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -59,8 +73,8 @@ export function UnitMaterialForm({
         setError(result.error);
         return;
       }
-      setOkMsg("已儲存，正在返回單元教材…");
-      goToMaterialsList({ saved: true, id: result.id });
+      setOkMsg("已儲存，正在返回單元教材首頁…");
+      goHome({ saved: true, id: result.id });
     });
   }
 
@@ -74,7 +88,7 @@ export function UnitMaterialForm({
         setError(result.error);
         return;
       }
-      goToMaterialsList();
+      goHome();
     });
   }
 
@@ -95,7 +109,7 @@ export function UnitMaterialForm({
           ))}
         </select>
         <span className="mt-1 block text-xs text-[var(--muted)]">
-          請依正式 14 類主題分類製作教材；儲存後會返回單元教材功能頁。簡報請先排版再匯出 PPTX。
+          儲存後會返回「單元教材首頁」列表；簡報請先排版再匯出 PPTX。
         </span>
       </label>
 
@@ -172,13 +186,13 @@ export function UnitMaterialForm({
           disabled={pending}
           className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
         >
-          {pending ? "儲存中…" : "儲存並返回單元教材"}
+          {pending ? "儲存中…" : "儲存並返回單元教材首頁"}
         </button>
         <Link
-          href={listHref}
+          href={homeHref}
           className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm text-[var(--fg)] no-underline hover:bg-slate-50"
         >
-          返回單元教材
+          返回單元教材首頁
         </Link>
         {initial?.id ? (
           <Link
