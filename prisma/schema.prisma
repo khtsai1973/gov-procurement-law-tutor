@@ -75,6 +75,8 @@ model RegistrationApplication {
 model UnitMaterial {
   id        String   @id @default(cuid())
   title     String
+  /// 主題分類（正式 14 類之一）
+  category  String   @default("政府採購全生命週期概論")
   /// 單元代號，如 U01、第1單元
   unitCode  String?
   summary   String?
@@ -87,6 +89,8 @@ model UnitMaterial {
   updatedAt DateTime @updatedAt
 
   @@index([published, sortOrder])
+  @@index([published, category, sortOrder])
+  @@index([category])
   @@index([authorId])
 }
 

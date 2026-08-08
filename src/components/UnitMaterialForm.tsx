@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { deleteUnitMaterial, saveUnitMaterial } from "@/app/actions/teacher";
+import { TOPIC_CATEGORY_OPTIONS } from "@/lib/question-bank-categories";
 
 export type UnitMaterialFormValues = {
   id?: string;
   title: string;
+  category: string;
   unitCode: string;
   summary: string;
   content: string;
@@ -34,6 +36,7 @@ export function UnitMaterialForm({
       const result = await saveUnitMaterial({
         id: initial?.id,
         title: String(fd.get("title") ?? ""),
+        category: String(fd.get("category") ?? ""),
         unitCode: String(fd.get("unitCode") ?? ""),
         summary: String(fd.get("summary") ?? ""),
         content: String(fd.get("content") ?? ""),
@@ -69,6 +72,25 @@ export function UnitMaterialForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      <label className="block text-sm">
+        <span className="font-medium">主題分類</span>
+        <select
+          name="category"
+          required
+          defaultValue={initial?.category ?? TOPIC_CATEGORY_OPTIONS[0]}
+          className="mt-1 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2"
+        >
+          {TOPIC_CATEGORY_OPTIONS.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-xs text-[var(--muted)]">
+          請依正式 14 類主題分類製作教材，學員可依分類閱讀。
+        </span>
+      </label>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm">
           <span className="font-medium">單元代號</span>
