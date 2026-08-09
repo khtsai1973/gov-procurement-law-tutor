@@ -19,6 +19,7 @@ import {
   parseEmbedding,
 } from "@/lib/embeddings";
 import { prisma } from "@/lib/prisma";
+import { keywordsForRetrieval } from "@/lib/concept-tags";
 import { matchQuestionBank } from "@/lib/question-bank";
 import type { QuestionBankMatch } from "@/lib/question-bank-types";
 
@@ -185,8 +186,15 @@ function expandQuery(query: string, bank?: QuestionBankMatch): string {
   if (isOpeningBidderCountQuery(query)) {
     extras.push(...openingBidderExpansionTerms(query));
   }
-  // 題庫僅作關鍵詞擴展，不注入導引文字，避免回答脫離法規／函釋原文
-  if (bank?.keywords.length) extras.push(...bank.keywords);
+  // 題庫僅作關鍵詞擴展，不注入導引文字；過濾機械切塊，改以概念標籤為主
+  if (bank) {
+    const retrieval = keywordsForRetrieval({
+      question: query,
+      keywords: bank.keywords,
+      max: 12,
+    });
+    if (retrieval.length) extras.push(...retrieval);
+  }
   const unique = [...new Set(extras)];
   if (unique.length === 0) return query;
   return `${query}\n（相關關鍵詞：${unique.join("、")}）`;
@@ -199,7 +207,9 @@ function queryTerms(query: string, bank?: QuestionBankMatch): string[] {
   if (compact.length >= 2) terms.add(compact);
 
   if (bank?.keywords.length) {
-    for (const kw of bank.keywords) terms.add(kw.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase());
+    for (const kw of keywordsForRetrieval({ question: query, keywords: bank.keywords, max: 16 })) {
+      terms.add(kw.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase());
+    }
   }
 
   for (const [key, extras] of Object.entries(QUERY_EXPANSIONS)) {

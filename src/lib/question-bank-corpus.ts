@@ -1,6 +1,8 @@
 import type { PrismaClient, QuestionBankItem } from "@prisma/client";
 import { RegulationTier } from "@prisma/client";
 
+import { keywordsForRetrieval } from "@/lib/concept-tags";
+
 /** 題庫在法規清單中的 slug 前綴 */
 export const QUESTION_BANK_SLUG_PREFIX = "qb-";
 
@@ -42,7 +44,14 @@ export function buildQuestionBankMarkdown(category: string, items: QuestionBankI
     lines.push(`## ${item.question}`);
     lines.push("");
     if (item.keywords.length > 0) {
-      lines.push(`- 關鍵詞：${item.keywords.join("、")}`);
+      const tags = keywordsForRetrieval({
+        question: item.question,
+        keywords: item.keywords,
+        max: 10,
+      });
+      if (tags.length > 0) {
+        lines.push(`- 概念標籤：${tags.join("、")}`);
+      }
     }
     if (item.relatedSlugs.length > 0) {
       lines.push(`- 對應法規 slug：${item.relatedSlugs.join("、")}`);

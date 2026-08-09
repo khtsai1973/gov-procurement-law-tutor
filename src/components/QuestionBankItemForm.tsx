@@ -114,12 +114,15 @@ export function QuestionBankItemForm({
       </label>
 
       <label className="block text-sm">
-        <span className="font-medium">關鍵詞（逗號或頓號分隔）</span>
+        <span className="font-medium">檢索關鍵詞（後台用，逗號或頓號分隔）</span>
+        <p className="mt-0.5 text-xs text-[var(--muted)]">
+          供問答檢索擴展；前台題庫頁改顯示語意「概念標籤」，請勿貼上固定字數切出的碎句。
+        </p>
         <input
           name="keywordsText"
           required
           defaultValue={initial?.keywordsText ?? ""}
-          placeholder="例：公告金額、查核金額、巨額"
+          placeholder="例：總價結算、契約變更、技術服務費"
           className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
         />
       </label>

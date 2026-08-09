@@ -9,6 +9,7 @@ import {
   getExplanationOverlayMap,
   resolveQuestionExplanation,
 } from "@/lib/question-bank-explanations";
+import { extractConceptTags } from "@/lib/concept-tags";
 import { canAccessTeacher } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
@@ -174,7 +175,7 @@ export default async function QuestionBankPage({
             <div>
               <h1 className="text-xl font-semibold">題庫</h1>
               <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-                政府採購法規常見試題與關鍵詞整理，供學習、模擬考試與問答檢索參考。高頻／重要題優先提供完整解析；導引文字非法條原文。
+                政府採購法規常見試題整理，供學習、模擬考試與問答檢索參考。前台以概念標籤呈現考點；高頻／重要題優先提供完整解析。導引文字非法條原文。
               </p>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 共 {totalCount} 題、{categories.length} 個分類
@@ -249,12 +250,27 @@ export default async function QuestionBankPage({
                         <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
                           {item.question}
                         </p>
-                        {(item.keywords ?? []).length > 0 ? (
-                          <p className="mt-2 text-xs text-[var(--muted)]">
-                            關鍵詞：{(item.keywords ?? []).slice(0, 12).join("、")}
-                            {(item.keywords ?? []).length > 12 ? "…" : ""}
-                          </p>
-                        ) : null}
+                        {(() => {
+                          const tags = extractConceptTags({
+                            question: item.question,
+                            keywords: item.keywords,
+                            category: item.category,
+                          });
+                          if (tags.length === 0) return null;
+                          return (
+                            <p className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                              <span className="text-[var(--muted)]">概念標籤：</span>
+                              {tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="rounded border border-[var(--border)] bg-slate-50 px-1.5 py-0.5 text-[var(--fg)]"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </p>
+                          );
+                        })()}
                         {resolved.hintAnswer ? (
                           <details className="mt-2 text-sm">
                             <summary className="cursor-pointer text-[var(--accent)]">

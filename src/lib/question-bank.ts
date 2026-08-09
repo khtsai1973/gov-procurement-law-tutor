@@ -1,5 +1,6 @@
 import type { QuestionBankItem } from "@prisma/client";
 
+import { keywordsForRetrieval } from "@/lib/concept-tags";
 import type { QuestionBankMatch } from "@/lib/question-bank-types";
 import { prisma } from "@/lib/prisma";
 
@@ -74,7 +75,13 @@ export async function matchQuestionBank(query: string): Promise<QuestionBankMatc
 
   for (const item of matched) {
     matchedKeys.push(item.key);
-    for (const kw of item.keywords) keywords.add(kw);
+    for (const kw of keywordsForRetrieval({
+      question: item.question,
+      keywords: item.keywords,
+      max: 8,
+    })) {
+      keywords.add(kw);
+    }
     for (const slug of item.relatedSlugs) relatedSlugs.add(slug);
     if (!hintAnswer && item.hintAnswer) hintAnswer = item.hintAnswer;
   }
