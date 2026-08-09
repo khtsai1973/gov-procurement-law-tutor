@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { UnitMaterialForm } from "@/components/UnitMaterialForm";
 import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
@@ -11,15 +10,17 @@ import { groupMaterialsByCategory } from "@/lib/unit-materials";
 
 export const dynamic = "force-dynamic";
 
-export default async function TeacherMaterialsPage({
+/** 單元教材首頁：僅列表（新增／編輯在獨立路徑） */
+export default async function TeacherMaterialsHomePage({
   searchParams,
 }: {
   searchParams?: Promise<{
-    edit?: string;
-    new?: string;
     category?: string;
     saved?: string;
     highlight?: string;
+    /** 舊連結相容：導向獨立編輯／新增頁 */
+    edit?: string;
+    new?: string;
   }>;
 }) {
   const session = await getSession();
@@ -27,88 +28,64 @@ export default async function TeacherMaterialsPage({
     redirect("/");
   }
 
+  const sp = searchParams ? await searchParams : {};
+
+  // 相容舊 URL：?edit= / ?new=1 → 獨立頁
+  if (sp.edit?.trim()) {
+    const q = sp.category?.trim()
+      ? `?category=${encodeURIComponent(sp.category.trim())}`
+      : "";
+    redirect(`/teacher/materials/${sp.edit.trim()}/edit${q}`);
+  }
+  if (sp.new === "1" || sp.new === "true") {
+    const q = sp.category?.trim()
+      ? `?category=${encodeURIComponent(sp.category.trim())}`
+      : "";
+    redirect(`/teacher/materials/new${q}`);
+  }
+
   try {
     await ensureTeacherSchema();
   } catch (e) {
     console.error("[teacher/materials] ensureTeacherSchema failed:", e);
   }
-  const sp = searchParams ? await searchParams : {};
-  const editId = sp.edit?.trim() || null;
-  const isNew = sp.new === "1" || sp.new === "true";
-  const showForm = Boolean(editId || isNew);
+
   const filterCategory = sp.category?.trim() || null;
   const justSaved = sp.saved === "1";
   const highlightId = sp.highlight?.trim() || null;
 
-  const homeHref = filterCategory
-    ? `/teacher/materials?category=${encodeURIComponent(filterCategory)}`
-    : "/teacher/materials";
-  const newHref = filterCategory
-    ? `/teacher/materials?new=1&category=${encodeURIComponent(filterCategory)}`
-    : "/teacher/materials?new=1";
-
-  const authorSelect = { author: { select: { email: true, name: true } } } as const;
   let materials: Array<{
     id: string;
     title: string;
     category: string;
     unitCode: string | null;
     summary: string | null;
-    content: string;
     sortOrder: number;
     published: boolean;
-    authorId: string;
-    createdAt: Date;
-    updatedAt: Date;
     author: { email: string | null; name: string | null };
   }> = [];
-  let editing: {
-    id: string;
-    title: string;
-    category: string;
-    unitCode: string | null;
-    summary: string | null;
-    content: string;
-    sortOrder: number;
-    published: boolean;
-  } | null = null;
+
   try {
-    const [list, one] = await Promise.all([
-      prisma.unitMaterial.findMany({
-        orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { updatedAt: "desc" }],
-        include: authorSelect,
-      }),
-      editId
-        ? prisma.unitMaterial.findUnique({ where: { id: editId } })
-        : Promise.resolve(null),
-    ]);
-    materials = list;
-    editing = one;
+    materials = await prisma.unitMaterial.findMany({
+      orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { updatedAt: "desc" }],
+      include: { author: { select: { email: true, name: true } } },
+    });
   } catch (e) {
     console.error("[teacher/materials] query failed, retry ensure:", e);
     await ensureTeacherSchema();
-    const [list, one] = await Promise.all([
-      prisma.unitMaterial.findMany({
-        orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
-        include: authorSelect,
-      }),
-      editId
-        ? prisma.unitMaterial.findUnique({ where: { id: editId } })
-        : Promise.resolve(null),
-    ]);
-    materials = list;
-    editing = one;
-  }
-
-  if (editId && !editing) {
-    // 編輯目標不存在時回到首頁
-    redirect(homeHref);
+    materials = await prisma.unitMaterial.findMany({
+      orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
+      include: { author: { select: { email: true, name: true } } },
+    });
   }
 
   const filtered = filterCategory
     ? materials.filter((m) => m.category === filterCategory)
     : materials;
   const groups = groupMaterialsByCategory(filtered);
+  const newHref = filterCategory
+    ? `/teacher/materials/new?category=${encodeURIComponent(filterCategory)}`
+    : "/teacher/materials/new";
 
   return (
     <section className="space-y-6">
@@ -118,7 +95,7 @@ export default async function TeacherMaterialsPage({
             <p className="text-xs text-[var(--muted)]">老師功能</p>
             <h1 className="mt-1 text-xl font-semibold">單元教材首頁</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              依正式 14 類主題管理教材。儲存後會回到本頁列表；簡報請先排版再匯出。
+              這是教材列表首頁。新增或編輯會開啟獨立頁面；儲存後會回到這裡。
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
@@ -128,73 +105,21 @@ export default async function TeacherMaterialsPage({
             <Link href="/materials" className="no-underline hover:underline">
               預覽學員教材頁
             </Link>
-            {showForm ? (
-              <Link href={homeHref} className="font-medium no-underline hover:underline">
-                返回單元教材首頁
-              </Link>
-            ) : (
-              <Link
-                href={newHref}
-                className="rounded-md bg-[var(--accent)] px-3 py-1.5 font-medium text-white no-underline hover:bg-blue-800"
-              >
-                新增教材
-              </Link>
-            )}
+            <Link
+              href={newHref}
+              className="rounded-md bg-[var(--accent)] px-3 py-1.5 font-medium text-white no-underline hover:bg-blue-800"
+            >
+              新增教材
+            </Link>
           </div>
         </div>
 
         {justSaved ? (
           <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
-            教材已儲存，已回到單元教材首頁。可在下方列表繼續編輯或進行簡報排版。
+            已儲存並回到單元教材首頁。可在下方列表繼續編輯或進行簡報排版。
           </div>
         ) : null}
       </div>
-
-      {showForm ? (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">
-              {editing ? `編輯：${editing.title}` : "新增單元教材"}
-            </h2>
-            <Link href={homeHref} className="text-sm no-underline hover:underline">
-              ← 返回單元教材首頁
-            </Link>
-          </div>
-          <div className="mt-4">
-            <UnitMaterialForm
-              key={editing?.id ?? "new"}
-              categoryFilter={filterCategory}
-              initial={
-                editing
-                  ? {
-                      id: editing.id,
-                      title: editing.title,
-                      category: editing.category,
-                      unitCode: editing.unitCode ?? "",
-                      summary: editing.summary ?? "",
-                      content: editing.content,
-                      sortOrder: editing.sortOrder,
-                      published: editing.published,
-                    }
-                  : filterCategory &&
-                      TOPIC_CATEGORY_OPTIONS.includes(
-                        filterCategory as (typeof TOPIC_CATEGORY_OPTIONS)[number],
-                      )
-                    ? {
-                        title: "",
-                        category: filterCategory,
-                        unitCode: "",
-                        summary: "",
-                        content: "",
-                        sortOrder: 0,
-                        published: false,
-                      }
-                    : undefined
-              }
-            />
-          </div>
-        </div>
-      ) : null}
 
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -202,18 +127,11 @@ export default async function TeacherMaterialsPage({
             教材列表（{filtered.length}
             {filterCategory ? `／篩選「${filterCategory}」` : ""}）
           </h2>
-          <div className="flex flex-wrap gap-3 text-sm">
-            {filterCategory ? (
-              <Link href="/teacher/materials" className="no-underline hover:underline">
-                清除分類篩選
-              </Link>
-            ) : null}
-            {!showForm ? (
-              <Link href={newHref} className="no-underline hover:underline">
-                新增教材
-              </Link>
-            ) : null}
-          </div>
+          {filterCategory ? (
+            <Link href="/teacher/materials" className="text-sm no-underline hover:underline">
+              清除分類篩選
+            </Link>
+          ) : null}
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -300,11 +218,7 @@ export default async function TeacherMaterialsPage({
                           簡報排版
                         </Link>
                         <Link
-                          href={`/teacher/materials?edit=${m.id}${
-                            filterCategory
-                              ? `&category=${encodeURIComponent(filterCategory)}`
-                              : ""
-                          }`}
+                          href={`/teacher/materials/${m.id}/edit`}
                           className="no-underline hover:underline"
                         >
                           編輯
