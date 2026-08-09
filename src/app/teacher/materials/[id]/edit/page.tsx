@@ -11,8 +11,10 @@ export const dynamic = "force-dynamic";
 
 export default async function TeacherMaterialEditPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ generated?: string }>;
 }) {
   const session = await getSession();
   if (!session?.user?.id || !canAccessTeacher(session.user.role)) {
@@ -22,6 +24,9 @@ export default async function TeacherMaterialEditPage({
   const { id } = await params;
   const materialId = id?.trim();
   if (!materialId) redirect("/teacher/materials");
+
+  const sp = searchParams ? await searchParams : {};
+  const justGenerated = sp.generated === "1";
 
   try {
     await ensureTeacherSchema();
@@ -41,6 +46,9 @@ export default async function TeacherMaterialEditPage({
     );
   }
 
+  const source = (material as { source?: string }).source ?? "MANUAL";
+  const reviewStatus = (material as { reviewStatus?: string }).reviewStatus ?? "NONE";
+
   return (
     <section className="space-y-4">
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
@@ -49,7 +57,9 @@ export default async function TeacherMaterialEditPage({
             <p className="text-xs text-[var(--muted)]">單元教材</p>
             <h1 className="mt-1 text-xl font-semibold">編輯：{material.title}</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              儲存成功後會自動返回「單元教材首頁」列表。
+              {source === "AI"
+                ? "AI 教材須審核完成後才可發布；發布後仍可編輯修改並儲存。"
+                : "儲存成功後會自動返回「單元教材首頁」列表。發布後仍可回來修改。"}
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
@@ -78,6 +88,7 @@ export default async function TeacherMaterialEditPage({
         </div>
         <div className="mt-6">
           <UnitMaterialForm
+            justGenerated={justGenerated}
             initial={{
               id: material.id,
               title: material.title,
@@ -87,6 +98,8 @@ export default async function TeacherMaterialEditPage({
               content: material.content,
               sortOrder: material.sortOrder,
               published: material.published,
+              source,
+              reviewStatus,
             }}
           />
         </div>

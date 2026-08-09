@@ -82,6 +82,22 @@ export async function ensureTeacherSchema(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS "UnitMaterial_authorId_idx" ON "UnitMaterial"("authorId")`,
     );
 
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'MANUAL'`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "reviewStatus" TEXT NOT NULL DEFAULT 'NONE'`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "reviewedAt" TIMESTAMP(3)`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "reviewedById" TEXT`,
+    );
+    await prisma.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "UnitMaterial_source_reviewStatus_idx" ON "UnitMaterial"("source", "reviewStatus")`,
+    );
+
     ensured = true;
   })().finally(() => {
     if (!ensured) ensurePromise = null;

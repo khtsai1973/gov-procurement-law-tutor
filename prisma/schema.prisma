@@ -83,6 +83,12 @@ model UnitMaterial {
   content   String
   sortOrder Int      @default(0)
   published Boolean  @default(false)
+  /// 建立來源：MANUAL（教師手寫）｜AI（AI 產生草稿）
+  source    String   @default("MANUAL")
+  /// 審核狀態：NONE｜PENDING_REVIEW｜APPROVED（AI 教材須 APPROVED 才可發布）
+  reviewStatus String @default("NONE")
+  reviewedAt   DateTime?
+  reviewedById String?
   authorId  String
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -92,6 +98,7 @@ model UnitMaterial {
   @@index([published, category, sortOrder])
   @@index([category])
   @@index([authorId])
+  @@index([source, reviewStatus])
 }
 
 model Account {
