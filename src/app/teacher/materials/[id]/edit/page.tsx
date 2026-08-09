@@ -62,6 +62,18 @@ export default async function TeacherMaterialEditPage({
             >
               簡報排版
             </Link>
+            <a
+              href={`/api/teacher/materials/${material.id}/document?format=docx`}
+              className="no-underline hover:underline"
+            >
+              下載 DOCX
+            </a>
+            <a
+              href={`/api/teacher/materials/${material.id}/document?format=pdf`}
+              className="no-underline hover:underline"
+            >
+              下載 PDF
+            </a>
           </div>
         </div>
         <div className="mt-6">

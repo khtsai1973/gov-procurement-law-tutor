@@ -217,6 +217,18 @@ export default async function TeacherMaterialsHomePage({
                         >
                           簡報排版
                         </Link>
+                        <a
+                          href={`/api/teacher/materials/${m.id}/document?format=docx`}
+                          className="no-underline hover:underline"
+                        >
+                          DOCX
+                        </a>
+                        <a
+                          href={`/api/teacher/materials/${m.id}/document?format=pdf`}
+                          className="no-underline hover:underline"
+                        >
+                          PDF
+                        </a>
                         <Link
                           href={`/teacher/materials/${m.id}/edit`}
                           className="no-underline hover:underline"
