@@ -32,6 +32,7 @@ async function loadItems(): Promise<QuestionBankItem[]> {
   const items: QuestionBankItem[] = rows.map((r) => ({
     ...r,
     knowledgeTags: [],
+    importance: "normal",
   }));
   cache = { items, loadedAt: now };
   return items;

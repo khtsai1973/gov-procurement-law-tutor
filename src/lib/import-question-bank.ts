@@ -4,9 +4,14 @@ import path from "node:path";
 import type { PrismaClient } from "@prisma/client";
 
 import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
-import { questionBankFileSchema, type QuestionBankEntry } from "@/lib/question-bank-types";
+import {
+  questionBankExplanationOverlaySchema,
+  questionBankFileSchema,
+  type QuestionBankEntry,
+} from "@/lib/question-bank-types";
 import { syncQuestionBankRegulations } from "@/lib/question-bank-corpus";
 import { coerceOfficialCategory } from "@/lib/question-bank-categories";
+import { ensureQuestionBankSchema } from "@/lib/ensure-question-bank-schema";
 
 const DATA_DIR = path.join(process.cwd(), "data", "question-bank");
 
@@ -21,6 +26,45 @@ function getQuestionBankItemDelegate(prisma: PrismaClient) {
   return delegate;
 }
 
+function isExplanationOverlayFile(name: string): boolean {
+  return name.includes("explanation") || name.includes("overlay");
+}
+
+async function applyExplanationOverlays(
+  byKey: Map<string, QuestionBankEntry>,
+  names: string[],
+): Promise<number> {
+  let applied = 0;
+  const overlayFiles = names
+    .filter((n) => n.endsWith(".json") && isExplanationOverlayFile(n))
+    .sort((a, b) => a.localeCompare(b));
+
+  for (const file of overlayFiles) {
+    try {
+      const raw = await readFile(path.join(DATA_DIR, file), "utf8");
+      const json = JSON.parse(raw) as unknown;
+      const parsed = questionBankExplanationOverlaySchema.parse(json);
+      for (const overlay of parsed.items) {
+        const existing = byKey.get(overlay.key);
+        if (!existing) {
+          console.warn(`[question-bank] overlay skip missing key: ${overlay.key}`);
+          continue;
+        }
+        byKey.set(overlay.key, {
+          ...existing,
+          hintAnswer: overlay.hintAnswer,
+          importance: overlay.importance ?? "high",
+        });
+        applied += 1;
+      }
+      console.log(`[question-bank] applied ${parsed.items.length} explanation overlay(s) from ${file}`);
+    } catch (e) {
+      console.warn(`[question-bank] Failed reading overlay ${file}:`, e);
+    }
+  }
+  return applied;
+}
+
 export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEntry[]> {
   let names: string[];
   try {
@@ -30,7 +74,7 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
   }
 
   const jsonFiles = names
-    .filter((n) => n.endsWith(".json"))
+    .filter((n) => n.endsWith(".json") && !isExplanationOverlayFile(n))
     // gpa-full 最後寫入，避免 starter 覆蓋正式題庫同 key
     .sort((a, b) => {
       const ag = a.includes("gpa-full") ? 1 : 0;
@@ -53,6 +97,7 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
         byKey.set(item.key, {
           ...item,
           category,
+          importance: item.importance ?? "normal",
           knowledgeTags: resolveKnowledgeTags({ ...item, category }),
         });
       }
@@ -71,12 +116,35 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
         byKey.set(item.key, {
           ...item,
           category,
+          importance: item.importance ?? "normal",
           knowledgeTags: resolveKnowledgeTags({ ...item, category }),
         });
       }
       console.log(`[question-bank] loaded ${byKey.size} item(s) from bundled JSON fallback`);
     } catch (e) {
       console.warn("[question-bank] bundled JSON fallback failed:", e);
+    }
+  }
+
+  await applyExplanationOverlays(byKey, names);
+
+  // 打包備援：磁碟無 overlay 檔時仍套用內建高頻解析
+  if (![...byKey.values()].some((i) => i.importance === "high")) {
+    try {
+      const bundled = await import("../../data/question-bank/high-priority-explanations.json");
+      const parsed = questionBankExplanationOverlaySchema.parse(bundled.default ?? bundled);
+      for (const overlay of parsed.items) {
+        const existing = byKey.get(overlay.key);
+        if (!existing) continue;
+        byKey.set(overlay.key, {
+          ...existing,
+          hintAnswer: overlay.hintAnswer,
+          importance: overlay.importance ?? "high",
+        });
+      }
+      console.log(`[question-bank] applied ${parsed.items.length} bundled explanation overlay(s)`);
+    } catch (e) {
+      console.warn("[question-bank] bundled explanation overlay failed:", e);
     }
   }
 
@@ -87,6 +155,8 @@ export async function importQuestionBank(
   prisma: PrismaClient,
   source = "import",
 ): Promise<{ imported: number; files: number; synced?: { categories: number; items: number; slugs: string[] } }> {
+  await ensureQuestionBankSchema().catch(() => undefined);
+
   let fileCount = 0;
   try {
     const names = await readdir(DATA_DIR);
@@ -118,6 +188,7 @@ export async function importQuestionBank(
             hintAnswer: item.hintAnswer ?? null,
             category: item.category,
             knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
+            importance: item.importance ?? "normal",
           },
           update: {
             question: item.question,
@@ -126,6 +197,7 @@ export async function importQuestionBank(
             hintAnswer: item.hintAnswer ?? null,
             category: item.category,
             knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
+            importance: item.importance ?? "normal",
           },
         }),
       ),
@@ -154,6 +226,8 @@ export async function replaceQuestionBankFromDisk(
   files: number;
   synced?: { categories: number; items: number; slugs: string[] };
 }> {
+  await ensureQuestionBankSchema().catch(() => undefined);
+
   let fileCount = 0;
   try {
     const names = await readdir(DATA_DIR);
@@ -183,6 +257,7 @@ export async function replaceQuestionBankFromDisk(
         hintAnswer: item.hintAnswer ?? null,
         category: item.category,
         knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
+        importance: item.importance ?? "normal",
       })),
       skipDuplicates: true,
     });

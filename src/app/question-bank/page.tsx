@@ -1,8 +1,14 @@
 import Link from "next/link";
 
 import { isDatabaseReady } from "@/lib/ensure-db";
+import { ensureQuestionBankSchema } from "@/lib/ensure-question-bank-schema";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
+import {
+  explanationDisplayLabel,
+  getExplanationOverlayMap,
+  resolveQuestionExplanation,
+} from "@/lib/question-bank-explanations";
 import { canAccessTeacher } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
@@ -12,13 +18,14 @@ const PAGE_SIZE = 40;
 export default async function QuestionBankPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ category?: string; q?: string; page?: string }>;
+  searchParams?: Promise<{ category?: string; q?: string; page?: string; important?: string }>;
 }) {
   const ready = await isDatabaseReady();
   const session = await getSession();
   const sp = (searchParams ? await searchParams : {}) ?? {};
   const categoryFilter = typeof sp.category === "string" ? sp.category.trim() : "";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
+  const importantOnly = sp.important === "1" || sp.important === "true";
   const page = Math.max(1, Number.parseInt(String(sp.page ?? "1"), 10) || 1);
 
   if (!ready) {
@@ -31,6 +38,8 @@ export default async function QuestionBankPage({
   }
 
   try {
+    await ensureQuestionBankSchema().catch(() => undefined);
+
     const grouped = await prisma.questionBankItem.groupBy({
       by: ["category"],
       _count: { _all: true },
@@ -39,8 +48,18 @@ export default async function QuestionBankPage({
     const categories = grouped.map((g) => g.category);
     const totalCount = grouped.reduce((sum, g) => sum + g._count._all, 0);
 
+    const overlayKeys = [...getExplanationOverlayMap().keys()];
+
     const where = {
       ...(categoryFilter ? { category: categoryFilter } : {}),
+      ...(importantOnly
+        ? {
+            OR: [
+              { importance: "high" },
+              ...(overlayKeys.length ? [{ key: { in: overlayKeys } }] : []),
+            ],
+          }
+        : {}),
       ...(q
         ? {
             OR: [
@@ -52,24 +71,69 @@ export default async function QuestionBankPage({
         : {}),
     };
 
-    const filteredCount = await prisma.questionBankItem.count({ where });
-    const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
-    const safePage = Math.min(page, totalPages);
+    let filteredCount = 0;
+    let pageItems: {
+      id: string;
+      key: string;
+      question: string;
+      category: string;
+      keywords: string[];
+      hintAnswer: string | null;
+      importance?: string | null;
+    }[] = [];
+    let totalPages = 1;
+    let safePage = 1;
 
-    const pageItems = await prisma.questionBankItem.findMany({
-      where,
-      orderBy: [{ category: "asc" }, { key: "asc" }],
-      skip: (safePage - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      select: {
-        id: true,
-        key: true,
-        question: true,
-        category: true,
-        keywords: true,
-        hintAnswer: true,
-      },
-    });
+    try {
+      filteredCount = await prisma.questionBankItem.count({ where });
+      totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+      safePage = Math.min(page, totalPages);
+      pageItems = await prisma.questionBankItem.findMany({
+        where,
+        orderBy: [{ category: "asc" }, { key: "asc" }],
+        skip: (safePage - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        select: {
+          id: true,
+          key: true,
+          question: true,
+          category: true,
+          keywords: true,
+          hintAnswer: true,
+          importance: true,
+        },
+      });
+    } catch {
+      const whereFallback = {
+        ...(categoryFilter ? { category: categoryFilter } : {}),
+        ...(q
+          ? {
+              OR: [
+                { question: { contains: q, mode: "insensitive" as const } },
+                { key: { contains: q, mode: "insensitive" as const } },
+                { keywords: { has: q } },
+              ],
+            }
+          : {}),
+      };
+      filteredCount = await prisma.questionBankItem.count({ where: whereFallback });
+      totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+      safePage = Math.min(page, totalPages);
+      pageItems = await prisma.questionBankItem.findMany({
+        where: whereFallback,
+        orderBy: [{ category: "asc" }, { key: "asc" }],
+        skip: (safePage - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        select: {
+          id: true,
+          key: true,
+          question: true,
+          category: true,
+          keywords: true,
+          hintAnswer: true,
+        },
+      });
+    }
 
     const byCategory = new Map<string, typeof pageItems>();
     for (const item of pageItems) {
@@ -81,6 +145,7 @@ export default async function QuestionBankPage({
     const qs = new URLSearchParams();
     if (categoryFilter) qs.set("category", categoryFilter);
     if (q) qs.set("q", q);
+    if (importantOnly) qs.set("important", "1");
     const baseQs = qs.toString();
     const pageHref = (p: number) => {
       const next = new URLSearchParams(baseQs);
@@ -93,6 +158,15 @@ export default async function QuestionBankPage({
       pageItems.map((item, i) => [item.id, (safePage - 1) * PAGE_SIZE + i + 1]),
     );
 
+    const importantHref = () => {
+      const next = new URLSearchParams();
+      if (categoryFilter) next.set("category", categoryFilter);
+      if (q) next.set("q", q);
+      if (!importantOnly) next.set("important", "1");
+      const s = next.toString();
+      return s ? `/question-bank?${s}` : "/question-bank";
+    };
+
     return (
       <section className="space-y-6">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
@@ -100,7 +174,7 @@ export default async function QuestionBankPage({
             <div>
               <h1 className="text-xl font-semibold">題庫</h1>
               <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-                政府採購法規常見試題與關鍵詞整理，供學習、模擬考試與問答檢索參考。導引文字非法條原文。
+                政府採購法規常見試題與關鍵詞整理，供學習、模擬考試與問答檢索參考。高頻／重要題優先提供完整解析；導引文字非法條原文。
               </p>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 共 {totalCount} 題、{categories.length} 個分類
@@ -122,45 +196,22 @@ export default async function QuestionBankPage({
             </div>
           </div>
 
-          <form className="mt-6 flex flex-wrap items-end gap-3" method="get">
-            <label className="block text-sm">
-              <span className="text-[var(--muted)]">分類</span>
-              <select
-                name="category"
-                defaultValue={categoryFilter}
-                className="mt-1 block max-w-xs rounded-md border border-[var(--border)] bg-white px-3 py-2"
-              >
-                <option value="">全部</option>
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block min-w-[12rem] flex-1 text-sm">
-              <span className="text-[var(--muted)]">搜尋</span>
-              <input
-                name="q"
-                defaultValue={q}
-                placeholder="關鍵詞或題目文字"
-                className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2"
-              />
-            </label>
-            <button
-              type="submit"
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href={importantHref()}
+              className={`rounded-md border px-2.5 py-1 text-xs no-underline ${
+                importantOnly
+                  ? "border-amber-300 bg-amber-50 text-amber-950"
+                  : "border-[var(--border)] bg-white text-[var(--muted)] hover:bg-slate-50"
+              }`}
             >
-              篩選
-            </button>
-          </form>
+              {importantOnly ? "顯示全部題目" : "只看重要／高頻（含完整解析）"}
+            </Link>
+          </div>
         </div>
 
         {pageItems.length === 0 ? (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 text-sm text-[var(--muted)]">
-            沒有符合條件的題目。
-            {totalCount === 0 ? " 請由管理者／老師匯入或新增題庫。" : null}
-          </div>
+          <p className="text-sm text-[var(--muted)]">沒有符合的題目。</p>
         ) : (
           <>
             {[...byCategory.entries()].map(([category, items]) => (
@@ -168,41 +219,55 @@ export default async function QuestionBankPage({
                 key={category}
                 className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm"
               >
-                <h2 className="text-base font-semibold">
-                  {category}
-                  <span className="ml-2 text-sm font-normal text-[var(--muted)]">
-                    本頁 {items.length} 題
-                  </span>
-                </h2>
+                <h2 className="text-base font-semibold">{category}</h2>
                 <ul className="mt-4 space-y-4">
-                  {items.map((item) => (
-                    <li
-                      key={item.id}
-                      className="border-b border-[var(--border)] pb-4 last:border-b-0 last:pb-0"
-                    >
-                      <div className="text-xs text-[var(--muted)]">
-                        {indexById.get(item.id)}.{" "}
-                        <span className="font-mono">{item.key}</span>
-                      </div>
-                      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
-                        {item.question}
-                      </p>
-                      {(item.keywords ?? []).length > 0 ? (
-                        <p className="mt-2 text-xs text-[var(--muted)]">
-                          關鍵詞：{(item.keywords ?? []).slice(0, 12).join("、")}
-                          {(item.keywords ?? []).length > 12 ? "…" : ""}
+                  {items.map((item) => {
+                    const resolved = resolveQuestionExplanation({
+                      key: item.key,
+                      hintAnswer: item.hintAnswer,
+                      importance: item.importance,
+                    });
+                    return (
+                      <li
+                        key={item.id}
+                        className="border-b border-[var(--border)] pb-4 last:border-b-0 last:pb-0"
+                      >
+                        <div className="text-xs text-[var(--muted)]">
+                          {indexById.get(item.id)}.{" "}
+                          <span className="font-mono">{item.key}</span>
+                          {resolved.importance === "high" ? (
+                            <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">
+                              重要／高頻
+                            </span>
+                          ) : null}
+                          {resolved.hasFullExplanation ? (
+                            <span className="ml-2 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-900">
+                              完整解析
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                          {item.question}
                         </p>
-                      ) : null}
-                      {item.hintAnswer ? (
-                        <details className="mt-2 text-sm">
-                          <summary className="cursor-pointer text-[var(--accent)]">學習導引</summary>
-                          <p className="mt-2 whitespace-pre-wrap text-[var(--muted)]">
-                            {item.hintAnswer}
+                        {(item.keywords ?? []).length > 0 ? (
+                          <p className="mt-2 text-xs text-[var(--muted)]">
+                            關鍵詞：{(item.keywords ?? []).slice(0, 12).join("、")}
+                            {(item.keywords ?? []).length > 12 ? "…" : ""}
                           </p>
-                        </details>
-                      ) : null}
-                    </li>
-                  ))}
+                        ) : null}
+                        {resolved.hintAnswer ? (
+                          <details className="mt-2 text-sm">
+                            <summary className="cursor-pointer text-[var(--accent)]">
+                              {explanationDisplayLabel(resolved.hasFullExplanation)}
+                            </summary>
+                            <p className="mt-2 whitespace-pre-wrap text-[var(--muted)]">
+                              {resolved.hintAnswer}
+                            </p>
+                          </details>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}

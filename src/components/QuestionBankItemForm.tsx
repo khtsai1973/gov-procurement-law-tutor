@@ -13,6 +13,7 @@ export type QuestionBankItemFormValues = {
   keywordsText: string;
   relatedSlugsText: string;
   hintAnswer: string;
+  importance?: "high" | "normal";
 };
 
 export function QuestionBankItemForm({
@@ -41,6 +42,7 @@ export function QuestionBankItemForm({
         keywordsText: String(fd.get("keywordsText") ?? ""),
         relatedSlugsText: String(fd.get("relatedSlugsText") ?? ""),
         hintAnswer: String(fd.get("hintAnswer") ?? ""),
+        importance: String(fd.get("importance") ?? "normal") === "high" ? "high" : "normal",
       });
       if (!result.ok) {
         setError(result.error);
@@ -133,14 +135,33 @@ export function QuestionBankItemForm({
       </label>
 
       <label className="block text-sm">
-        <span className="font-medium">學習／作答導引（選填）</span>
+        <span className="font-medium">學習導引／完整解析</span>
+        <p className="mt-0.5 text-xs text-[var(--muted)]">
+          高頻或重要題請寫「完整解析」（含結論、考點、易錯點）。選擇題請保留「參考答案為…」以便自動評分。
+        </p>
         <textarea
           name="hintAnswer"
-          rows={3}
+          rows={8}
           defaultValue={initial?.hintAnswer ?? ""}
-          placeholder="給學員或 RAG 的簡短導引，勿當成法條原文"
+          placeholder={"例：\n【題庫】本題參考答案為 選項 (2)。\n\n【完整解析】\n一、結論…\n二、考點說明…"}
           className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
         />
+      </label>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="importance"
+          value="high"
+          defaultChecked={initial?.importance === "high"}
+          className="mt-1 rounded border-[var(--border)]"
+        />
+        <span>
+          <span className="font-medium">標記為重要／高頻題</span>
+          <span className="mt-0.5 block text-xs text-[var(--muted)]">
+            建議此類題目具備完整解析，模擬考試與題庫瀏覽會特別標示。
+          </span>
+        </span>
       </label>
 
       <div className="flex flex-wrap items-center gap-3">

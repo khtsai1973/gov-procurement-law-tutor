@@ -7,6 +7,7 @@ import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 import { clearQuestionBankCache } from "@/lib/question-bank";
 import { syncQuestionBankRegulations } from "@/lib/question-bank-corpus";
+import { ensureQuestionBankSchema } from "@/lib/ensure-question-bank-schema";
 import { canAccessTeacher } from "@/lib/roles";
 
 const itemSchema = z.object({
@@ -16,7 +17,8 @@ const itemSchema = z.object({
   category: z.string().trim().min(1, "請填寫分類").max(80),
   keywordsText: z.string().trim().min(1, "請填寫至少一個關鍵詞"),
   relatedSlugsText: z.string().trim().optional().default(""),
-  hintAnswer: z.string().trim().max(4000).optional().nullable(),
+  hintAnswer: z.string().trim().max(12000).optional().nullable(),
+  importance: z.enum(["high", "normal"]).optional().default("normal"),
 });
 
 function splitList(text: string): string[] {
@@ -49,6 +51,7 @@ export async function saveQuestionBankItem(raw: unknown) {
   }
 
   try {
+    await ensureQuestionBankSchema().catch(() => undefined);
     if (data.id) {
       const existing = await prisma.questionBankItem.findUnique({ where: { id: data.id } });
       if (!existing) return { ok: false as const, error: "找不到題目" };
@@ -66,6 +69,7 @@ export async function saveQuestionBankItem(raw: unknown) {
           keywords,
           relatedSlugs,
           hintAnswer: data.hintAnswer || null,
+          importance: data.importance ?? "normal",
         },
       });
     } else {
@@ -79,6 +83,7 @@ export async function saveQuestionBankItem(raw: unknown) {
           keywords,
           relatedSlugs,
           hintAnswer: data.hintAnswer || null,
+          importance: data.importance ?? "normal",
         },
       });
     }

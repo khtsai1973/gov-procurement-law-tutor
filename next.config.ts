@@ -40,6 +40,8 @@ const nextConfig: NextConfig = {
     "/admin/:path*": ["./data/question-bank/**/*", "./data/corpus/**/*"],
     "/api/admin/:path*": ["./data/question-bank/**/*", "./data/corpus/**/*"],
     "/teacher/:path*": ["./data/question-bank/**/*"],
+    "/question-bank": ["./data/question-bank/high-priority-explanations.json"],
+    "/api/mock-exam/:path*": ["./data/question-bank/high-priority-explanations.json"],
     // PDF 匯出需內嵌繁中字型（@fontsource/noto-sans-tc）
     "/api/materials/[id]/document": [
       "./node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-400-normal.woff",

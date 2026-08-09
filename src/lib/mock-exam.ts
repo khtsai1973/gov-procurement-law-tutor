@@ -31,6 +31,9 @@ export type MockExamRevealResult = {
   referenceAnswer: string | null;
   isCorrect: boolean | null;
   hintAnswer: string | null;
+  hasFullExplanation?: boolean;
+  importance?: "high" | "normal";
+  explanationLabel?: string;
   regulations: MockExamRegulationLink[];
   supplement: string | null;
   sourceNote: string | null;

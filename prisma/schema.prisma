@@ -212,10 +212,13 @@ model QuestionBankItem {
   category     String
   /// 知識標籤（受控詞彙；可空，執行時以規則自 category／keywords 推導）
   knowledgeTags String[] @default([])
+  /// 重要度：high=高頻／重要題（應具備完整解析）；normal=一般
+  importance   String   @default("normal")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([category])
+  @@index([importance])
 }
 
 /// 使用者對題庫題目補充的解答／筆記（當題庫無 hint 時）

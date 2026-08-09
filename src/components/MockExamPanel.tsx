@@ -842,9 +842,21 @@ export function MockExamPanel({
                 )}
 
                 {current.revealed.hintAnswer ? (
-                  <div className="rounded-lg bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-950">
-                    <p className="font-semibold">解答提示</p>
-                    <p className="mt-1">{current.revealed.hintAnswer}</p>
+                  <div
+                    className={`rounded-lg p-4 text-sm leading-relaxed ${
+                      current.revealed.hasFullExplanation
+                        ? "bg-sky-50 text-sky-950"
+                        : "bg-emerald-50 text-emerald-950"
+                    }`}
+                  >
+                    <p className="font-semibold">
+                      {current.revealed.explanationLabel ??
+                        (current.revealed.hasFullExplanation ? "完整解析" : "解答提示")}
+                      {current.revealed.importance === "high" ? (
+                        <span className="ml-2 text-xs font-medium text-amber-800">重要／高頻</span>
+                      ) : null}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap">{current.revealed.hintAnswer}</p>
                   </div>
                 ) : (
                   <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-950">
