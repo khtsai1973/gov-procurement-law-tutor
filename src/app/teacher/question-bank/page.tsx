@@ -117,6 +117,10 @@ export default async function TeacherQuestionBankPage({
                         keywordsText: editing.keywords.join("、"),
                         relatedSlugsText: editing.relatedSlugs.join(","),
                         hintAnswer: editing.hintAnswer ?? "",
+                        importance:
+                          (editing as { importance?: string }).importance === "high"
+                            ? "high"
+                            : "normal",
                       }
                     : undefined
                 }

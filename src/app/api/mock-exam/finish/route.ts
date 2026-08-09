@@ -7,6 +7,7 @@ import {
   inferMockExamQuestionType,
   parseReferenceAnswer,
 } from "@/lib/mock-exam";
+import { resolveQuestionExplanation } from "@/lib/question-bank-explanations";
 import { rateLimit } from "@/lib/rate-limit";
 import prisma from "@/lib/prisma";
 import { withUserRls } from "@/lib/with-user-rls";
@@ -88,8 +89,14 @@ export async function POST(req: Request) {
 
     const item = itemMap.get(a.itemKey);
     const type = item ? inferMockExamQuestionType(item) : null;
+    const resolvedHint = item
+      ? resolveQuestionExplanation({
+          key: item.key,
+          hintAnswer: item.hintAnswer,
+        }).hintAnswer
+      : null;
     const referenceAnswer =
-      item && type ? parseReferenceAnswer(item.hintAnswer, type) : null;
+      item && type ? parseReferenceAnswer(resolvedHint, type) : null;
     const isCorrect =
       hasAnswer && referenceAnswer
         ? gradeMockExamAnswer(a.userAnswer!.trim(), referenceAnswer)

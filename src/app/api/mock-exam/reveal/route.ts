@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { ensureMockExamGuidanceSchema } from "@/lib/ensure-mock-exam-guidance-schema";
+import { ensureQuestionBankSchema } from "@/lib/ensure-question-bank-schema";
 import {
   gradeMockExamAnswer,
   inferMockExamQuestionType,
   parseReferenceAnswer,
 } from "@/lib/mock-exam";
+import {
+  explanationDisplayLabel,
+  resolveQuestionExplanation,
+} from "@/lib/question-bank-explanations";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 
@@ -22,6 +27,7 @@ export async function POST(req: Request) {
   }
 
   await ensureMockExamGuidanceSchema();
+  await ensureQuestionBankSchema().catch(() => undefined);
 
   let json: unknown;
   try {
@@ -47,7 +53,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "此題目不適合模擬考試" }, { status: 400 });
   }
 
-  const referenceAnswer = parseReferenceAnswer(item.hintAnswer, type);
+  const resolved = resolveQuestionExplanation({
+    key: item.key,
+    hintAnswer: item.hintAnswer,
+    importance: (item as { importance?: string | null }).importance ?? null,
+  });
+
+  const referenceAnswer = parseReferenceAnswer(resolved.hintAnswer, type);
   const isCorrect = gradeMockExamAnswer(parsed.data.userAnswer, referenceAnswer);
 
   const regulations = await prisma.regulation.findMany({
@@ -68,7 +80,10 @@ export async function POST(req: Request) {
     key: item.key,
     referenceAnswer,
     isCorrect,
-    hintAnswer: item.hintAnswer,
+    hintAnswer: resolved.hintAnswer,
+    hasFullExplanation: resolved.hasFullExplanation,
+    importance: resolved.importance,
+    explanationLabel: explanationDisplayLabel(resolved.hasFullExplanation),
     regulations: regulations.map((r) => ({
       slug: r.slug,
       title: r.title,
