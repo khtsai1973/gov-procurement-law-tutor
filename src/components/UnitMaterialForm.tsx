@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 import { deleteUnitMaterial, saveUnitMaterial } from "@/app/actions/teacher";
 import { TOPIC_CATEGORY_OPTIONS } from "@/lib/question-bank-categories";
@@ -17,48 +17,31 @@ export type UnitMaterialFormValues = {
   published: boolean;
 };
 
-/** 單元教材首頁（列表），不含 edit／new */
 export const TEACHER_MATERIALS_HOME = "/teacher/materials";
 
-function buildHomeHref(extra?: { saved?: boolean; id?: string; category?: string | null }) {
-  const url = new URL(TEACHER_MATERIALS_HOME, "https://local.invalid");
-  if (extra?.category) url.searchParams.set("category", extra.category);
-  if (extra?.saved) url.searchParams.set("saved", "1");
-  if (extra?.id) url.searchParams.set("highlight", extra.id);
-  const q = url.searchParams.toString();
-  return q ? `${TEACHER_MATERIALS_HOME}?${q}` : TEACHER_MATERIALS_HOME;
+function isNextRedirectError(e: unknown): boolean {
+  if (!e || typeof e !== "object") return false;
+  const dig = (e as { digest?: string }).digest ?? "";
+  // Next.js redirect() from Server Actions surfaces as NEXT_REDIRECT
+  return dig.startsWith("NEXT_REDIRECT") || (e as { message?: string }).message === "NEXT_REDIRECT";
 }
 
 export function UnitMaterialForm({
   initial,
-  /** 篩選中的分類（儲存後帶回首頁篩選，但不帶 edit） */
-  categoryFilter = null,
+  defaultCategory,
 }: {
   initial?: UnitMaterialFormValues;
-  categoryFilter?: string | null;
+  defaultCategory?: string;
 }) {
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [okMsg, setOkMsg] = useState<string | null>(null);
 
-  const homeHref = buildHomeHref({ category: categoryFilter });
-
-  /** 強制整頁導向首頁，避免 App Router 同路徑 query 軟導覽卡住編輯表單 */
-  function goHome(extra?: { saved?: boolean; id?: string }) {
-    const href = buildHomeHref({
-      category: categoryFilter,
-      saved: extra?.saved,
-      id: extra?.id,
-    });
-    window.location.assign(href);
-  }
-
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     setError(null);
-    setOkMsg(null);
-    startTransition(async () => {
+    setPending(true);
+    try {
       const result = await saveUnitMaterial({
         id: initial?.id,
         title: String(fd.get("title") ?? ""),
@@ -69,27 +52,46 @@ export function UnitMaterialForm({
         sortOrder: Number(fd.get("sortOrder") ?? 0),
         published: fd.get("published") === "on",
       });
-      if (!result.ok) {
+      // 成功時 action 會 redirect；若仍回到這裡表示失敗
+      if (result && !result.ok) {
         setError(result.error);
+        setPending(false);
         return;
       }
-      setOkMsg("已儲存，正在返回單元教材首頁…");
-      goHome({ saved: true, id: result.id });
-    });
+      // 後援：若未觸發 redirect，強制回首頁
+      window.location.replace(TEACHER_MATERIALS_HOME);
+    } catch (err) {
+      if (isNextRedirectError(err)) {
+        // 讓 Next 處理導向；再加硬導向保險
+        window.location.replace(TEACHER_MATERIALS_HOME);
+        return;
+      }
+      setError(err instanceof Error ? err.message : "儲存失敗");
+      setPending(false);
+    }
   }
 
-  function onDelete() {
+  async function onDelete() {
     if (!initial?.id) return;
     if (!window.confirm("確定刪除此單元教材？")) return;
     setError(null);
-    startTransition(async () => {
-      const result = await deleteUnitMaterial(initial.id!);
-      if (!result.ok) {
+    setPending(true);
+    try {
+      const result = await deleteUnitMaterial(initial.id);
+      if (result && !result.ok) {
         setError(result.error);
+        setPending(false);
         return;
       }
-      goHome();
-    });
+      window.location.replace(TEACHER_MATERIALS_HOME);
+    } catch (err) {
+      if (isNextRedirectError(err)) {
+        window.location.replace(TEACHER_MATERIALS_HOME);
+        return;
+      }
+      setError(err instanceof Error ? err.message : "刪除失敗");
+      setPending(false);
+    }
   }
 
   return (
@@ -99,7 +101,9 @@ export function UnitMaterialForm({
         <select
           name="category"
           required
-          defaultValue={initial?.category ?? TOPIC_CATEGORY_OPTIONS[0]}
+          defaultValue={
+            initial?.category ?? defaultCategory ?? TOPIC_CATEGORY_OPTIONS[0]
+          }
           className="mt-1 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2"
         >
           {TOPIC_CATEGORY_OPTIONS.map((cat) => (
@@ -109,7 +113,7 @@ export function UnitMaterialForm({
           ))}
         </select>
         <span className="mt-1 block text-xs text-[var(--muted)]">
-          儲存後會返回「單元教材首頁」列表；簡報請先排版再匯出 PPTX。
+          按「儲存」後會離開本頁，回到單元教材首頁（教材列表）。
         </span>
       </label>
 
@@ -186,14 +190,14 @@ export function UnitMaterialForm({
           disabled={pending}
           className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
         >
-          {pending ? "儲存中…" : "儲存並返回單元教材首頁"}
+          {pending ? "儲存中…" : "儲存並返回首頁"}
         </button>
-        <Link
-          href={homeHref}
+        <a
+          href={TEACHER_MATERIALS_HOME}
           className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm text-[var(--fg)] no-underline hover:bg-slate-50"
         >
           返回單元教材首頁
-        </Link>
+        </a>
         {initial?.id ? (
           <Link
             href={`/teacher/materials/${initial.id}/presentation`}
@@ -213,7 +217,6 @@ export function UnitMaterialForm({
           </button>
         ) : null}
         {error ? <span className="text-sm text-red-600">{error}</span> : null}
-        {okMsg ? <span className="text-sm text-emerald-700">{okMsg}</span> : null}
       </div>
     </form>
   );

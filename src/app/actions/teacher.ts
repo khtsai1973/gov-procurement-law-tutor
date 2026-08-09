@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
@@ -37,6 +38,13 @@ async function requireTeacher() {
   return session;
 }
 
+/** 單元教材首頁（列表） */
+function materialsHomeUrl(highlightId?: string) {
+  const params = new URLSearchParams({ saved: "1" });
+  if (highlightId) params.set("highlight", highlightId);
+  return `/teacher/materials?${params.toString()}`;
+}
+
 export async function saveUnitMaterial(raw: unknown) {
   const session = await requireTeacher();
   if (!session?.user?.id) {
@@ -48,6 +56,7 @@ export async function saveUnitMaterial(raw: unknown) {
     return { ok: false as const, error: parsed.error.errors[0]?.message ?? "資料格式不正確" };
   }
 
+  let savedId = "";
   try {
     await ensureTeacherSchema();
     const data = parsed.data;
@@ -61,7 +70,6 @@ export async function saveUnitMaterial(raw: unknown) {
       published: data.published,
     };
 
-    let savedId = data.id ?? "";
     if (data.id) {
       const existing = await prisma.unitMaterial.findUnique({ where: { id: data.id } });
       if (!existing) return { ok: false as const, error: "找不到教材" };
@@ -86,11 +94,13 @@ export async function saveUnitMaterial(raw: unknown) {
     revalidatePath("/teacher");
     revalidatePath("/teacher/materials");
     revalidatePath("/materials");
-    return { ok: true as const, id: savedId };
   } catch (e) {
     const message = e instanceof Error ? e.message : "儲存失敗";
     return { ok: false as const, error: message };
   }
+
+  // 成功後由伺服器強制導向列表首頁（避免 client transition 卡在編輯頁）
+  redirect(materialsHomeUrl(savedId));
 }
 
 export async function deleteUnitMaterial(id: string) {
@@ -110,9 +120,10 @@ export async function deleteUnitMaterial(id: string) {
     revalidatePath("/teacher");
     revalidatePath("/teacher/materials");
     revalidatePath("/materials");
-    return { ok: true as const };
   } catch (e) {
     const message = e instanceof Error ? e.message : "刪除失敗";
     return { ok: false as const, error: message };
   }
+
+  redirect("/teacher/materials");
 }

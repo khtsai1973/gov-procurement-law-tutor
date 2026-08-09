@@ -132,7 +132,7 @@ export function MaterialPresentationEditor({
             ← 返回單元教材首頁
           </Link>
           <Link
-            href={`/teacher/materials?edit=${materialId}`}
+            href={`/teacher/materials/${materialId}/edit`}
             className="no-underline hover:underline"
           >
             編輯教材本文
