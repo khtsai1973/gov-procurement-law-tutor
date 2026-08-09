@@ -32,7 +32,7 @@ export default async function AdminPage() {
           <div>
             <h1 className="text-xl font-semibold">管理者工作台</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              可審核註冊申請、維護知識庫與檢視回答品質回饋。
+              可審核註冊申請、調整使用者角色、維護知識庫與檢視回答品質回饋。
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
@@ -41,6 +41,12 @@ export default async function AdminPage() {
               >
                 註冊申請審核
                 {pendingRegistrations > 0 ? `（${pendingRegistrations}）` : ""}
+              </Link>
+              <Link
+                href="/admin/users"
+                className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium no-underline hover:bg-gray-50"
+              >
+                使用者角色管理
               </Link>
             </div>
           </div>

@@ -6,7 +6,7 @@ import { ensureRegistrationSchema } from "@/lib/ensure-registration-schema";
 import { getGoogleOAuthConfig, isGoogleOAuthConfigured } from "@/lib/google-oauth-config";
 import prisma from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/registration";
-import { resolveRoleFromEmail } from "@/lib/roles";
+import { resolveRoleFromEmail, shouldForceAllowlistRoleOnLogin } from "@/lib/roles";
 
 const { clientId, clientSecret } = getGoogleOAuthConfig();
 const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
@@ -51,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email: { equals: user.email, mode: "insensitive" } },
         });
 
-        // 環境變數白名單：管理者／老師可直接登入
+        // 環境變數白名單：管理者／老師可直接登入（免註冊審核）
         if (allowlistRole === "ADMIN" || allowlistRole === "TEACHER") {
           if (existing) {
             await prisma.user.update({
@@ -60,7 +60,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 name: user.name ?? existing.name,
                 image: user.image ?? existing.image,
                 emailVerified: new Date(),
-                role: allowlistRole,
+                // ADMIN_EMAILS 強制維持管理者；其餘保留 DB 角色（可由管理者後台調整）
+                ...(shouldForceAllowlistRoleOnLogin(allowlistRole)
+                  ? { role: allowlistRole }
+                  : {}),
               },
             });
           } else {
