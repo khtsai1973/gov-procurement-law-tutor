@@ -7,6 +7,10 @@ import prisma from "@/lib/prisma";
 import { TOPIC_CATEGORY_OPTIONS } from "@/lib/question-bank-categories";
 import { canAccessTeacher } from "@/lib/roles";
 import { groupMaterialsByCategory } from "@/lib/unit-materials";
+import {
+  materialStatusLabel,
+  materialStatusTone,
+} from "@/lib/material-review";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +66,8 @@ export default async function TeacherMaterialsHomePage({
     summary: string | null;
     sortOrder: number;
     published: boolean;
+    source?: string;
+    reviewStatus?: string;
     author: { email: string | null; name: string | null };
   }> = [];
 
@@ -95,7 +101,7 @@ export default async function TeacherMaterialsHomePage({
             <p className="text-xs text-[var(--muted)]">老師功能</p>
             <h1 className="mt-1 text-xl font-semibold">單元教材首頁</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              這是教材列表首頁。新增或編輯會開啟獨立頁面；儲存後會回到這裡。
+              這是教材列表首頁。手寫新增或 AI 產生草稿後，請審核並標記「審核完成」再發布；發布後仍可編輯。
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
@@ -106,10 +112,20 @@ export default async function TeacherMaterialsHomePage({
               預覽學員教材頁
             </Link>
             <Link
+              href={
+                filterCategory
+                  ? `/teacher/materials/generate?category=${encodeURIComponent(filterCategory)}`
+                  : "/teacher/materials/generate"
+              }
+              className="rounded-md border border-sky-300 bg-sky-50 px-3 py-1.5 font-medium text-sky-900 no-underline hover:bg-sky-100"
+            >
+              AI 產生草稿
+            </Link>
+            <Link
               href={newHref}
               className="rounded-md bg-[var(--accent)] px-3 py-1.5 font-medium text-white no-underline hover:bg-blue-800"
             >
-              新增教材
+              手寫新增
             </Link>
           </div>
         </div>
@@ -193,13 +209,24 @@ export default async function TeacherMaterialsHomePage({
                             <span className="mr-2 text-[var(--muted)]">{m.unitCode}</span>
                           ) : null}
                           {m.title}
-                          <span
-                            className={`ml-2 text-xs ${
-                              m.published ? "text-emerald-700" : "text-amber-700"
-                            }`}
-                          >
-                            {m.published ? "已發布" : "草稿"}
-                          </span>
+                          {(() => {
+                            const fields = {
+                              source: m.source ?? "MANUAL",
+                              reviewStatus: m.reviewStatus ?? "NONE",
+                              published: m.published,
+                            };
+                            const label = materialStatusLabel(fields);
+                            const tone = materialStatusTone(fields);
+                            const cls =
+                              tone === "emerald"
+                                ? "text-emerald-700"
+                                : tone === "sky"
+                                  ? "text-sky-800"
+                                  : tone === "amber"
+                                    ? "text-amber-800"
+                                    : "text-[var(--muted)]";
+                            return <span className={`ml-2 text-xs ${cls}`}>{label}</span>;
+                          })()}
                         </div>
                         {m.summary ? (
                           <p className="mt-1 line-clamp-2 text-xs text-[var(--muted)]">

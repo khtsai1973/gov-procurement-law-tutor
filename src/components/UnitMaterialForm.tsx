@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { deleteUnitMaterial, saveUnitMaterial } from "@/app/actions/teacher";
+import {
+  deleteUnitMaterial,
+  markUnitMaterialReviewed,
+  saveUnitMaterial,
+} from "@/app/actions/teacher";
+import {
+  canPublishMaterial,
+  materialStatusLabel,
+  materialStatusTone,
+} from "@/lib/material-review";
 import { TOPIC_CATEGORY_OPTIONS } from "@/lib/question-bank-categories";
 
 export type UnitMaterialFormValues = {
@@ -15,6 +24,8 @@ export type UnitMaterialFormValues = {
   content: string;
   sortOrder: number;
   published: boolean;
+  source?: string;
+  reviewStatus?: string;
 };
 
 export const TEACHER_MATERIALS_HOME = "/teacher/materials";
@@ -22,24 +33,51 @@ export const TEACHER_MATERIALS_HOME = "/teacher/materials";
 function isNextRedirectError(e: unknown): boolean {
   if (!e || typeof e !== "object") return false;
   const dig = (e as { digest?: string }).digest ?? "";
-  // Next.js redirect() from Server Actions surfaces as NEXT_REDIRECT
   return dig.startsWith("NEXT_REDIRECT") || (e as { message?: string }).message === "NEXT_REDIRECT";
+}
+
+function toneClass(tone: ReturnType<typeof materialStatusTone>): string {
+  switch (tone) {
+    case "emerald":
+      return "text-emerald-700";
+    case "sky":
+      return "text-sky-800";
+    case "amber":
+      return "text-amber-800";
+    default:
+      return "text-[var(--muted)]";
+  }
 }
 
 export function UnitMaterialForm({
   initial,
   defaultCategory,
+  justGenerated,
 }: {
   initial?: UnitMaterialFormValues;
   defaultCategory?: string;
+  justGenerated?: boolean;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+  const [reviewStatus, setReviewStatus] = useState(initial?.reviewStatus ?? "NONE");
+  const [publishedChecked, setPublishedChecked] = useState(initial?.published ?? false);
+
+  const source = initial?.source === "AI" ? "AI" : "MANUAL";
+  const reviewFields = {
+    source,
+    reviewStatus,
+    published: publishedChecked,
+  };
+  const statusLabel = materialStatusLabel(reviewFields);
+  const publishAllowed = canPublishMaterial(reviewFields);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     setError(null);
+    setOkMsg(null);
     setPending(true);
     try {
       const result = await saveUnitMaterial({
@@ -52,17 +90,14 @@ export function UnitMaterialForm({
         sortOrder: Number(fd.get("sortOrder") ?? 0),
         published: fd.get("published") === "on",
       });
-      // 成功時 action 會 redirect；若仍回到這裡表示失敗
       if (result && !result.ok) {
         setError(result.error);
         setPending(false);
         return;
       }
-      // 後援：若未觸發 redirect，強制回首頁
       window.location.replace(TEACHER_MATERIALS_HOME);
     } catch (err) {
       if (isNextRedirectError(err)) {
-        // 讓 Next 處理導向；再加硬導向保險
         window.location.replace(TEACHER_MATERIALS_HOME);
         return;
       }
@@ -94,8 +129,45 @@ export function UnitMaterialForm({
     }
   }
 
+  async function onMarkReviewed() {
+    if (!initial?.id) return;
+    setError(null);
+    setOkMsg(null);
+    setPending(true);
+    try {
+      const result = await markUnitMaterialReviewed(initial.id);
+      if (!result.ok) {
+        setError(result.error);
+        setPending(false);
+        return;
+      }
+      setReviewStatus("APPROVED");
+      setOkMsg(result.message);
+      setPending(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "審核失敗");
+      setPending(false);
+    }
+  }
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {justGenerated ? (
+        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+          AI 草稿已產生，目前為「待審核」。請檢視並修改內容後，按下「標記審核完成」，才可發布給學員。
+        </p>
+      ) : null}
+
+      {initial?.id ? (
+        <p className={`text-sm font-medium ${toneClass(materialStatusTone(reviewFields))}`}>
+          狀態：{statusLabel}
+          {source === "AI" ? <span className="ml-2 text-xs font-normal text-[var(--muted)]">（AI 產生）</span> : null}
+          {initial.published ? (
+            <span className="ml-2 text-xs font-normal text-[var(--muted)]">發布後仍可編輯儲存</span>
+          ) : null}
+        </p>
+      ) : null}
+
       <label className="block text-sm">
         <span className="font-medium">主題分類</span>
         <select
@@ -174,14 +246,39 @@ export function UnitMaterialForm({
         />
       </label>
 
+      {source === "AI" && reviewStatus !== "APPROVED" ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
+          <span>AI 教材須先完成審核，才能勾選發布。</span>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onMarkReviewed}
+            className="rounded-md bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800 disabled:opacity-60"
+          >
+            {pending ? "處理中…" : "標記審核完成"}
+          </button>
+        </div>
+      ) : null}
+
+      {source === "AI" && reviewStatus === "APPROVED" ? (
+        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+          已審核完成。可發布給學員；發布後仍可回來編輯修改。
+        </p>
+      ) : null}
+
       <label className="inline-flex items-center gap-2 text-sm">
         <input
           name="published"
           type="checkbox"
-          defaultChecked={initial?.published ?? false}
-          className="rounded border-[var(--border)]"
+          checked={publishedChecked}
+          disabled={!publishAllowed && !publishedChecked}
+          onChange={(e) => setPublishedChecked(e.target.checked)}
+          className="rounded border-[var(--border)] disabled:opacity-50"
         />
         發布給學員閱讀
+        {!publishAllowed ? (
+          <span className="text-xs text-amber-800">（請先標記審核完成）</span>
+        ) : null}
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -198,6 +295,16 @@ export function UnitMaterialForm({
         >
           返回單元教材首頁
         </a>
+        {initial?.id && source === "AI" && reviewStatus !== "APPROVED" ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onMarkReviewed}
+            className="rounded-md border border-sky-300 bg-sky-50 px-4 py-2 text-sm text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+          >
+            標記審核完成
+          </button>
+        ) : null}
         {initial?.id ? (
           <Link
             href={`/teacher/materials/${initial.id}/presentation`}
@@ -232,6 +339,7 @@ export function UnitMaterialForm({
             刪除
           </button>
         ) : null}
+        {okMsg ? <span className="text-sm text-emerald-700">{okMsg}</span> : null}
         {error ? <span className="text-sm text-red-600">{error}</span> : null}
       </div>
     </form>
