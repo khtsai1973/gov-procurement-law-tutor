@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { AuthNavControls } from "@/components/AuthNavControls";
 import { Logo } from "@/components/Logo";
+import { MaterialsNavLink } from "@/components/MaterialsNavLink";
 import { isGoogleOAuthConfigured } from "@/lib/google-oauth-config";
 
 /** 公開導覽不 await session，降低首頁／註冊頁 TTFB */
@@ -25,9 +26,7 @@ export function Nav() {
         <Link href="/question-bank" className="no-underline hover:underline">
           題庫
         </Link>
-        <Link href="/materials" className="no-underline hover:underline">
-          單元教材
-        </Link>
+        <MaterialsNavLink />
         <Link href="/mock-exam" className="no-underline hover:underline">
           模擬考試
         </Link>
