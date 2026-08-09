@@ -207,6 +207,22 @@ export function UnitMaterialForm({
           </Link>
         ) : null}
         {initial?.id ? (
+          <a
+            href={`/api/teacher/materials/${initial.id}/document?format=docx`}
+            className="rounded-md border border-sky-200 bg-sky-50 px-4 py-2 text-sm text-sky-900 no-underline hover:bg-sky-100"
+          >
+            文件 DOCX
+          </a>
+        ) : null}
+        {initial?.id ? (
+          <a
+            href={`/api/teacher/materials/${initial.id}/document?format=pdf`}
+            className="rounded-md border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-900 no-underline hover:bg-rose-100"
+          >
+            文件 PDF
+          </a>
+        ) : null}
+        {initial?.id ? (
           <button
             type="button"
             disabled={pending}

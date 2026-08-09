@@ -196,12 +196,26 @@ export default async function MaterialsPage({
                         }).format(current.updatedAt)}
                       </p>
                     </div>
-                    <a
-                      href={`/api/materials/${current.id}/presentation`}
-                      className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm text-indigo-800 no-underline hover:bg-indigo-100"
-                    >
-                      下載簡報（PPTX）
-                    </a>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={`/api/materials/${current.id}/presentation`}
+                        className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm text-indigo-800 no-underline hover:bg-indigo-100"
+                      >
+                        簡報 PPTX
+                      </a>
+                      <a
+                        href={`/api/materials/${current.id}/document?format=docx`}
+                        className="rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-sky-900 no-underline hover:bg-sky-100"
+                      >
+                        文件 DOCX
+                      </a>
+                      <a
+                        href={`/api/materials/${current.id}/document?format=pdf`}
+                        className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm text-rose-900 no-underline hover:bg-rose-100"
+                      >
+                        文件 PDF
+                      </a>
+                    </div>
                   </div>
                   {current.summary ? (
                     <p className="mt-3 text-sm text-[var(--muted)]">{current.summary}</p>

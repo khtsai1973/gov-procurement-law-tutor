@@ -40,7 +40,17 @@ const nextConfig: NextConfig = {
     "/admin/:path*": ["./data/question-bank/**/*", "./data/corpus/**/*"],
     "/api/admin/:path*": ["./data/question-bank/**/*", "./data/corpus/**/*"],
     "/teacher/:path*": ["./data/question-bank/**/*"],
+    // PDF 匯出需內嵌繁中字型（@fontsource/noto-sans-tc）
+    "/api/materials/[id]/document": [
+      "./node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-400-normal.woff",
+      "./node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-700-normal.woff",
+    ],
+    "/api/teacher/materials/[id]/document": [
+      "./node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-400-normal.woff",
+      "./node_modules/@fontsource/noto-sans-tc/files/noto-sans-tc-chinese-traditional-700-normal.woff",
+    ],
   },
+  serverExternalPackages: ["pdfkit", "fontkit"],
   async headers() {
     return [
       {
