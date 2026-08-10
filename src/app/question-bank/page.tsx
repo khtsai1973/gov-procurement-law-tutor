@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { TeachingExplanationView } from "@/components/TeachingExplanationView";
 import { isDatabaseReady } from "@/lib/ensure-db";
 import { ensureQuestionBankSchema } from "@/lib/ensure-question-bank-schema";
 import { getSession } from "@/lib/get-session";
@@ -175,7 +176,7 @@ export default async function QuestionBankPage({
             <div>
               <h1 className="text-xl font-semibold">題庫</h1>
               <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-                政府採購法規常見試題整理，供學習與模擬考試參考。前台只顯示語意「概念標籤」（如總價結算、廠商資格）；機械切塊關鍵詞僅供後台檢索。高頻／重要題優先提供完整解析。
+                政府採購法規常見試題整理，供學習與模擬考試參考。前台只顯示語意「概念標籤」（如總價結算、廠商資格）；機械切塊關鍵詞僅供後台檢索。高頻／重要題優先提供七段式完整教學解析（正確答案、法規條號、正確理由、錯誤選項分析、常見陷阱、官方來源、相似題目）。
               </p>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 共 {totalCount} 題、{categories.length} 個分類
@@ -243,7 +244,7 @@ export default async function QuestionBankPage({
                           ) : null}
                           {resolved.hasFullExplanation ? (
                             <span className="ml-2 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-900">
-                              完整解析
+                              完整教學解析
                             </span>
                           ) : null}
                         </div>
@@ -276,9 +277,9 @@ export default async function QuestionBankPage({
                             <summary className="cursor-pointer text-[var(--accent)]">
                               {explanationDisplayLabel(resolved.hasFullExplanation)}
                             </summary>
-                            <p className="mt-2 whitespace-pre-wrap text-[var(--muted)]">
-                              {resolved.hintAnswer}
-                            </p>
+                            <div className="mt-2">
+                              <TeachingExplanationView hintAnswer={resolved.hintAnswer} />
+                            </div>
                           </details>
                         ) : null}
                       </li>

@@ -22,6 +22,7 @@
     "corpus:build-core-laws": "node scripts/build-core-laws.mjs",
     "corpus:refresh": "npm run corpus:fetch-moj && npm run corpus:ingest",
     "corpus:import-question-bank": "tsx scripts/import-question-bank.ts",
+    "corpus:build-teaching-explanations": "tsx scripts/build-high-priority-teaching-explanations.ts",
     "corpus:replace-question-bank": "tsx scripts/replace-question-bank.ts",
     "corpus:import-notebooklm": "tsx scripts/import-notebooklm.ts",
     "corpus:parse-question-bank-pdf": "tsx scripts/parse-question-bank-pdf.ts",

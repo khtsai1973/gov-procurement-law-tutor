@@ -119,7 +119,7 @@ export function resolveQuestionExplanation(item: {
 }
 
 export function explanationDisplayLabel(hasFull: boolean): string {
-  return hasFull ? "完整解析" : "解答提示";
+  return hasFull ? "完整教學解析" : "解答提示";
 }
 
 export { FULL_EXPLANATION_MARKER, hasFullExplanation };

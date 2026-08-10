@@ -2,6 +2,17 @@
 
 常見提問與關鍵詞，匯入 PostgreSQL 後供 RAG **查詢擴展**與**相關法規 slug 加權**。`hintAnswer` 僅為檢索／回答導引，**不是**法條原文；實際回答仍須以知識庫內法規片段為準。
 
+## 完整教學解析（高頻題）
+
+`high-priority-explanations.json`：各正式分類約 10 題高頻題之七段式完整教學解析（約 140 題，另含 starter 概念題）。欄位包含：
+
+正確答案｜法規名稱與條號｜正確理由｜錯誤選項分析｜常見陷阱｜官方來源｜相似題目
+
+```bash
+npx tsx scripts/build-high-priority-teaching-explanations.ts
+npm run corpus:import-question-bank
+```
+
 ## 內建題目
 
 - `starter.json`：約 20 題，涵蓋金額門檻、議價比減、未達公告金額、最有利標、招標期限等主題。
