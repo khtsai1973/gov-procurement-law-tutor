@@ -85,10 +85,22 @@ model UnitMaterial {
   published Boolean  @default(false)
   /// 建立來源：MANUAL（教師手寫）｜AI（AI 產生草稿）
   source    String   @default("MANUAL")
-  /// 審核狀態：NONE｜PENDING_REVIEW｜APPROVED（AI 教材須 APPROVED 才可發布）
-  reviewStatus String @default("NONE")
+  /// 審核狀態：DRAFT｜PENDING_REVIEW｜APPROVED｜RETURNED（NONE＝舊資料＝草稿）
+  reviewStatus String @default("DRAFT")
   reviewedAt   DateTime?
   reviewedById String?
+  /// AI 產生時間
+  aiGeneratedAt DateTime?
+  /// 教材所依據之法規版本說明（教師可改）
+  regulationVersion String?
+  /// 最近一次審核意見（核准／退回）
+  reviewNote String?
+  /// 最後修正時間／人員／說明
+  lastRevisionAt DateTime?
+  lastRevisionById String?
+  lastRevisionNote String?
+  /// JSON：修正／狀態變更紀錄 [{ at, byId, byName, note, fromStatus, toStatus }]
+  revisionLog String?
   authorId  String
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())

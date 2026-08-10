@@ -28,7 +28,7 @@ export default async function TeacherMaterialGeneratePage({
             <p className="text-xs text-[var(--muted)]">單元教材</p>
             <h1 className="mt-1 text-xl font-semibold">AI 產生教材草稿</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              依知識庫產生草稿後，請於編輯頁審核內容，標記「審核完成」後才可發布；發布後仍可編輯。
+              依知識庫產生草稿後進入「待審」。法律型教材不可直接發布，須經教師核准後才能公開。
             </p>
           </div>
           <Link href="/teacher/materials" className="text-sm font-medium no-underline hover:underline">

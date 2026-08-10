@@ -4,6 +4,11 @@ import { redirect } from "next/navigation";
 import { UnitMaterialForm } from "@/components/UnitMaterialForm";
 import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
 import { getSession } from "@/lib/get-session";
+import {
+  formatMaterialDate,
+  normalizeReviewStatus,
+  parseRevisionLog,
+} from "@/lib/material-review";
 import prisma from "@/lib/prisma";
 import { canAccessTeacher } from "@/lib/roles";
 
@@ -46,8 +51,32 @@ export default async function TeacherMaterialEditPage({
     );
   }
 
-  const source = (material as { source?: string }).source ?? "MANUAL";
-  const reviewStatus = (material as { reviewStatus?: string }).reviewStatus ?? "NONE";
+  const source = material.source ?? "MANUAL";
+  const reviewStatus = normalizeReviewStatus(material.reviewStatus);
+  const revisionLog = parseRevisionLog(material.revisionLog);
+
+  const userIds = [
+    material.reviewedById,
+    material.lastRevisionById,
+    ...revisionLog.map((e) => e.byId),
+  ].filter((x): x is string => Boolean(x));
+
+  const users =
+    userIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: [...new Set(userIds)] } },
+          select: { id: true, name: true, email: true, nickname: true },
+        })
+      : [];
+  const nameById = new Map(
+    users.map(
+      (u) =>
+        [
+          u.id,
+          u.nickname?.trim() || u.name?.trim() || u.email || u.id,
+        ] as const,
+    ),
+  );
 
   return (
     <section className="space-y-4">
@@ -57,9 +86,8 @@ export default async function TeacherMaterialEditPage({
             <p className="text-xs text-[var(--muted)]">單元教材</p>
             <h1 className="mt-1 text-xl font-semibold">編輯：{material.title}</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              {source === "AI"
-                ? "AI 教材須審核完成後才可發布；發布後仍可編輯修改並儲存。"
-                : "儲存成功後會自動返回「單元教材首頁」列表。發布後仍可回來修改。"}
+              審核流程：草稿 → 待審 → 已核准 → 已發布；必要時可退回修正。AI
+              教材須核准後才能發布。
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
@@ -100,6 +128,25 @@ export default async function TeacherMaterialEditPage({
               published: material.published,
               source,
               reviewStatus,
+              regulationVersion: material.regulationVersion ?? "",
+              reviewNote: material.reviewNote ?? "",
+            }}
+            meta={{
+              aiGeneratedAt: formatMaterialDate(material.aiGeneratedAt),
+              reviewedAt: formatMaterialDate(material.reviewedAt),
+              reviewerName: material.reviewedById
+                ? (nameById.get(material.reviewedById) ?? material.reviewedById)
+                : "—",
+              lastRevisionAt: formatMaterialDate(material.lastRevisionAt),
+              lastRevisionNote: material.lastRevisionNote ?? "",
+              lastRevisionByName: material.lastRevisionById
+                ? (nameById.get(material.lastRevisionById) ??
+                  material.lastRevisionById)
+                : "—",
+              revisionLog: revisionLog.map((e) => ({
+                ...e,
+                byName: nameById.get(e.byId) ?? e.byName,
+              })),
             }}
           />
         </div>
