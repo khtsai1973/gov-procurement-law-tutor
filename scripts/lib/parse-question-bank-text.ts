@@ -518,25 +518,91 @@ const STOP_KEYWORDS = new Set([
   "敘述",
   "機關",
   "廠商",
+  "下列敘述何者錯誤",
+  "下列敘述何者正確",
+  "下列何者正確",
+  "下列何者錯誤",
 ]);
+
+/** 語意概念詞（優先於機械字數切塊）；與 src/lib/concept-tags.ts 對齊精簡版 */
+const CONCEPT_LEXICON = [
+  "總價結算",
+  "契約變更",
+  "技術服務費",
+  "履約期限",
+  "逾期違約金",
+  "限制性招標",
+  "採購評選委員會",
+  "評選委員會",
+  "廠商資格",
+  "公告金額",
+  "查核金額",
+  "巨額採購",
+  "小額採購",
+  "未達公告金額",
+  "公開招標",
+  "選擇性招標",
+  "公開評選",
+  "最有利標",
+  "最低標",
+  "底價",
+  "價格分析",
+  "押標金",
+  "保證金",
+  "履約保證金",
+  "履約管理",
+  "驗收",
+  "採購契約",
+  "設計圖說",
+  "專案管理",
+  "技術服務",
+  "資訊服務",
+  "會同監辦",
+  "異議",
+  "申訴",
+  "調解",
+  "等標期",
+  "招標文件",
+  "電子投標",
+  "電子採購",
+  "契約價金",
+  "建造費用",
+  "違約金",
+  "室內裝修",
+].sort((a, b) => b.length - a.length);
+
+function isTruncatedChunk(k: string): boolean {
+  if (/^[\u4e00-\u9fff]{9,12}$/.test(k)) return true;
+  return k.length >= 8 && /[之於與及或而規丈內所為後資得何]$/.test(k);
+}
 
 export function extractKeywords(question: string): string[] {
   const terms = new Set<string>();
-  const phrases = question.match(/[\u4e00-\u9fff]{2,10}/g) ?? [];
+
+  for (const term of CONCEPT_LEXICON) {
+    if (question.includes(term)) terms.add(term);
+  }
+
+  // 後備：僅保留短詞且排除機械截斷碎句（不再用固定 10 字切塊）
+  const phrases = question.match(/[\u4e00-\u9fff]{2,7}/g) ?? [];
   for (const p of phrases) {
     if (STOP_KEYWORDS.has(p)) continue;
-    if (p.length >= 2 && p.length <= 10) terms.add(p);
+    if (isTruncatedChunk(p)) continue;
+    // 避免把整句拆成大量重疊碎片：只收較短且非截斷尾字的詞
+    if (p.length >= 3 && p.length <= 6 && !/[之於與及或而]$/.test(p)) {
+      terms.add(p);
+    }
   }
-  const ordered = [...terms].sort((a, b) => b.length - a.length);
+
+  // 優先輸出語意詞彙中的標籤
+  const lexiconHits = CONCEPT_LEXICON.filter((t) => terms.has(t));
+  const extras = [...terms].filter((t) => !lexiconHits.includes(t));
   const picked: string[] = [];
-  for (const t of ordered) {
+  for (const t of [...lexiconHits, ...extras]) {
+    if (STOP_KEYWORDS.has(t)) continue;
     if (picked.some((x) => x.includes(t) || t.includes(x))) continue;
     picked.push(t);
     if (picked.length >= 10) break;
-  }
-  if (picked.length === 0) {
-    const short = question.slice(0, 30).replace(/\s/g, "");
-    if (short.length >= 4) picked.push(short);
   }
   return picked.length > 0 ? picked : ["政府採購"];
 }
