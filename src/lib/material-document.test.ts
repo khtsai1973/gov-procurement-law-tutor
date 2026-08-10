@@ -39,6 +39,13 @@ describe("buildMaterialDocx/Pdf", () => {
     unitCode: "U01",
     summary: "認識公告金額",
     content: "## 重點\n- 公告金額\n- 小額採購\n\n正文說明一段。",
+    info: {
+      regulationVersion: "採購法 114 年版",
+      generatedAt: "2026/8/1 上午10:00",
+      reviewedAt: "2026/8/2 上午11:00",
+      reviewer: "王老師",
+      lastRevision: "2026/8/3 下午2:00 · 王老師 · 微調",
+    },
   };
 
   it("builds a non-empty docx buffer", async () => {

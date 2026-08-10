@@ -67,6 +67,7 @@ export default async function TeacherMaterialsHomePage({
     summary: string | null;
     sortOrder: number;
     published: boolean;
+    createdAt: Date;
     source?: string;
     reviewStatus?: string;
     aiGeneratedAt?: Date | null;
@@ -268,15 +269,15 @@ export default async function TeacherMaterialsHomePage({
                           作者：{m.author.name ?? m.author.email ?? "—"}｜排序 {m.sortOrder}
                         </p>
                         <p className="mt-1 text-xs text-[var(--muted)]">
-                          AI 產生：{formatMaterialDate(m.aiGeneratedAt)}｜審核：
+                          法規版本：{m.regulationVersion?.trim() || "—"}｜產生：
+                          {formatMaterialDate(m.aiGeneratedAt ?? m.createdAt)}｜審核：
                           {formatMaterialDate(m.reviewedAt)}
                           {m.reviewedById
                             ? `（${reviewerNameById.get(m.reviewedById) ?? m.reviewedById}）`
                             : ""}
-                          ｜法規版本：{m.regulationVersion?.trim() || "—"}
                         </p>
                         <p className="mt-0.5 text-xs text-[var(--muted)]">
-                          最後修正：{formatMaterialDate(m.lastRevisionAt)}
+                          最後修正紀錄：{formatMaterialDate(m.lastRevisionAt)}
                           {m.lastRevisionById
                             ? ` · ${reviewerNameById.get(m.lastRevisionById) ?? m.lastRevisionById}`
                             : ""}
