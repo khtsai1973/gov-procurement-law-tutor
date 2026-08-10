@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ import {
   materialPublishBlockReason,
   normalizeReviewStatus,
 } from "@/lib/material-review";
+import { MATERIALS_CACHE_TAG } from "@/lib/materials-public";
 import prisma from "@/lib/prisma";
 import {
   OFFICIAL_QUESTION_BANK_CATEGORIES,
@@ -78,6 +79,8 @@ function revalidateMaterialPaths(id?: string) {
   revalidatePath("/teacher/materials");
   revalidatePath("/materials");
   if (id) revalidatePath(`/teacher/materials/${id}/edit`);
+  // 公開教材摘要列表快取
+  revalidateTag(MATERIALS_CACHE_TAG);
 }
 
 type MaterialRow = {

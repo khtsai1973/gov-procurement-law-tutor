@@ -149,6 +149,10 @@ export async function ensureTeacherSchema(): Promise<void> {
     await prisma.$executeRawUnsafe(
       `CREATE INDEX IF NOT EXISTS "UnitMaterial_source_reviewStatus_idx" ON "UnitMaterial"("source", "reviewStatus")`,
     );
+    // 公開列表常用：published + category + sortOrder（已有）；補 updatedAt 輔助排序
+    await prisma.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "UnitMaterial_published_updatedAt_idx" ON "UnitMaterial"("published", "updatedAt" DESC)`,
+    );
 
     ensured = true;
   })().finally(() => {

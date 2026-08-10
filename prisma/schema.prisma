@@ -108,6 +108,7 @@ model UnitMaterial {
 
   @@index([published, sortOrder])
   @@index([published, category, sortOrder])
+  @@index([published, updatedAt])
   @@index([category])
   @@index([authorId])
   @@index([source, reviewStatus])

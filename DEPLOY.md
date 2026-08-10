@@ -147,12 +147,13 @@ npm run corpus:embed
 
 ## 六、檢查清單
 
-- [ ] Neon 專案已建立，`DATABASE_URL` 已貼到 Vercel
+- [ ] Neon 專案已建立，`DATABASE_URL` 已貼到 Vercel（建議使用 **pooled / -pooler** 連線字串）
 - [ ] Vercel 已設定 `NEXTAUTH_SECRET`、`NEXTAUTH_URL`（https）、Google OAuth
 - [ ] Google 重新導向 URI 含正式網域 `/api/auth/callback/google`
 - [ ] 已對正式 DB 執行 `db:push`、`db:seed`、`corpus:rag-init`（或至少 ingest）
 - [ ] 瀏覽器可開啟 `/regulations` 且非「資料庫尚未初始化」
 - [ ] Google 登入與管理員信箱（`ADMIN_EMAILS`）正常
+- [ ] （建議）排程定期 `GET /api/health` 預熱 serverless；教材頁 `/materials` 應先出摘要、點選後載全文
 
 ---
 
@@ -166,6 +167,7 @@ npm run corpus:embed
 | 回答無語意檢索 | 對正式 DB 執行 `corpus:embed` 並設定 `OPENAI_API_KEY` |
 | 本機無法連線 DB | 檢查 Docker 是否啟動、防火牆、Neon IP 允許與 `sslmode` |
 | `P1012` / `file:` / SQLite URL | 將 `.env` 的 `DATABASE_URL` 改為 `postgresql://...`（執行 `powershell -File .\check-env.ps1` 檢查） |
+| 教材頁很慢／逾時 | 確認已部署「列表僅摘要」版本；Neon 改用 pooled；以 `npm run ttfb:check` 暖機後量測 |
 
 ---
 

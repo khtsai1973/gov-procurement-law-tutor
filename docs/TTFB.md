@@ -6,7 +6,8 @@
 2. **拿掉公開頁的 server session／DB**：root layout 不 `force-dynamic`；`Nav`／首頁／註冊頁改客戶端讀 `useSession`，避免每個請求等 Auth／Postgres。
 3. **縮小 serverless 打包**：`outputFileTracingIncludes` 勿掛在 `"/*"`，只掛管理／匯入相關路徑，降低冷啟動與函式體積。
 4. **暖機**：`GET /api/health`（不連 DB）可供 cron 或量測腳本預熱。
-5. **可重現證據**：用 `npm run ttfb:check` 產出 `docs/evidence/ttfb-*.md`／`.json`（含 p50／p95）。
+5. **教材頁**：列表只查摘要（`unstable_cache` 約 60s），全文經 `/api/materials/[id]` 點選後載入；Neon 建議用 pooled 連線。
+6. **可重現證據**：用 `npm run ttfb:check` 產出 `docs/evidence/ttfb-*.md`／`.json`（含 p50／p95）。
 
 ## 合格定義（建議寫進驗收）
 
