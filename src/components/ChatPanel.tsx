@@ -177,7 +177,11 @@ export function ChatPanel() {
           <Link href="/register" className="mx-1 underline">
             申請註冊
           </Link>
-          並經管理者核准後，再以 Google 帳號登入。登入後本站會保存您的提問紀錄，並僅在已匯入之法規／函釋摘錄範圍內產生回答。
+          並經管理者核准後，再以 Google 帳號登入。登入後本站會保存您的提問紀錄，並僅在已匯入之法規／函釋摘錄範圍內產生回答。詳見
+          <Link href="/privacy" className="mx-1 no-underline hover:underline">
+            隱私權政策
+          </Link>
+          。
         </p>
       </section>
     );

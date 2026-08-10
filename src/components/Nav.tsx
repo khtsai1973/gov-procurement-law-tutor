@@ -31,6 +31,9 @@ export function Nav() {
           模擬考試
         </Link>
         <AuthNavControls googleReady={googleReady} />
+        <Link href="/privacy" className="no-underline hover:underline">
+          隱私權
+        </Link>
       </nav>
     </header>
   );
