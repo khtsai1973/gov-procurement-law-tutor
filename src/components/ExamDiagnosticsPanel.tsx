@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { KnowledgeRadarChart } from "@/components/KnowledgeRadarChart";
+import { parseDiagnosticSections } from "@/lib/diagnostic-sections";
 import type {
   DiagnosticRegulation,
   ExamSessionDiagnosis,
@@ -42,6 +43,8 @@ export function ExamDiagnosticsPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(Boolean(initialDiagnosis?.summary));
+
+  const sections = useMemo(() => parseDiagnosticSections(summary), [summary]);
 
   async function runDiagnose(force = false) {
     if (!sessionId) {
@@ -86,9 +89,10 @@ export function ExamDiagnosticsPanel({
     <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold">混合診斷（規則雷達 + AI 建議）</h2>
+          <h2 className="text-base font-semibold">AI 錯題原因與弱點分析</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            先以知識標籤規則引擎計算雷達圖數值，再由 AI 依弱點標籤生成個人化補強指引。
+            結合模擬考試作答與題庫知識標籤：規則引擎先算弱點雷達，再由 AI
+            產出弱點分析與逐題錯題原因。
           </p>
         </div>
         <button
@@ -97,15 +101,15 @@ export function ExamDiagnosticsPanel({
           disabled={loading || !sessionId}
           className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
         >
-          {loading ? "診斷中…" : summary ? "重新診斷" : "開始診斷"}
+          {loading ? "分析中…" : summary ? "重新分析" : "開始分析"}
         </button>
       </div>
 
       {radar ? (
         <div className="mt-5 rounded-lg border border-[var(--border)] p-4">
-          <h3 className="text-sm font-semibold">知識標籤雷達圖（確定性）</h3>
+          <h3 className="text-sm font-semibold">弱點雷達（確定性）</h3>
           <p className="mt-1 text-xs text-[var(--muted)]">
-            數值由錯題／正答標籤統計而得，不經 LLM 改寫。
+            依題庫知識標籤統計本場正答／錯題，不經 LLM 改寫。
           </p>
           <div className="mt-3">
             <KnowledgeRadarChart radar={radar} compact />
@@ -115,7 +119,7 @@ export function ExamDiagnosticsPanel({
 
       {loading ? (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          正在依弱點標籤檢索法規並呼叫 AI 產生語意建議，請稍候…
+          正在依弱點標籤檢索法規並呼叫 AI 產生弱點分析與錯題原因，請稍候…
         </div>
       ) : null}
       {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
@@ -126,11 +130,29 @@ export function ExamDiagnosticsPanel({
 
       {!loading && summary && wrongCount > 0 ? (
         <div className="mt-5 space-y-5">
-          <div>
-            <h3 className="text-sm font-semibold">AI 語意化建議</h3>
-            <p className="mt-1 text-xs text-[var(--muted)]">本場答錯 {wrongCount} 題</p>
-            <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{summary}</div>
-          </div>
+          {sections.weaknessAnalysis ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4">
+              <h3 className="text-sm font-semibold text-amber-950">弱點分析</h3>
+              <p className="mt-1 text-xs text-amber-900/80">本場答錯 {wrongCount} 題</p>
+              <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-amber-950">
+                {sections.weaknessAnalysis}
+              </div>
+            </div>
+          ) : null}
+
+          {sections.wrongReasonAnalysis ? (
+            <div className="rounded-lg border border-sky-200 bg-sky-50/70 p-4">
+              <h3 className="text-sm font-semibold text-sky-950">錯題原因分析</h3>
+              <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-sky-950">
+                {sections.wrongReasonAnalysis}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-sm font-semibold">AI 診斷全文</h3>
+              <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{summary}</div>
+            </div>
+          )}
 
           {recommendations.length > 0 ? (
             <div>
@@ -155,12 +177,18 @@ export function ExamDiagnosticsPanel({
 
           {wrongQuestions.length > 0 ? (
             <div>
-              <h3 className="text-sm font-semibold">錯題一覽</h3>
+              <h3 className="text-sm font-semibold">錯題一覽（題庫連結）</h3>
               <ul className="mt-2 space-y-3">
                 {wrongQuestions.map((w) => (
                   <li key={w.itemKey} className="text-sm">
                     <div className="text-xs text-[var(--muted)]">
-                      第 {w.questionIndex + 1} 題 · {w.category}
+                      第 {w.questionIndex + 1} 題 ·{" "}
+                      <Link
+                        href={`/question-bank?category=${encodeURIComponent(w.category)}&q=${encodeURIComponent(w.itemKey)}`}
+                        className="no-underline hover:underline"
+                      >
+                        {w.category}
+                      </Link>
                       {w.knowledgeTags.length > 0
                         ? ` · ${w.knowledgeTags.join("、")}`
                         : ""}
@@ -172,7 +200,8 @@ export function ExamDiagnosticsPanel({
                       參考答案：{formatAnswerLabel(w.referenceAnswer, questionType)}
                     </p>
                     {w.diagnosticNote ? (
-                      <p className="mt-1 text-xs leading-relaxed text-[var(--fg)]">
+                      <p className="mt-1 rounded-md bg-sky-50 px-2 py-1.5 text-xs leading-relaxed text-sky-950">
+                        <span className="font-medium">錯題原因：</span>
                         {w.diagnosticNote}
                       </p>
                     ) : null}
