@@ -1,12 +1,54 @@
 import Link from "next/link";
 
+import { MaterialInfoFields } from "@/components/MaterialInfoFields";
 import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
 import { getSession } from "@/lib/get-session";
+import { buildMaterialInfoFields } from "@/lib/material-info";
 import prisma from "@/lib/prisma";
 import { TOPIC_CATEGORY_OPTIONS } from "@/lib/question-bank-categories";
 import { groupMaterialsByCategory } from "@/lib/unit-materials";
 
 export const dynamic = "force-dynamic";
+
+type MaterialRow = {
+  id: string;
+  title: string;
+  category: string;
+  unitCode: string | null;
+  summary: string | null;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  source?: string | null;
+  aiGeneratedAt?: Date | null;
+  reviewedAt?: Date | null;
+  reviewedById?: string | null;
+  regulationVersion?: string | null;
+  lastRevisionAt?: Date | null;
+  lastRevisionNote?: string | null;
+  lastRevisionById?: string | null;
+  author: { name: string | null; nickname: string | null };
+};
+
+const materialSelect = {
+  id: true,
+  title: true,
+  category: true,
+  unitCode: true,
+  summary: true,
+  content: true,
+  createdAt: true,
+  updatedAt: true,
+  source: true,
+  aiGeneratedAt: true,
+  reviewedAt: true,
+  reviewedById: true,
+  regulationVersion: true,
+  lastRevisionAt: true,
+  lastRevisionNote: true,
+  lastRevisionById: true,
+  author: { select: { name: true, nickname: true } },
+} as const;
 
 export default async function MaterialsPage({
   searchParams,
@@ -23,30 +65,12 @@ export default async function MaterialsPage({
   const focusId = sp.id?.trim() || null;
   const filterCategory = sp.category?.trim() || null;
 
-  let materials: {
-    id: string;
-    title: string;
-    category: string;
-    unitCode: string | null;
-    summary: string | null;
-    content: string;
-    updatedAt: Date;
-    author: { name: string | null; nickname: string | null };
-  }[] = [];
+  let materials: MaterialRow[] = [];
   try {
     materials = await prisma.unitMaterial.findMany({
       where: { published: true },
       orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { updatedAt: "desc" }],
-      select: {
-        id: true,
-        title: true,
-        category: true,
-        unitCode: true,
-        summary: true,
-        content: true,
-        updatedAt: true,
-        author: { select: { name: true, nickname: true } },
-      },
+      select: materialSelect,
     });
   } catch (e) {
     console.error("[materials] query with category failed, retrying ensure:", e);
@@ -55,20 +79,33 @@ export default async function MaterialsPage({
       materials = await prisma.unitMaterial.findMany({
         where: { published: true },
         orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
-        select: {
-          id: true,
-          title: true,
-          category: true,
-          unitCode: true,
-          summary: true,
-          content: true,
-          updatedAt: true,
-          author: { select: { name: true, nickname: true } },
-        },
+        select: materialSelect,
       });
     } catch (e2) {
       console.error("[materials] fallback query failed:", e2);
       materials = [];
+    }
+  }
+
+  const nameIds = [
+    ...new Set(
+      materials
+        .flatMap((m) => [m.reviewedById, m.lastRevisionById])
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const nameById = new Map<string, string>();
+  if (nameIds.length > 0) {
+    try {
+      const users = await prisma.user.findMany({
+        where: { id: { in: nameIds } },
+        select: { id: true, name: true, nickname: true, email: true },
+      });
+      for (const u of users) {
+        nameById.set(u.id, u.nickname ?? u.name ?? u.email ?? u.id);
+      }
+    } catch (e) {
+      console.error("[materials] reviewer name lookup failed:", e);
     }
   }
 
@@ -217,6 +254,25 @@ export default async function MaterialsPage({
                       </a>
                     </div>
                   </div>
+                  <MaterialInfoFields
+                    className="mt-4"
+                    info={buildMaterialInfoFields({
+                      source: current.source,
+                      createdAt: current.createdAt,
+                      aiGeneratedAt: current.aiGeneratedAt,
+                      reviewedAt: current.reviewedAt,
+                      regulationVersion: current.regulationVersion,
+                      lastRevisionAt: current.lastRevisionAt,
+                      lastRevisionNote: current.lastRevisionNote,
+                      reviewerName: current.reviewedById
+                        ? (nameById.get(current.reviewedById) ?? current.reviewedById)
+                        : null,
+                      lastRevisionByName: current.lastRevisionById
+                        ? (nameById.get(current.lastRevisionById) ??
+                          current.lastRevisionById)
+                        : null,
+                    })}
+                  />
                   {current.summary ? (
                     <p className="mt-3 text-sm text-[var(--muted)]">{current.summary}</p>
                   ) : null}

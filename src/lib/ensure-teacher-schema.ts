@@ -118,6 +118,34 @@ export async function ensureTeacherSchema(): Promise<void> {
     await prisma.$executeRawUnsafe(
       `UPDATE "UnitMaterial" SET "reviewStatus" = 'DRAFT' WHERE "reviewStatus" IS NULL OR "reviewStatus" = 'NONE'`,
     );
+    // 既有教材補登資訊欄位預設值（幂等）
+    await prisma.$executeRawUnsafe(
+      `UPDATE "UnitMaterial"
+       SET "regulationVersion" = '依知識庫現行法規／函釋（請教師核對最新修正）'
+       WHERE "regulationVersion" IS NULL OR btrim("regulationVersion") = ''`,
+    );
+    await prisma.$executeRawUnsafe(
+      `UPDATE "UnitMaterial"
+       SET "aiGeneratedAt" = "createdAt"
+       WHERE "source" = 'AI' AND "aiGeneratedAt" IS NULL`,
+    );
+    await prisma.$executeRawUnsafe(
+      `UPDATE "UnitMaterial"
+       SET "lastRevisionAt" = COALESCE("updatedAt", "createdAt")
+       WHERE "lastRevisionAt" IS NULL`,
+    );
+    await prisma.$executeRawUnsafe(
+      `UPDATE "UnitMaterial"
+       SET "lastRevisionNote" = '既有教材補登'
+       WHERE "lastRevisionNote" IS NULL
+         AND "lastRevisionAt" IS NOT NULL
+         AND ("revisionLog" IS NULL OR btrim("revisionLog") = '')`,
+    );
+    await prisma.$executeRawUnsafe(
+      `UPDATE "UnitMaterial"
+       SET "reviewedAt" = COALESCE("updatedAt", "createdAt")
+       WHERE "published" = true AND "reviewedAt" IS NULL`,
+    );
     await prisma.$executeRawUnsafe(
       `CREATE INDEX IF NOT EXISTS "UnitMaterial_source_reviewStatus_idx" ON "UnitMaterial"("source", "reviewStatus")`,
     );

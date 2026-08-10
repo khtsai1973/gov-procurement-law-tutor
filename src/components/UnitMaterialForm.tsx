@@ -10,6 +10,8 @@ import {
   saveUnitMaterial,
   submitUnitMaterialForReview,
 } from "@/app/actions/teacher";
+import { MaterialInfoFields } from "@/components/MaterialInfoFields";
+import type { MaterialInfoFields as MaterialInfoValues } from "@/lib/material-info";
 import {
   canApproveMaterial,
   canPublishMaterial,
@@ -38,12 +40,7 @@ export type UnitMaterialFormValues = {
 };
 
 export type UnitMaterialFormMeta = {
-  aiGeneratedAt: string;
-  reviewedAt: string;
-  reviewerName: string;
-  lastRevisionAt: string;
-  lastRevisionNote: string;
-  lastRevisionByName: string;
+  info: MaterialInfoValues;
   revisionLog: MaterialRevisionEntry[];
 };
 
@@ -262,32 +259,14 @@ export function UnitMaterialForm({
           </p>
 
           {meta ? (
-            <dl className="mt-3 grid gap-2 sm:grid-cols-2 text-xs text-[var(--muted)]">
-              <div>
-                <dt className="font-medium text-[var(--fg)]/80">AI 產生日期</dt>
-                <dd>{meta.aiGeneratedAt}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-[var(--fg)]/80">教師審核日期</dt>
-                <dd>{meta.reviewedAt}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-[var(--fg)]/80">法規版本</dt>
-                <dd>{initial.regulationVersion?.trim() || "—"}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-[var(--fg)]/80">審核者</dt>
-                <dd>{meta.reviewerName}</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="font-medium text-[var(--fg)]/80">最後修正紀錄</dt>
-                <dd>
-                  {meta.lastRevisionAt !== "—"
-                    ? `${meta.lastRevisionAt}${meta.lastRevisionByName !== "—" ? ` · ${meta.lastRevisionByName}` : ""}${meta.lastRevisionNote ? ` · ${meta.lastRevisionNote}` : ""}`
-                    : "—"}
-                </dd>
-              </div>
-            </dl>
+            <MaterialInfoFields
+              className="mt-3 border-0 bg-transparent p-0"
+              info={{
+                ...meta.info,
+                regulationVersion:
+                  initial?.regulationVersion?.trim() || meta.info.regulationVersion,
+              }}
+            />
           ) : null}
 
           {reviewNote && reviewStatus === "RETURNED" ? (

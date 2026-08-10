@@ -6,6 +6,7 @@ import {
   documentFileName,
 } from "@/lib/material-document";
 import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
+import { buildMaterialInfoFields } from "@/lib/material-info";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -45,12 +46,44 @@ export async function GET(req: Request, { params }: Params) {
       return NextResponse.json({ error: "找不到已發布教材" }, { status: 404 });
     }
 
+    const nameIds = [material.reviewedById, material.lastRevisionById].filter(
+      (x): x is string => Boolean(x),
+    );
+    const users =
+      nameIds.length > 0
+        ? await prisma.user.findMany({
+            where: { id: { in: nameIds } },
+            select: { id: true, name: true, nickname: true, email: true },
+          })
+        : [];
+    const nameById = new Map(
+      users.map(
+        (u) =>
+          [u.id, u.nickname ?? u.name ?? u.email ?? u.id] as const,
+      ),
+    );
+
     const input = {
       title: material.title,
       category: material.category,
       unitCode: material.unitCode,
       summary: material.summary,
       content: material.content,
+      info: buildMaterialInfoFields({
+        source: material.source,
+        createdAt: material.createdAt,
+        aiGeneratedAt: material.aiGeneratedAt,
+        reviewedAt: material.reviewedAt,
+        regulationVersion: material.regulationVersion,
+        lastRevisionAt: material.lastRevisionAt,
+        lastRevisionNote: material.lastRevisionNote,
+        reviewerName: material.reviewedById
+          ? (nameById.get(material.reviewedById) ?? material.reviewedById)
+          : null,
+        lastRevisionByName: material.lastRevisionById
+          ? (nameById.get(material.lastRevisionById) ?? material.lastRevisionById)
+          : null,
+      }),
     };
 
     const buffer =

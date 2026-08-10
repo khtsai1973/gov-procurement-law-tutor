@@ -15,12 +15,19 @@ import PDFDocument from "pdfkit";
 import fs from "node:fs";
 import path from "node:path";
 
+import {
+  materialInfoExportLines,
+  type MaterialInfoFields,
+} from "@/lib/material-info";
+
 export type MaterialDocumentInput = {
   title: string;
   category: string;
   unitCode?: string | null;
   summary?: string | null;
   content: string;
+  /** 法規版本／產生日期／審核／修正等資訊欄位 */
+  info?: MaterialInfoFields | null;
 };
 
 export type DocumentBlock =
@@ -149,6 +156,24 @@ export async function buildMaterialDocx(input: MaterialDocumentInput): Promise<B
       ],
     }),
   );
+
+  if (input.info) {
+    for (const line of materialInfoExportLines(input.info)) {
+      children.push(
+        new Paragraph({
+          spacing: { after: 40 },
+          children: [
+            new TextRun({
+              text: line,
+              size: 18,
+              color: "4B5563",
+              font: "Microsoft JhengHei",
+            }),
+          ],
+        }),
+      );
+    }
+  }
 
   if (input.summary?.trim()) {
     children.push(
@@ -292,6 +317,12 @@ export async function buildMaterialPdf(input: MaterialDocumentInput): Promise<Bu
       });
       doc.moveDown(0.4);
       doc.font(fontRegular).fontSize(11).fillColor("#6B7280").text(`分類：${input.category}`);
+      if (input.info) {
+        doc.moveDown(0.25);
+        for (const line of materialInfoExportLines(input.info)) {
+          doc.font(fontRegular).fontSize(10).fillColor("#4B5563").text(line);
+        }
+      }
       if (input.summary?.trim()) {
         doc.moveDown(0.35);
         doc.font(fontRegular).fontSize(11).fillColor("#374151").text(input.summary.trim());

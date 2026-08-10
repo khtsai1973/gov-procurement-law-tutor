@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { UnitMaterialForm } from "@/components/UnitMaterialForm";
 import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
 import { getSession } from "@/lib/get-session";
+import { buildMaterialInfoFields } from "@/lib/material-info";
 import {
-  formatMaterialDate,
   normalizeReviewStatus,
   parseRevisionLog,
 } from "@/lib/material-review";
@@ -132,17 +132,22 @@ export default async function TeacherMaterialEditPage({
               reviewNote: material.reviewNote ?? "",
             }}
             meta={{
-              aiGeneratedAt: formatMaterialDate(material.aiGeneratedAt),
-              reviewedAt: formatMaterialDate(material.reviewedAt),
-              reviewerName: material.reviewedById
-                ? (nameById.get(material.reviewedById) ?? material.reviewedById)
-                : "—",
-              lastRevisionAt: formatMaterialDate(material.lastRevisionAt),
-              lastRevisionNote: material.lastRevisionNote ?? "",
-              lastRevisionByName: material.lastRevisionById
-                ? (nameById.get(material.lastRevisionById) ??
-                  material.lastRevisionById)
-                : "—",
+              info: buildMaterialInfoFields({
+                source,
+                createdAt: material.createdAt,
+                aiGeneratedAt: material.aiGeneratedAt,
+                reviewedAt: material.reviewedAt,
+                regulationVersion: material.regulationVersion,
+                lastRevisionAt: material.lastRevisionAt,
+                lastRevisionNote: material.lastRevisionNote,
+                reviewerName: material.reviewedById
+                  ? (nameById.get(material.reviewedById) ?? material.reviewedById)
+                  : null,
+                lastRevisionByName: material.lastRevisionById
+                  ? (nameById.get(material.lastRevisionById) ??
+                    material.lastRevisionById)
+                  : null,
+              }),
               revisionLog: revisionLog.map((e) => ({
                 ...e,
                 byName: nameById.get(e.byId) ?? e.byName,
