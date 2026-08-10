@@ -12,7 +12,9 @@ import {
 } from "react";
 
 import { updateNickname } from "@/app/actions/profile";
+import { ExamDiagnosticsPanel } from "@/components/ExamDiagnosticsPanel";
 import { MockExamSingleSessionCharts } from "@/components/MockExamSingleSessionCharts";
+import { TeachingExplanationView } from "@/components/TeachingExplanationView";
 import {
   MOCK_EXAM_COUNT_OPTIONS,
   NICKNAME_PRESETS,
@@ -26,7 +28,6 @@ import {
   type MockExamRegulationLink,
   type MockExamRevealResult,
 } from "@/lib/mock-exam";
-import { ExamDiagnosticsPanel } from "@/components/ExamDiagnosticsPanel";
 import { computeKnowledgeRadar } from "@/lib/knowledge-radar";
 import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
 
@@ -851,12 +852,18 @@ export function MockExamPanel({
                   >
                     <p className="font-semibold">
                       {current.revealed.explanationLabel ??
-                        (current.revealed.hasFullExplanation ? "完整解析" : "解答提示")}
+                        (current.revealed.hasFullExplanation
+                          ? "完整教學解析"
+                          : "解答提示")}
                       {current.revealed.importance === "high" ? (
-                        <span className="ml-2 text-xs font-medium text-amber-800">重要／高頻</span>
+                        <span className="ml-2 text-xs font-medium text-amber-800">
+                          重要／高頻
+                        </span>
                       ) : null}
                     </p>
-                    <p className="mt-1 whitespace-pre-wrap">{current.revealed.hintAnswer}</p>
+                    <div className="mt-2">
+                      <TeachingExplanationView hintAnswer={current.revealed.hintAnswer} />
+                    </div>
                   </div>
                 ) : (
                   <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-950">

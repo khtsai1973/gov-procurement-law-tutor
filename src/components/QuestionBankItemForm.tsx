@@ -138,15 +138,17 @@ export function QuestionBankItemForm({
       </label>
 
       <label className="block text-sm">
-        <span className="font-medium">學習導引／完整解析</span>
+        <span className="font-medium">學習導引／完整教學解析</span>
         <p className="mt-0.5 text-xs text-[var(--muted)]">
-          高頻或重要題請寫「完整解析」（含結論、考點、易錯點）。選擇題請保留「參考答案為…」以便自動評分。
+          高頻或重要題請寫「完整教學解析」，建議包含：正確答案、法規名稱與條號、正確理由、錯誤選項分析、常見陷阱、官方來源、相似題目。選擇題請保留「參考答案為…」以便自動評分。
         </p>
         <textarea
           name="hintAnswer"
-          rows={8}
+          rows={10}
           defaultValue={initial?.hintAnswer ?? ""}
-          placeholder={"例：\n【題庫】本題參考答案為 選項 (2)。\n\n【完整解析】\n一、結論…\n二、考點說明…"}
+          placeholder={
+            "例：\n【題庫】本題參考答案為 選項 (2)。\n\n【完整解析】\n【正確答案】\n選項 (2) …\n【法規名稱與條號】\n《政府採購法》第…條\n【正確理由】\n…\n【錯誤選項分析】\n…\n【常見陷阱】\n…\n【官方來源】\n…\n【相似題目】\n…"
+          }
           className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
         />
       </label>
@@ -162,7 +164,7 @@ export function QuestionBankItemForm({
         <span>
           <span className="font-medium">標記為重要／高頻題</span>
           <span className="mt-0.5 block text-xs text-[var(--muted)]">
-            建議此類題目具備完整解析，模擬考試與題庫瀏覽會特別標示。
+            建議此類題目具備完整教學解析，模擬考試與題庫瀏覽會特別標示。
           </span>
         </span>
       </label>
