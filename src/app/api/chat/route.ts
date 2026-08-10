@@ -16,6 +16,7 @@ import { ensureRlsSchema } from "@/lib/ensure-rls-schema";
 import { redactForLog } from "@/lib/pii";
 import { rateLimit } from "@/lib/rate-limit";
 import { retrieveForRag } from "@/lib/rag";
+import { buildCitationSources, type CitationSource } from "@/lib/citations";
 import { OFF_TOPIC_REPLY, isOnTopicQuestion } from "@/lib/topic-scope";
 import { withUserRls } from "@/lib/with-user-rls";
 
@@ -39,25 +40,12 @@ const bodySchema = z
     }),
   );
 
-type SourceRow = { title: string; tier: string; slug: string };
-
 function collectSources(
   chunks: Awaited<ReturnType<typeof retrieveForRag>>["chunks"],
-): SourceRow[] {
-  const sources: SourceRow[] = [];
-  const seenSlug = new Set<string>();
-  for (const c of chunks) {
-    if (c.regulation.tier === "QUESTION_BANK") continue;
-    if (seenSlug.has(c.regulation.slug)) continue;
-    seenSlug.add(c.regulation.slug);
-    sources.push({
-      title: c.regulation.title,
-      tier: c.regulation.tier,
-      slug: c.regulation.slug,
-    });
-    if (sources.length >= 5) break;
-  }
-  return sources;
+): CitationSource[] {
+  return buildCitationSources(
+    chunks.filter((c) => c.regulation.tier !== "QUESTION_BANK"),
+  );
 }
 
 function wantsStream(req: Request, bodyStream: boolean): boolean {
@@ -121,7 +109,7 @@ export async function POST(req: Request) {
       const payload = {
         questionId: row.id,
         answer: OFF_TOPIC_REPLY,
-        sources: [] as SourceRow[],
+        sources: [] as CitationSource[],
         model: "prompt-injection-blocked",
         retrievalMode: "input-guard",
         defense: "input-layer",

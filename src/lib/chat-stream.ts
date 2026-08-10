@@ -2,13 +2,15 @@
  * Chat SSE 串流：先推送狀態事件（降低體感等待），再分段推送答案。
  */
 
+import type { CitationSource } from "@/lib/citations";
+
 export type ChatStreamEvent =
   | { type: "status"; stage: "retrieve" | "generate" | "persist" }
   | { type: "delta"; text: string }
   | {
       type: "done";
       questionId: string | null;
-      sources: { title: string; tier: string; slug: string }[];
+      sources: CitationSource[];
       model: string;
       retrievalMode: string;
       warning?: string;

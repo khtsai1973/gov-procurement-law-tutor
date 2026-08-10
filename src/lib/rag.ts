@@ -5,7 +5,14 @@ import {
   isAmountTierClassificationQuery,
 } from "@/lib/amount-tier";
 import { isBelowThresholdSupervisionQuery } from "@/lib/below-threshold-supervision";
+import { bm25Rank, buildBm25Index, reciprocalRankFusion } from "@/lib/bm25";
 import { isCurrentThresholdFiguresQuery } from "@/lib/current-threshold-figures";
+import {
+  buildKnowledgeGraph,
+  expandGraphNeighbors,
+  graphExpandModeTag,
+  type GraphChunkRef,
+} from "@/lib/knowledge-graph";
 import {
   isOpeningBidderCountQuery,
   openingBidderExpansionTerms,
@@ -22,6 +29,7 @@ import { prisma } from "@/lib/prisma";
 import { keywordsForRetrieval } from "@/lib/concept-tags";
 import { matchQuestionBank } from "@/lib/question-bank";
 import type { QuestionBankMatch } from "@/lib/question-bank-types";
+import { rerankCandidates } from "@/lib/rerank";
 
 /** 問答檢索僅限法規／函釋資料庫（不含題庫分類） */
 const RAG_ALLOWED_TIERS = new Set(["LAW", "REGULATION", "ADMIN_RULE", "INTERPRETATION"]);
@@ -299,6 +307,7 @@ function hybridScore(
   query: string,
   semantic = 0,
   bank?: QuestionBankMatch,
+  bm25 = 0,
 ): number {
   if (isStubChunk(chunk.content)) return 0;
   const kw = keywordScore(chunk.content, query, bank);
@@ -307,7 +316,13 @@ function hybridScore(
   const thresholdQ = isThresholdAmountQuery(query);
   const slugB = slugBoost(slug, query, bank);
 
-  if (kw <= 0 && semantic <= 0 && slugB <= 0 && figureBoost(chunk.content, query) <= 0) {
+  if (
+    kw <= 0 &&
+    semantic <= 0 &&
+    bm25 <= 0 &&
+    slugB <= 0 &&
+    figureBoost(chunk.content, query) <= 0
+  ) {
     return 0;
   }
 
@@ -316,9 +331,11 @@ function hybridScore(
       ? tierBoost(chunk.regulation.tier) * 0.25
       : tierBoost(chunk.regulation.tier);
 
+  // BM25（條號／關鍵字）+ 向量語意 + 既有加權
   return (
-    kw * 0.32 +
-    semantic * 0.48 +
+    bm25 * 0.28 +
+    kw * 0.14 +
+    semantic * 0.38 +
     tier * 0.08 +
     slugB * 0.07 +
     figureBoost(chunk.content, query) * 0.05
@@ -329,6 +346,8 @@ type ScoredChunk = {
   chunk: ChunkWithReg;
   score: number;
   vec: number[] | null;
+  bm25: number;
+  semantic: number;
 };
 
 function diversityPenalty(selected: ChunkWithReg[], candidate: ChunkWithReg, vec: number[] | null): number {
@@ -383,23 +402,54 @@ async function scoreAllChunks(
   bank?: QuestionBankMatch,
 ): Promise<ScoredChunk[]> {
   let queryVec: number[] | null = null;
+  const expanded = expandQuery(query, bank);
 
   if (canUseEmbeddings()) {
     try {
-      const [vec] = await embedTexts([expandQuery(query, bank)]);
+      const [vec] = await embedTexts([expanded]);
       queryVec = vec ?? null;
     } catch (e) {
       console.warn("[rag] query embedding failed:", e);
     }
   }
 
+  const bm25Index = buildBm25Index(
+    all.map((c) => ({ id: c.id, text: `${c.articleKey ?? ""}\n${c.content}` })),
+  );
+  const bm25Rows = bm25Rank(bm25Index, expanded);
+  const bm25ById = new Map(bm25Rows.map((r) => [r.id, r.score]));
+  const maxBm = Math.max(...bm25Rows.map((r) => r.score), 1e-9);
+
+  // Vector rank list（有 embedding 時）
+  const vectorRanked = all
+    .map((chunk) => {
+      const vec = parseEmbedding(chunk.embedding);
+      const sem = queryVec && vec ? cosineSimilarity(queryVec, vec) : 0;
+      return { id: chunk.id, score: sem, vec, sem };
+    })
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const rrf = reciprocalRankFusion([
+    bm25Rows.map((r) => ({ id: r.id })),
+    vectorRanked.map((r) => ({ id: r.id })),
+  ]);
+  const maxRrf = Math.max(...[...rrf.values()], 1e-9);
+
   return all.map((chunk) => {
     const vec = parseEmbedding(chunk.embedding);
-    const sem = queryVec && vec ? cosineSimilarity(queryVec, vec) : 0;
+    const semantic = queryVec && vec ? cosineSimilarity(queryVec, vec) : 0;
+    const bm25Raw = bm25ById.get(chunk.id) ?? 0;
+    const bm25 = bm25Raw / maxBm;
+    const rrfNorm = (rrf.get(chunk.id) ?? 0) / maxRrf;
+    const base = hybridScore(chunk, query, semantic, bank, bm25);
     return {
       chunk,
-      score: hybridScore(chunk, query, sem, bank),
+      // RRF 混合分與加權分融合
+      score: base * 0.65 + rrfNorm * 0.35,
       vec,
+      bm25,
+      semantic,
     };
   });
 }
@@ -408,8 +458,8 @@ const PREFER_CORE_LAW =
   /議價|比減|減價|限制性招標|協商|底價|公告金額|查核金額|巨額|金額級距|金額門檻|小額採購|採購金額|後續擴充|公開評選|開標|合格廠商|幾家/;
 
 /**
- * RAG 檢索：擴展查詢 →（Child）混合向量+關鍵字打分 → MMR → 展開 Parent 上下文
- * →（可選）附上對應施行細則 Parent → 回傳 topK 片段給模型
+ * RAG 檢索：擴展查詢 → BM25 + Vector（RRF）→ BGE 風格 Re-rank
+ * → MMR → Parent 展開 → GraphRAG（母法／細則／函釋）
  */
 export async function retrieveForRag(
   query: string,
@@ -425,11 +475,9 @@ export async function retrieveForRag(
   const loaded = await prisma.docChunk.findMany({
     include: { regulation: true },
   });
-  // 限定法規／函釋資料庫範圍；題庫 chunks 不進入回答檢索
   const all = loaded.filter((c) => RAG_ALLOWED_TIERS.has(c.regulation.tier));
   const byId = new Map(all.map((c) => [c.id, c]));
   const hasHierarchy = all.some(isParentChunk);
-  // Parent-Child：僅以 CHILD 做搜尋；舊扁平資料則全部可搜
   const searchable = hasHierarchy ? all.filter(isChildChunk) : all;
 
   if (searchable.length === 0) {
@@ -440,7 +488,6 @@ export async function retrieveForRag(
   const thresholdQ = isThresholdAmountQuery(query);
   const classifyQ = isAmountTierClassificationQuery(query);
   const bidderCountQ = isOpeningBidderCountQuery(query);
-
   const amountTierQ = thresholdQ || /等標期|招標期限|未達公告金額/.test(query);
 
   const corpus = amountTierQ
@@ -479,13 +526,11 @@ export async function retrieveForRag(
 
   const baseCorpus = corpus.length > 0 ? corpus : searchable;
 
-  // 1) 先自法規／函釋資料庫檢索（Child）
   let scored = await scoreAllChunks(baseCorpus, query, undefined);
   scored.sort((a, b) => b.score - a.score);
   let hasSignal = scored.some((s) => s.score > 0.1);
   const topScore = scored[0]?.score ?? 0;
 
-  // 2) 訊號不足時，僅用題庫關鍵詞擴展查詢，仍只對法規／函釋片段打分
   let questionBankUsed = false;
   if (!hasSignal || topScore < 0.15) {
     const bank = await matchQuestionBank(query);
@@ -521,7 +566,27 @@ export async function retrieveForRag(
     };
   }
 
-  const candidates = scored.slice(0, poolSize);
+  const preRerank = scored.slice(0, Math.min(poolSize, 32));
+  const { results: reranked, mode: rerankMode } = await rerankCandidates(
+    expandQuery(query),
+    preRerank.map((s) => ({
+      id: s.chunk.id,
+      text: s.chunk.content,
+      semantic: s.semantic,
+      articleKey: s.chunk.articleKey,
+    })),
+    poolSize,
+  );
+  const byIdScore = new Map(preRerank.map((s) => [s.chunk.id, s]));
+  const rerankScored: ScoredChunk[] = reranked
+    .map((r) => {
+      const base = byIdScore.get(r.id);
+      if (!base) return null;
+      return { ...base, score: r.score * 0.7 + base.score * 0.3 };
+    })
+    .filter((x): x is ScoredChunk => Boolean(x));
+
+  const candidates = (rerankScored.length > 0 ? rerankScored : scored).slice(0, poolSize);
   let childHits = mmrSelect(candidates, topK, ragMmrLambda());
 
   if (thresholdQ && !childHits.some((c) => THRESHOLD_INTERP_SLUGS.has(c.regulation.slug))) {
@@ -533,7 +598,6 @@ export async function retrieveForRag(
     }
   }
 
-  // 級距歸類：確保門檻彙整＋採購法類別定義片段同時在場，便於整合分析
   if (classifyQ) {
     const ensureSlug = (slug: string, contentTest?: RegExp) => {
       if (childHits.some((c) => c.regulation.slug === slug && (!contentTest || contentTest.test(c.content)))) {
@@ -594,21 +658,45 @@ export async function retrieveForRag(
 
   let chunks = expandHitsToParentContext(childHits, byId);
   if (hasHierarchy) {
-    chunks = enrichWithRelatedEnforcementParents(chunks, all, 2).slice(0, topK + 2);
+    chunks = enrichWithRelatedEnforcementParents(chunks, all, 2);
   }
+
+  const parentNodes: GraphChunkRef[] = all.filter(isParentChunk).map((c) => ({
+    id: c.id,
+    regulationSlug: c.regulation.slug,
+    regulationTitle: c.regulation.title,
+    tier: c.regulation.tier,
+    articleKey: c.articleKey,
+    content: c.content,
+  }));
+  const graph = buildKnowledgeGraph(parentNodes);
+  const extras = expandGraphNeighbors(
+    graph,
+    chunks.map((c) => c.id),
+    { maxExtra: 3 },
+  );
+  let graphAdded = 0;
+  for (const ex of extras) {
+    const full = byId.get(ex.id);
+    if (!full || chunks.some((c) => c.id === full.id)) continue;
+    chunks.push(full);
+    graphAdded += 1;
+  }
+  chunks = chunks.slice(0, topK + 3);
 
   const modeBase =
     canUseEmbeddings() && searchable.some((c) => parseEmbedding(c.embedding))
-      ? "rag-hybrid-mmr"
-      : "rag-keyword-mmr";
+      ? "rag-bm25-vector-rrf"
+      : "rag-bm25";
   const hierarchyTag = hasHierarchy ? "+parent-child" : "";
+  const rerankTag = `+${rerankMode}`;
+  const graphTag = graphExpandModeTag(graphAdded);
 
   return {
     chunks,
-    // questionBankUsed 僅表示用題庫關鍵詞擴展查詢；回答片段仍全部來自法規／函釋
     mode: questionBankUsed
-      ? `${modeBase}+keyword-expand${hierarchyTag}`
-      : `${modeBase}${hierarchyTag}`,
+      ? `${modeBase}${rerankTag}+keyword-expand${hierarchyTag}${graphTag}`
+      : `${modeBase}${rerankTag}${hierarchyTag}${graphTag}`,
     questionBankUsed,
   };
 }
