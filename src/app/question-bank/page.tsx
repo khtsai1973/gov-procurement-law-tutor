@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { QuestionBankWeaknessPanel } from "@/components/QuestionBankWeaknessPanel";
+import { QuestionWrongReasonPractice } from "@/components/QuestionWrongReasonPractice";
 import { isDatabaseReady } from "@/lib/ensure-db";
 import { ensureQuestionBankSchema } from "@/lib/ensure-question-bank-schema";
 import { getSession } from "@/lib/get-session";
@@ -10,6 +12,7 @@ import {
   resolveQuestionExplanation,
 } from "@/lib/question-bank-explanations";
 import { extractConceptTags } from "@/lib/concept-tags";
+import { loadUserQuestionBankWeakness } from "@/lib/question-bank-weakness";
 import { canAccessTeacher } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
@@ -168,6 +171,10 @@ export default async function QuestionBankPage({
       return s ? `/question-bank?${s}` : "/question-bank";
     };
 
+    const weakness = session?.user?.id
+      ? await loadUserQuestionBankWeakness(session.user.id).catch(() => null)
+      : null;
+
     return (
       <section className="space-y-6">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
@@ -175,7 +182,8 @@ export default async function QuestionBankPage({
             <div>
               <h1 className="text-xl font-semibold">題庫</h1>
               <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-                政府採購法規常見試題整理，供學習與模擬考試參考。前台只顯示語意「概念標籤」（如總價結算、廠商資格）；機械切塊關鍵詞僅供後台檢索。高頻／重要題優先提供完整解析。
+                政府採購法規常見試題整理，供學習與模擬考試參考。登入後可結合模考紀錄做弱點分析，並對單題使用
+                AI 錯題原因分析。高頻／重要題優先提供完整教學解析。
               </p>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 共 {totalCount} 題、{categories.length} 個分類
@@ -210,6 +218,14 @@ export default async function QuestionBankPage({
             </Link>
           </div>
         </div>
+
+        {session?.user?.id && weakness ? (
+          <QuestionBankWeaknessPanel weakness={weakness} />
+        ) : !session?.user?.id ? (
+          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[var(--muted)]">
+            登入後可依模擬考試紀錄顯示弱點分析，並對題庫單題使用 AI 錯題原因分析。
+          </div>
+        ) : null}
 
         {pageItems.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">沒有符合的題目。</p>
@@ -280,6 +296,9 @@ export default async function QuestionBankPage({
                               {resolved.hintAnswer}
                             </p>
                           </details>
+                        ) : null}
+                        {session?.user?.id ? (
+                          <QuestionWrongReasonPractice itemKey={item.key} />
                         ) : null}
                       </li>
                     );

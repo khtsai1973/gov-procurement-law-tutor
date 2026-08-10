@@ -7,6 +7,10 @@ import type {
   WrongQuestionBrief,
 } from "@/lib/exam-diagnostics-types";
 import {
+  extractWrongReasonNotes,
+  parseDiagnosticSections,
+} from "@/lib/diagnostic-sections";
+import {
   computeKnowledgeRadar,
   formatRadarForPrompt,
   type KnowledgeRadarSnapshot,
@@ -21,6 +25,7 @@ export type {
   ExamSessionDiagnosis,
   WrongQuestionBrief,
 } from "@/lib/exam-diagnostics-types";
+export { parseDiagnosticSections } from "@/lib/diagnostic-sections";
 
 /** 納入綜合診斷的錯題上限（控制 prompt／延遲） */
 export const DIAGNOSE_MAX_WRONG = 10;
@@ -28,16 +33,13 @@ export const DIAGNOSE_MAX_WRONG = 10;
 const DIAGNOSTIC_SYSTEM_PROMPT = `你是政府採購法規教學助教。學習者剛完成模擬考試。
 系統已用「確定性規則引擎」依錯題知識標籤算出雷達圖數值與弱點標籤；這些數字不可改寫或否定。
 
-你的任務是依弱點標籤與錯題，產出「個人化語意建議」（生成式），格式必須如下：
+你的任務是結合題庫錯題與弱點標籤，產出「弱點分析」與「錯題原因分析」，格式必須如下：
 
-## 綜合觀念診斷
-（3～8 句：依弱點標籤歸納迷思、學習優先順序；可引用雷達結論，但勿竄改百分比）
+## 弱點分析
+（先 3～6 句總結本場弱點與學習優先順序；再針對每一個弱點標籤各 2～4 句補強指引，以「【標籤名】：」開頭）
 
-## 弱點補強指引
-（針對每一個弱點標籤各 2～4 句：該標籤應複習的要件／程序重點；以「【標籤名】：」開頭）
-
-## 逐題要點
-（針對每一道錯題各 1～3 句：為何參考答案正確、本題容易錯在哪；以「第N題：」開頭）
+## 錯題原因分析
+（針對每一道錯題各 2～4 句：為何參考答案正確、學員答案錯在何處、常見陷阱；以「第N題：」開頭）
 
 ## 建議補強法規
 （條列 3～8 項；每項格式：- 《法規或函釋名稱》：一句複習理由。名稱須能對應檢索片段或題目相關法規，勿捏造條號／文號）
@@ -45,7 +47,7 @@ const DIAGNOSTIC_SYSTEM_PROMPT = `你是政府採購法規教學助教。學習�
 規則：
 - 雷達數值與弱點標籤以系統提供為準（Deterministic），你只負責語意化建議（Generative）。
 - 僅依檢索片段與錯題資料作答；片段未出現的條號、文號、金額數字不可寫出。
-- 語氣清楚、適合作考後複習。`;
+- 語氣清楚、適合作考後複習；錯題原因須對照學員答案與參考答案。`;
 
 function parseRecommendationsJson(raw: string | null | undefined): DiagnosticRegulation[] {
   if (!raw) return [];
@@ -86,20 +88,6 @@ function parseRadarJson(raw: string | null | undefined): KnowledgeRadarSnapshot 
   }
 }
 
-function extractPerQuestionNotes(summary: string, wrongIndexes: number[]): Map<number, string> {
-  const map = new Map<number, string>();
-  const section = summary.split(/##\s*逐題要點/)[1]?.split(/##\s*建議補強法規/)[0] ?? "";
-  for (const idx of wrongIndexes) {
-    const re = new RegExp(
-      `第\\s*${idx + 1}\\s*題[:：]\\s*([^\\n]+(?:\\n(?!第\\s*\\d+\\s*題)[^\\n]+)*)`,
-      "m",
-    );
-    const m = section.match(re);
-    if (m?.[1]) map.set(idx, m[1].trim());
-  }
-  return map;
-}
-
 function buildFallbackDiagnosis(params: {
   wrongs: WrongQuestionBrief[];
   regulations: DiagnosticRegulation[];
@@ -107,11 +95,10 @@ function buildFallbackDiagnosis(params: {
 }): string {
   const weak = params.radar.weakTags;
   const lines = [
-    "## 綜合觀念診斷",
+    "## 弱點分析",
     `本場共答錯 ${params.wrongs.length} 題。依規則引擎雷達圖，弱點標籤為：${weak.join("、") || "相關單元"}。`,
-    "建議先依弱點標籤釐清構成要件與適用範圍，再對照下方法規全文複習，避免僅背誦選項。",
+    "建議先依弱點標籤釐清構成要件與適用範圍，再對照題庫錯題與法規全文複習，避免僅背誦選項。",
     "",
-    "## 弱點補強指引",
     ...(weak.length > 0
       ? weak.map(
           (t) =>
@@ -119,10 +106,10 @@ function buildFallbackDiagnosis(params: {
         )
       : ["【一般】：請依錯題類別複習對應法規單元。"]),
     "",
-    "## 逐題要點",
+    "## 錯題原因分析",
     ...params.wrongs.map((w) => {
       const tags = w.knowledgeTags.join("、") || w.category;
-      return `第${w.questionIndex + 1}題：知識標籤「${tags}」。您的答案為 ${formatAnswerLabel(w.userAnswer, "MULTIPLE_CHOICE")}，參考答案為 ${formatAnswerLabel(w.referenceAnswer, "MULTIPLE_CHOICE")}。請對照題意要件與相關法規。`;
+      return `第${w.questionIndex + 1}題：知識標籤「${tags}」。您的答案為 ${formatAnswerLabel(w.userAnswer, "MULTIPLE_CHOICE")}，參考答案為 ${formatAnswerLabel(w.referenceAnswer, "MULTIPLE_CHOICE")}。請對照題意要件、排除易混淆選項，並回題庫完整教學解析複習。`;
     }),
     "",
     "## 建議補強法規",
@@ -245,7 +232,7 @@ async function generateHybridAdvice(params: {
             "【錯題清單】",
             wrongBlock,
             "",
-            "請依弱點標籤輸出綜合觀念診斷、弱點補強指引、逐題要點與建議補強法規。",
+            "請輸出「弱點分析」「錯題原因分析」與「建議補強法規」。",
           ].join("\n"),
         },
       ],
@@ -435,7 +422,7 @@ export async function diagnoseMockExamSession(
     radar,
   });
 
-  const noteMap = extractPerQuestionNotes(
+  const noteMap = extractWrongReasonNotes(
     result.summary,
     wrongs.map((w) => w.questionIndex),
   );
