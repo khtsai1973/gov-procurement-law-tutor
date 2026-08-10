@@ -86,13 +86,37 @@ export async function ensureTeacherSchema(): Promise<void> {
       `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'MANUAL'`,
     );
     await prisma.$executeRawUnsafe(
-      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "reviewStatus" TEXT NOT NULL DEFAULT 'NONE'`,
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "reviewStatus" TEXT NOT NULL DEFAULT 'DRAFT'`,
     );
     await prisma.$executeRawUnsafe(
       `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "reviewedAt" TIMESTAMP(3)`,
     );
     await prisma.$executeRawUnsafe(
       `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "reviewedById" TEXT`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "aiGeneratedAt" TIMESTAMP(3)`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "regulationVersion" TEXT`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "reviewNote" TEXT`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "lastRevisionAt" TIMESTAMP(3)`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "lastRevisionById" TEXT`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "lastRevisionNote" TEXT`,
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "UnitMaterial" ADD COLUMN IF NOT EXISTS "revisionLog" TEXT`,
+    );
+    await prisma.$executeRawUnsafe(
+      `UPDATE "UnitMaterial" SET "reviewStatus" = 'DRAFT' WHERE "reviewStatus" IS NULL OR "reviewStatus" = 'NONE'`,
     );
     await prisma.$executeRawUnsafe(
       `CREATE INDEX IF NOT EXISTS "UnitMaterial_source_reviewStatus_idx" ON "UnitMaterial"("source", "reviewStatus")`,

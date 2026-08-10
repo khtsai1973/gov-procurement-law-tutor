@@ -4,14 +4,21 @@ import Link from "next/link";
 import { useState } from "react";
 
 import {
+  approveUnitMaterial,
   deleteUnitMaterial,
-  markUnitMaterialReviewed,
+  returnUnitMaterial,
   saveUnitMaterial,
+  submitUnitMaterialForReview,
 } from "@/app/actions/teacher";
 import {
+  canApproveMaterial,
   canPublishMaterial,
+  canReturnMaterial,
+  canSubmitForReview,
+  DEFAULT_REGULATION_VERSION,
   materialStatusLabel,
   materialStatusTone,
+  type MaterialRevisionEntry,
 } from "@/lib/material-review";
 import { TOPIC_CATEGORY_OPTIONS } from "@/lib/question-bank-categories";
 
@@ -26,6 +33,18 @@ export type UnitMaterialFormValues = {
   published: boolean;
   source?: string;
   reviewStatus?: string;
+  regulationVersion?: string;
+  reviewNote?: string;
+};
+
+export type UnitMaterialFormMeta = {
+  aiGeneratedAt: string;
+  reviewedAt: string;
+  reviewerName: string;
+  lastRevisionAt: string;
+  lastRevisionNote: string;
+  lastRevisionByName: string;
+  revisionLog: MaterialRevisionEntry[];
 };
 
 export const TEACHER_MATERIALS_HOME = "/teacher/materials";
@@ -44,6 +63,8 @@ function toneClass(tone: ReturnType<typeof materialStatusTone>): string {
       return "text-sky-800";
     case "amber":
       return "text-amber-800";
+    case "rose":
+      return "text-rose-700";
     default:
       return "text-[var(--muted)]";
   }
@@ -51,18 +72,27 @@ function toneClass(tone: ReturnType<typeof materialStatusTone>): string {
 
 export function UnitMaterialForm({
   initial,
+  meta,
   defaultCategory,
   justGenerated,
 }: {
   initial?: UnitMaterialFormValues;
+  meta?: UnitMaterialFormMeta;
   defaultCategory?: string;
   justGenerated?: boolean;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
-  const [reviewStatus, setReviewStatus] = useState(initial?.reviewStatus ?? "NONE");
-  const [publishedChecked, setPublishedChecked] = useState(initial?.published ?? false);
+  const [reviewStatus, setReviewStatus] = useState(
+    initial?.reviewStatus ?? "DRAFT",
+  );
+  const [publishedChecked, setPublishedChecked] = useState(
+    initial?.published ?? false,
+  );
+  const [reviewNote, setReviewNote] = useState(initial?.reviewNote ?? "");
+  const [returnNote, setReturnNote] = useState("");
+  const [showReturnBox, setShowReturnBox] = useState(false);
 
   const source = initial?.source === "AI" ? "AI" : "MANUAL";
   const reviewFields = {
@@ -72,6 +102,9 @@ export function UnitMaterialForm({
   };
   const statusLabel = materialStatusLabel(reviewFields);
   const publishAllowed = canPublishMaterial(reviewFields);
+  const showSubmit = Boolean(initial?.id) && canSubmitForReview(reviewFields);
+  const showApprove = Boolean(initial?.id) && canApproveMaterial(reviewFields);
+  const showReturn = Boolean(initial?.id) && canReturnMaterial(reviewFields);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -89,9 +122,11 @@ export function UnitMaterialForm({
         content: String(fd.get("content") ?? ""),
         sortOrder: Number(fd.get("sortOrder") ?? 0),
         published: fd.get("published") === "on",
+        regulationVersion: String(fd.get("regulationVersion") ?? ""),
+        revisionNote: String(fd.get("revisionNote") ?? ""),
       });
       if (result && !result.ok) {
-        setError(result.error);
+        setError(result.error ?? "儲存失敗");
         setPending(false);
         return;
       }
@@ -114,7 +149,7 @@ export function UnitMaterialForm({
     try {
       const result = await deleteUnitMaterial(initial.id);
       if (result && !result.ok) {
-        setError(result.error);
+        setError(result.error ?? "刪除失敗");
         setPending(false);
         return;
       }
@@ -129,23 +164,76 @@ export function UnitMaterialForm({
     }
   }
 
-  async function onMarkReviewed() {
+  async function onSubmitReview() {
     if (!initial?.id) return;
     setError(null);
     setOkMsg(null);
     setPending(true);
     try {
-      const result = await markUnitMaterialReviewed(initial.id);
+      const result = await submitUnitMaterialForReview(initial.id);
       if (!result.ok) {
-        setError(result.error);
+        setError(result.error ?? "送審失敗");
+        setPending(false);
+        return;
+      }
+      setReviewStatus("PENDING_REVIEW");
+      setPublishedChecked(false);
+      setOkMsg(result.message);
+      setPending(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "送審失敗");
+      setPending(false);
+    }
+  }
+
+  async function onApprove() {
+    if (!initial?.id) return;
+    setError(null);
+    setOkMsg(null);
+    setPending(true);
+    try {
+      const result = await approveUnitMaterial(initial.id, "教師核准");
+      if (!result.ok) {
+        setError(result.error ?? "核准失敗");
         setPending(false);
         return;
       }
       setReviewStatus("APPROVED");
+      setReviewNote("教師核准");
       setOkMsg(result.message);
       setPending(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "審核失敗");
+      setError(err instanceof Error ? err.message : "核准失敗");
+      setPending(false);
+    }
+  }
+
+  async function onReturn() {
+    if (!initial?.id) return;
+    const note = returnNote.trim();
+    if (!note) {
+      setError("請填寫退回修正原因");
+      return;
+    }
+    setError(null);
+    setOkMsg(null);
+    setPending(true);
+    try {
+      const result = await returnUnitMaterial(initial.id, note);
+      if (!result.ok) {
+        setError(result.error ?? "退回失敗");
+        setPending(false);
+        return;
+      }
+      setReviewStatus("RETURNED");
+      setPublishedChecked(false);
+      setReviewNote(note);
+      setShowReturnBox(false);
+      setReturnNote("");
+      setOkMsg(result.message);
+      setPending(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "退回失敗");
       setPending(false);
     }
   }
@@ -153,19 +241,92 @@ export function UnitMaterialForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {justGenerated ? (
-        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
-          AI 草稿已產生，目前為「待審核」。請檢視並修改內容後，按下「標記審核完成」，才可發布給學員。
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          AI 草稿已產生，狀態為「待審」。請檢視法規引用與內容後，送審／核准通過才可發布，不可直接公開。
         </p>
       ) : null}
 
       {initial?.id ? (
-        <p className={`text-sm font-medium ${toneClass(materialStatusTone(reviewFields))}`}>
-          狀態：{statusLabel}
-          {source === "AI" ? <span className="ml-2 text-xs font-normal text-[var(--muted)]">（AI 產生）</span> : null}
-          {initial.published ? (
-            <span className="ml-2 text-xs font-normal text-[var(--muted)]">發布後仍可編輯儲存</span>
+        <div className="rounded-md border border-[var(--border)] bg-slate-50/80 px-3 py-3 text-sm">
+          <p className={`font-medium ${toneClass(materialStatusTone(reviewFields))}`}>
+            狀態：{statusLabel}
+            {source === "AI" ? (
+              <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+                （AI 產生）
+              </span>
+            ) : (
+              <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+                （教師手寫）
+              </span>
+            )}
+          </p>
+
+          {meta ? (
+            <dl className="mt-3 grid gap-2 sm:grid-cols-2 text-xs text-[var(--muted)]">
+              <div>
+                <dt className="font-medium text-[var(--fg)]/80">AI 產生日期</dt>
+                <dd>{meta.aiGeneratedAt}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-[var(--fg)]/80">教師審核日期</dt>
+                <dd>{meta.reviewedAt}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-[var(--fg)]/80">法規版本</dt>
+                <dd>{initial.regulationVersion?.trim() || "—"}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-[var(--fg)]/80">審核者</dt>
+                <dd>{meta.reviewerName}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="font-medium text-[var(--fg)]/80">最後修正紀錄</dt>
+                <dd>
+                  {meta.lastRevisionAt !== "—"
+                    ? `${meta.lastRevisionAt}${meta.lastRevisionByName !== "—" ? ` · ${meta.lastRevisionByName}` : ""}${meta.lastRevisionNote ? ` · ${meta.lastRevisionNote}` : ""}`
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
           ) : null}
-        </p>
+
+          {reviewNote && reviewStatus === "RETURNED" ? (
+            <p className="mt-2 rounded-md bg-rose-50 px-2 py-1.5 text-xs text-rose-900">
+              退回說明：{reviewNote}
+            </p>
+          ) : null}
+
+          {meta && meta.revisionLog.length > 0 ? (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs font-medium text-[var(--fg)]">
+                修正歷程（{meta.revisionLog.length}）
+              </summary>
+              <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-[var(--muted)]">
+                {meta.revisionLog.map((entry, i) => (
+                  <li
+                    key={`${entry.at}-${i}`}
+                    className="border-b border-[var(--border)]/60 py-1"
+                  >
+                    <span className="text-[var(--fg)]/80">
+                      {entry.fromStatus || "—"} → {entry.toStatus || "—"}
+                    </span>
+                    {" · "}
+                    {entry.at}
+                    {entry.byName ? ` · ${entry.byName}` : ""}
+                    {entry.note ? ` · ${entry.note}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+
+          {source === "AI" && !publishedChecked && reviewStatus !== "APPROVED" ? (
+            <p className="mt-2 text-xs text-amber-900">
+              法律型教材流程：草稿／待審 → 已核准 → 已發布；必要時可「退回修正」。AI
+              產生後不可直接發布。
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <label className="block text-sm">
@@ -223,6 +384,21 @@ export function UnitMaterialForm({
       </label>
 
       <label className="block text-sm">
+        <span className="font-medium">法規版本</span>
+        <input
+          name="regulationVersion"
+          defaultValue={
+            initial?.regulationVersion ?? DEFAULT_REGULATION_VERSION
+          }
+          placeholder="例：政府採購法（現行）"
+          className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2"
+        />
+        <span className="mt-1 block text-xs text-[var(--muted)]">
+          請註明本教材依據之法規／函釋版本，方便後續追蹤修正。
+        </span>
+      </label>
+
+      <label className="block text-sm">
         <span className="font-medium">摘要（選填）</span>
         <input
           name="summary"
@@ -246,23 +422,87 @@ export function UnitMaterialForm({
         />
       </label>
 
-      {source === "AI" && reviewStatus !== "APPROVED" ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
-          <span>AI 教材須先完成審核，才能勾選發布。</span>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={onMarkReviewed}
-            className="rounded-md bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800 disabled:opacity-60"
-          >
-            {pending ? "處理中…" : "標記審核完成"}
-          </button>
+      <label className="block text-sm">
+        <span className="font-medium">本次修正說明（選填）</span>
+        <input
+          name="revisionNote"
+          placeholder="儲存時會寫入最後修正紀錄"
+          className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2"
+        />
+      </label>
+
+      {showSubmit || showApprove || showReturn ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
+          <span className="w-full sm:w-auto">審核流程：</span>
+          {showSubmit ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onSubmitReview}
+              className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60"
+            >
+              送審（待審）
+            </button>
+          ) : null}
+          {showApprove ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onApprove}
+              className="rounded-md bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800 disabled:opacity-60"
+            >
+              核准
+            </button>
+          ) : null}
+          {showReturn ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setShowReturnBox((v) => !v)}
+              className="rounded-md border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-900 hover:bg-rose-100 disabled:opacity-60"
+            >
+              退回修正
+            </button>
+          ) : null}
         </div>
       ) : null}
 
-      {source === "AI" && reviewStatus === "APPROVED" ? (
+      {showReturnBox ? (
+        <div className="space-y-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-3">
+          <label className="block text-sm">
+            <span className="font-medium text-rose-950">退回修正說明（必填）</span>
+            <textarea
+              rows={3}
+              value={returnNote}
+              onChange={(e) => setReturnNote(e.target.value)}
+              placeholder="請說明需修正的法規引用、段落或不精確處"
+              className="mt-1 w-full rounded-md border border-rose-300 bg-white px-3 py-2 text-sm"
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={pending || !returnNote.trim()}
+              onClick={onReturn}
+              className="rounded-md bg-rose-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-800 disabled:opacity-60"
+            >
+              確認退回
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setShowReturnBox(false)}
+              className="rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {reviewStatus === "APPROVED" && !publishedChecked ? (
         <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
-          已審核完成。可發布給學員；發布後仍可回來編輯修改。
+          已核准。確認無誤後可勾選「發布給學員閱讀」。
         </p>
       ) : null}
 
@@ -277,7 +517,9 @@ export function UnitMaterialForm({
         />
         發布給學員閱讀
         {!publishAllowed ? (
-          <span className="text-xs text-amber-800">（請先標記審核完成）</span>
+          <span className="text-xs text-amber-800">
+            （{source === "AI" ? "須先核准" : "目前狀態不可發布"}）
+          </span>
         ) : null}
       </label>
 
@@ -295,16 +537,6 @@ export function UnitMaterialForm({
         >
           返回單元教材首頁
         </a>
-        {initial?.id && source === "AI" && reviewStatus !== "APPROVED" ? (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={onMarkReviewed}
-            className="rounded-md border border-sky-300 bg-sky-50 px-4 py-2 text-sm text-sky-900 hover:bg-sky-100 disabled:opacity-60"
-          >
-            標記審核完成
-          </button>
-        ) : null}
         {initial?.id ? (
           <Link
             href={`/teacher/materials/${initial.id}/presentation`}

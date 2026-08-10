@@ -27,6 +27,7 @@ export function AiMaterialGenerateForm({ defaultCategory }: { defaultCategory?: 
         unitCode: String(fd.get("unitCode") ?? ""),
         focus: String(fd.get("focus") ?? ""),
         sortOrder: Number(fd.get("sortOrder") ?? 0),
+        regulationVersion: String(fd.get("regulationVersion") ?? ""),
       });
       if (result && !result.ok) {
         setError(result.error);
@@ -42,7 +43,7 @@ export function AiMaterialGenerateForm({ defaultCategory }: { defaultCategory?: 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-        AI 草稿產生後狀態為「待審核」，<strong>須經教師審核完成</strong>後才能發布。發布後仍可繼續編輯修改。
+        AI 草稿產生後狀態為「待審」，<strong>須經教師核准</strong>後才能發布，不可直接公開。
       </p>
 
       <label className="block text-sm">
@@ -99,6 +100,15 @@ export function AiMaterialGenerateForm({ defaultCategory }: { defaultCategory?: 
           rows={3}
           placeholder="例：請強調設計圖說與實際丈量差異、契約變更程序"
           className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
+        />
+      </label>
+
+      <label className="block text-sm">
+        <span className="font-medium">法規版本（選填）</span>
+        <input
+          name="regulationVersion"
+          placeholder="例：政府採購法（現行）／請教師核對最新修正"
+          className="mt-1 w-full rounded-md border border-[var(--border)] px-3 py-2"
         />
       </label>
 

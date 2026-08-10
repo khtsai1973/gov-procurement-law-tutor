@@ -8,6 +8,7 @@ import { TOPIC_CATEGORY_OPTIONS } from "@/lib/question-bank-categories";
 import { canAccessTeacher } from "@/lib/roles";
 import { groupMaterialsByCategory } from "@/lib/unit-materials";
 import {
+  formatMaterialDate,
   materialStatusLabel,
   materialStatusTone,
 } from "@/lib/material-review";
@@ -68,6 +69,13 @@ export default async function TeacherMaterialsHomePage({
     published: boolean;
     source?: string;
     reviewStatus?: string;
+    aiGeneratedAt?: Date | null;
+    reviewedAt?: Date | null;
+    reviewedById?: string | null;
+    regulationVersion?: string | null;
+    lastRevisionAt?: Date | null;
+    lastRevisionNote?: string | null;
+    lastRevisionById?: string | null;
     author: { email: string | null; name: string | null };
   }> = [];
 
@@ -85,6 +93,26 @@ export default async function TeacherMaterialsHomePage({
     });
   }
 
+  const reviewerIds = [
+    ...new Set(
+      materials
+        .flatMap((m) => [m.reviewedById, m.lastRevisionById])
+        .filter((x): x is string => Boolean(x)),
+    ),
+  ];
+  const reviewerUsers =
+    reviewerIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: reviewerIds } },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
+  const reviewerNameById = new Map(
+    reviewerUsers.map(
+      (u) => [u.id, u.name?.trim() || u.email || u.id] as const,
+    ),
+  );
+
   const filtered = filterCategory
     ? materials.filter((m) => m.category === filterCategory)
     : materials;
@@ -101,7 +129,8 @@ export default async function TeacherMaterialsHomePage({
             <p className="text-xs text-[var(--muted)]">老師功能</p>
             <h1 className="mt-1 text-xl font-semibold">單元教材首頁</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              這是教材列表首頁。手寫新增或 AI 產生草稿後，請審核並標記「審核完成」再發布；發布後仍可編輯。
+              這是教材列表首頁。狀態：草稿 → 待審 → 已核准 → 已發布（可退回修正）。AI
+              產生後不可直接發布，須經教師核准。
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
@@ -212,7 +241,7 @@ export default async function TeacherMaterialsHomePage({
                           {(() => {
                             const fields = {
                               source: m.source ?? "MANUAL",
-                              reviewStatus: m.reviewStatus ?? "NONE",
+                              reviewStatus: m.reviewStatus ?? "DRAFT",
                               published: m.published,
                             };
                             const label = materialStatusLabel(fields);
@@ -224,7 +253,9 @@ export default async function TeacherMaterialsHomePage({
                                   ? "text-sky-800"
                                   : tone === "amber"
                                     ? "text-amber-800"
-                                    : "text-[var(--muted)]";
+                                    : tone === "rose"
+                                      ? "text-rose-700"
+                                      : "text-[var(--muted)]";
                             return <span className={`ml-2 text-xs ${cls}`}>{label}</span>;
                           })()}
                         </div>
@@ -235,6 +266,21 @@ export default async function TeacherMaterialsHomePage({
                         ) : null}
                         <p className="mt-1 text-xs text-[var(--muted)]">
                           作者：{m.author.name ?? m.author.email ?? "—"}｜排序 {m.sortOrder}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          AI 產生：{formatMaterialDate(m.aiGeneratedAt)}｜審核：
+                          {formatMaterialDate(m.reviewedAt)}
+                          {m.reviewedById
+                            ? `（${reviewerNameById.get(m.reviewedById) ?? m.reviewedById}）`
+                            : ""}
+                          ｜法規版本：{m.regulationVersion?.trim() || "—"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-[var(--muted)]">
+                          最後修正：{formatMaterialDate(m.lastRevisionAt)}
+                          {m.lastRevisionById
+                            ? ` · ${reviewerNameById.get(m.lastRevisionById) ?? m.lastRevisionById}`
+                            : ""}
+                          {m.lastRevisionNote ? ` · ${m.lastRevisionNote}` : ""}
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm">

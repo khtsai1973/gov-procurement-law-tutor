@@ -8,8 +8,11 @@ import { ensureTeacherSchema } from "@/lib/ensure-teacher-schema";
 import { generateUnitMaterialDraft } from "@/lib/generate-unit-material";
 import { getSession } from "@/lib/get-session";
 import {
+  appendRevisionLog,
   canPublishMaterial,
+  DEFAULT_REGULATION_VERSION,
   materialPublishBlockReason,
+  normalizeReviewStatus,
 } from "@/lib/material-review";
 import prisma from "@/lib/prisma";
 import {
@@ -33,6 +36,8 @@ const materialSchema = z.object({
   content: z.string().trim().min(1, "請填寫教材內容").max(50000),
   sortOrder: z.coerce.number().int().min(0).max(9999).default(0),
   published: z.boolean().default(false),
+  regulationVersion: z.string().trim().max(200).optional().nullable(),
+  revisionNote: z.string().trim().max(500).optional().nullable(),
 });
 
 const generateSchema = z.object({
@@ -47,6 +52,7 @@ const generateSchema = z.object({
   unitCode: z.string().trim().max(40).optional().nullable(),
   focus: z.string().trim().max(500).optional().nullable(),
   sortOrder: z.coerce.number().int().min(0).max(9999).default(0),
+  regulationVersion: z.string().trim().max(200).optional().nullable(),
 });
 
 async function requireTeacher() {
@@ -57,23 +63,41 @@ async function requireTeacher() {
   return session;
 }
 
-/** 單元教材首頁（列表） */
 function materialsHomeUrl(highlightId?: string) {
   const params = new URLSearchParams({ saved: "1" });
   if (highlightId) params.set("highlight", highlightId);
   return `/teacher/materials?${params.toString()}`;
 }
 
-function asReviewFields(row: {
-  source?: string | null;
-  reviewStatus?: string | null;
-  published?: boolean | null;
-}) {
-  return {
-    source: row.source ?? "MANUAL",
-    reviewStatus: row.reviewStatus ?? "NONE",
-    published: row.published ?? false,
-  };
+function actorName(session: { user?: { name?: string | null; email?: string | null; nickname?: string | null } }) {
+  return session.user?.nickname ?? session.user?.name ?? session.user?.email ?? "教師";
+}
+
+function revalidateMaterialPaths(id?: string) {
+  revalidatePath("/teacher");
+  revalidatePath("/teacher/materials");
+  revalidatePath("/materials");
+  if (id) revalidatePath(`/teacher/materials/${id}/edit`);
+}
+
+type MaterialRow = {
+  id: string;
+  authorId: string;
+  source: string;
+  reviewStatus: string;
+  published: boolean;
+  content: string;
+  title: string;
+  revisionLog: string | null;
+};
+
+async function loadOwnedMaterial(id: string, session: { user: { id: string; role?: string } }) {
+  const existing = await prisma.unitMaterial.findUnique({ where: { id } });
+  if (!existing) return { error: "找不到教材" as const };
+  if (existing.authorId !== session.user.id && session.user.role !== "ADMIN") {
+    return { error: "僅能操作自己建立的教材" as const };
+  }
+  return { existing: existing as MaterialRow & Record<string, unknown> };
 }
 
 export async function saveUnitMaterial(raw: unknown) {
@@ -91,15 +115,19 @@ export async function saveUnitMaterial(raw: unknown) {
   try {
     await ensureTeacherSchema();
     const data = parsed.data;
+    const now = new Date();
+    const byName = actorName(session);
 
     if (data.id) {
-      const existing = await prisma.unitMaterial.findUnique({ where: { id: data.id } });
-      if (!existing) return { ok: false as const, error: "找不到教材" };
-      if (existing.authorId !== session.user.id && session.user.role !== "ADMIN") {
-        return { ok: false as const, error: "僅能編輯自己建立的教材" };
-      }
+      const loaded = await loadOwnedMaterial(data.id, session as { user: { id: string; role?: string } });
+      if ("error" in loaded) return { ok: false as const, error: loaded.error };
+      const existing = loaded.existing;
 
-      const gate = asReviewFields(existing as { source?: string; reviewStatus?: string });
+      const gate = {
+        source: existing.source ?? "MANUAL",
+        reviewStatus: existing.reviewStatus ?? "DRAFT",
+        published: existing.published,
+      };
       if (data.published && !canPublishMaterial(gate)) {
         return {
           ok: false as const,
@@ -107,7 +135,21 @@ export async function saveUnitMaterial(raw: unknown) {
         };
       }
 
-      // 發布後仍允許教師修改內容；AI 教材若已審核完成則維持 APPROVED
+      const fromStatus = normalizeReviewStatus(existing.reviewStatus);
+      const contentChanged = existing.content !== data.content || existing.title !== data.title;
+      const revisionNote =
+        data.revisionNote?.trim() ||
+        (contentChanged ? "教師修正教材內容" : data.published !== existing.published ? (data.published ? "發布教材" : "取消發布") : "儲存教材");
+
+      const revisionLog = appendRevisionLog(existing.revisionLog, {
+        at: now.toISOString(),
+        byId: session.user.id,
+        byName,
+        note: revisionNote,
+        fromStatus,
+        toStatus: fromStatus,
+      });
+
       await prisma.unitMaterial.update({
         where: { id: data.id },
         data: {
@@ -118,11 +160,15 @@ export async function saveUnitMaterial(raw: unknown) {
           content: data.content,
           sortOrder: data.sortOrder,
           published: data.published,
+          regulationVersion: data.regulationVersion?.trim() || existing.regulationVersion || DEFAULT_REGULATION_VERSION,
+          lastRevisionAt: now,
+          lastRevisionById: session.user.id,
+          lastRevisionNote: revisionNote,
+          revisionLog,
         },
       });
       savedId = data.id;
     } else {
-      // 手寫新建可直接發布
       const created = await prisma.unitMaterial.create({
         data: {
           title: data.title,
@@ -133,27 +179,35 @@ export async function saveUnitMaterial(raw: unknown) {
           sortOrder: data.sortOrder,
           published: data.published,
           source: "MANUAL",
-          reviewStatus: "NONE",
+          reviewStatus: "DRAFT",
+          regulationVersion: data.regulationVersion?.trim() || DEFAULT_REGULATION_VERSION,
           authorId: session.user.id,
+          lastRevisionAt: now,
+          lastRevisionById: session.user.id,
+          lastRevisionNote: "手寫建立教材",
+          revisionLog: appendRevisionLog(null, {
+            at: now.toISOString(),
+            byId: session.user.id,
+            byName,
+            note: "手寫建立教材",
+            fromStatus: "DRAFT",
+            toStatus: "DRAFT",
+          }),
         },
       });
       savedId = created.id;
     }
 
-    revalidatePath("/teacher");
-    revalidatePath("/teacher/materials");
-    revalidatePath(`/teacher/materials/${savedId}/edit`);
-    revalidatePath("/materials");
+    revalidateMaterialPaths(savedId);
   } catch (e) {
     const message = e instanceof Error ? e.message : "儲存失敗";
     return { ok: false as const, error: message };
   }
 
-  // 成功後由伺服器強制導向列表首頁（避免 client transition 卡在編輯頁）
   redirect(materialsHomeUrl(savedId));
 }
 
-/** AI 產生教材草稿：一律待審核、未發布 */
+/** AI 產生教材：狀態「待審」，不可直接發布 */
 export async function generateUnitMaterial(raw: unknown) {
   const session = await requireTeacher();
   if (!session?.user?.id) {
@@ -174,6 +228,8 @@ export async function generateUnitMaterial(raw: unknown) {
       focus: parsed.data.focus,
     });
 
+    const now = new Date();
+    const byName = actorName(session);
     const created = await prisma.unitMaterial.create({
       data: {
         title: draft.title,
@@ -185,13 +241,25 @@ export async function generateUnitMaterial(raw: unknown) {
         published: false,
         source: "AI",
         reviewStatus: "PENDING_REVIEW",
+        aiGeneratedAt: now,
+        regulationVersion:
+          parsed.data.regulationVersion?.trim() || DEFAULT_REGULATION_VERSION,
         authorId: session.user.id,
+        lastRevisionAt: now,
+        lastRevisionById: session.user.id,
+        lastRevisionNote: "AI 產生草稿，進入待審",
+        revisionLog: appendRevisionLog(null, {
+          at: now.toISOString(),
+          byId: session.user.id,
+          byName,
+          note: "AI 產生草稿，進入待審",
+          fromStatus: "DRAFT",
+          toStatus: "PENDING_REVIEW",
+        }),
       },
     });
 
-    revalidatePath("/teacher");
-    revalidatePath("/teacher/materials");
-    revalidatePath("/materials");
+    revalidateMaterialPaths(created.id);
     redirect(`/teacher/materials/${created.id}/edit?generated=1`);
   } catch (e) {
     if (
@@ -207,47 +275,156 @@ export async function generateUnitMaterial(raw: unknown) {
   }
 }
 
-/** 教師標記審核完成（AI 教材發布前提） */
-export async function markUnitMaterialReviewed(id: string) {
+/** 送出待審（草稿／退回修正 → 待審） */
+export async function submitUnitMaterialForReview(id: string, note?: string) {
   const session = await requireTeacher();
-  if (!session?.user?.id) {
-    return { ok: false as const, error: "需要老師或管理者權限" };
-  }
+  if (!session?.user?.id) return { ok: false as const, error: "需要老師或管理者權限" };
 
   const materialId = id?.trim();
   if (!materialId) return { ok: false as const, error: "缺少教材編號" };
 
   try {
     await ensureTeacherSchema();
-    const existing = await prisma.unitMaterial.findUnique({ where: { id: materialId } });
-    if (!existing) return { ok: false as const, error: "找不到教材" };
-    if (existing.authorId !== session.user.id && session.user.role !== "ADMIN") {
-      return { ok: false as const, error: "僅能審核自己建立的教材" };
+    const loaded = await loadOwnedMaterial(materialId, session as { user: { id: string; role?: string } });
+    if ("error" in loaded) return { ok: false as const, error: loaded.error };
+    const existing = loaded.existing;
+    const fromStatus = normalizeReviewStatus(existing.reviewStatus);
+    if (fromStatus !== "DRAFT" && fromStatus !== "RETURNED") {
+      return { ok: false as const, error: "僅「草稿」或「退回修正」可送出待審" };
+    }
+    if (existing.published) {
+      return { ok: false as const, error: "已發布教材請先取消發布再送審" };
     }
 
-    const source = (existing as { source?: string }).source ?? "MANUAL";
-    if (source !== "AI") {
-      return { ok: false as const, error: "僅 AI 產生教材需要標記審核完成" };
+    const now = new Date();
+    const byName = actorName(session);
+    const revisionNote = note?.trim() || "送出待審";
+    await prisma.unitMaterial.update({
+      where: { id: materialId },
+      data: {
+        reviewStatus: "PENDING_REVIEW",
+        published: false,
+        lastRevisionAt: now,
+        lastRevisionById: session.user.id,
+        lastRevisionNote: revisionNote,
+        revisionLog: appendRevisionLog(existing.revisionLog, {
+          at: now.toISOString(),
+          byId: session.user.id,
+          byName,
+          note: revisionNote,
+          fromStatus,
+          toStatus: "PENDING_REVIEW",
+        }),
+      },
+    });
+    revalidateMaterialPaths(materialId);
+    return { ok: true as const, message: "已送出，狀態：待審" };
+  } catch (e) {
+    return { ok: false as const, error: e instanceof Error ? e.message : "送審失敗" };
+  }
+}
+
+/** 核准（待審 → 已核准） */
+export async function approveUnitMaterial(id: string, note?: string) {
+  const session = await requireTeacher();
+  if (!session?.user?.id) return { ok: false as const, error: "需要老師或管理者權限" };
+
+  const materialId = id?.trim();
+  if (!materialId) return { ok: false as const, error: "缺少教材編號" };
+
+  try {
+    await ensureTeacherSchema();
+    const loaded = await loadOwnedMaterial(materialId, session as { user: { id: string; role?: string } });
+    if ("error" in loaded) return { ok: false as const, error: loaded.error };
+    const existing = loaded.existing;
+    const fromStatus = normalizeReviewStatus(existing.reviewStatus);
+    if (fromStatus !== "PENDING_REVIEW" && fromStatus !== "RETURNED" && fromStatus !== "DRAFT") {
+      return { ok: false as const, error: "目前狀態無法核准" };
     }
 
+    const now = new Date();
+    const byName = actorName(session);
+    const revisionNote = note?.trim() || "教師核准";
     await prisma.unitMaterial.update({
       where: { id: materialId },
       data: {
         reviewStatus: "APPROVED",
-        reviewedAt: new Date(),
+        reviewedAt: now,
         reviewedById: session.user.id,
+        reviewNote: revisionNote,
+        lastRevisionAt: now,
+        lastRevisionById: session.user.id,
+        lastRevisionNote: revisionNote,
+        revisionLog: appendRevisionLog(existing.revisionLog, {
+          at: now.toISOString(),
+          byId: session.user.id,
+          byName,
+          note: revisionNote,
+          fromStatus,
+          toStatus: "APPROVED",
+        }),
       },
     });
-
-    revalidatePath("/teacher");
-    revalidatePath("/teacher/materials");
-    revalidatePath(`/teacher/materials/${materialId}/edit`);
-    revalidatePath("/materials");
-    return { ok: true as const, message: "已標記審核完成，可發布給學員" };
+    revalidateMaterialPaths(materialId);
+    return { ok: true as const, message: "已核准，可發布給學員" };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "審核失敗";
-    return { ok: false as const, error: message };
+    return { ok: false as const, error: e instanceof Error ? e.message : "核准失敗" };
   }
+}
+
+/** 退回修正（待審／已核准 → 退回修正，並取消發布） */
+export async function returnUnitMaterial(id: string, note: string) {
+  const session = await requireTeacher();
+  if (!session?.user?.id) return { ok: false as const, error: "需要老師或管理者權限" };
+
+  const materialId = id?.trim();
+  const reason = note?.trim();
+  if (!materialId) return { ok: false as const, error: "缺少教材編號" };
+  if (!reason) return { ok: false as const, error: "請填寫退回修正原因" };
+
+  try {
+    await ensureTeacherSchema();
+    const loaded = await loadOwnedMaterial(materialId, session as { user: { id: string; role?: string } });
+    if ("error" in loaded) return { ok: false as const, error: loaded.error };
+    const existing = loaded.existing;
+    const fromStatus = normalizeReviewStatus(existing.reviewStatus);
+    if (fromStatus !== "PENDING_REVIEW" && fromStatus !== "APPROVED") {
+      return { ok: false as const, error: "僅「待審」或「已核准」可退回修正" };
+    }
+
+    const now = new Date();
+    const byName = actorName(session);
+    await prisma.unitMaterial.update({
+      where: { id: materialId },
+      data: {
+        reviewStatus: "RETURNED",
+        published: false,
+        reviewedAt: now,
+        reviewedById: session.user.id,
+        reviewNote: reason,
+        lastRevisionAt: now,
+        lastRevisionById: session.user.id,
+        lastRevisionNote: `退回修正：${reason}`,
+        revisionLog: appendRevisionLog(existing.revisionLog, {
+          at: now.toISOString(),
+          byId: session.user.id,
+          byName,
+          note: `退回修正：${reason}`,
+          fromStatus,
+          toStatus: "RETURNED",
+        }),
+      },
+    });
+    revalidateMaterialPaths(materialId);
+    return { ok: true as const, message: "已退回修正" };
+  } catch (e) {
+    return { ok: false as const, error: e instanceof Error ? e.message : "退回失敗" };
+  }
+}
+
+/** @deprecated 使用 approveUnitMaterial */
+export async function markUnitMaterialReviewed(id: string) {
+  return approveUnitMaterial(id, "教師核准");
 }
 
 export async function deleteUnitMaterial(id: string) {
@@ -264,9 +441,7 @@ export async function deleteUnitMaterial(id: string) {
       return { ok: false as const, error: "僅能刪除自己建立的教材" };
     }
     await prisma.unitMaterial.delete({ where: { id } });
-    revalidatePath("/teacher");
-    revalidatePath("/teacher/materials");
-    revalidatePath("/materials");
+    revalidateMaterialPaths();
   } catch (e) {
     const message = e instanceof Error ? e.message : "刪除失敗";
     return { ok: false as const, error: message };
