@@ -18,7 +18,11 @@ export default function RegisterPage() {
             <h1 className="text-xl font-semibold">申請加入</h1>
             <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
               訪客可申請「一般使用者」或「老師」角色。管理者核准後，請以申請時填寫的同一 Google
-              帳號登入即可加入。
+              帳號登入即可加入。個資蒐集與使用說明請見
+              <Link href="/privacy" className="mx-1 no-underline hover:underline">
+                隱私權政策
+              </Link>
+              。
             </p>
           </div>
           <Link href="/" className="text-sm no-underline hover:underline">
