@@ -530,9 +530,11 @@ const CONCEPT_LEXICON = [
   "契約變更",
   "技術服務費",
   "履約期限",
+  "逾期違約金",
   "限制性招標",
   "採購評選委員會",
   "評選委員會",
+  "廠商資格",
   "公告金額",
   "查核金額",
   "巨額採購",
@@ -548,7 +550,6 @@ const CONCEPT_LEXICON = [
   "押標金",
   "保證金",
   "履約保證金",
-  "廠商資格",
   "履約管理",
   "驗收",
   "採購契約",
@@ -566,11 +567,13 @@ const CONCEPT_LEXICON = [
   "電子採購",
   "契約價金",
   "建造費用",
+  "違約金",
+  "室內裝修",
 ].sort((a, b) => b.length - a.length);
 
 function isTruncatedChunk(k: string): boolean {
-  if (/^[\u4e00-\u9fff]{10}$/.test(k)) return true;
-  return k.length >= 8 && /[之於與及或而規丈內所為後]$/.test(k);
+  if (/^[\u4e00-\u9fff]{9,12}$/.test(k)) return true;
+  return k.length >= 8 && /[之於與及或而規丈內所為後資得何]$/.test(k);
 }
 
 export function extractKeywords(question: string): string[] {

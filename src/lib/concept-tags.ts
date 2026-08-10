@@ -1,17 +1,19 @@
 /**
  * 前台用「概念標籤」：語意完整的採購法概念詞。
- * 題庫 JSON 內的 keywords 常由固定字數機械切出，不宜直接展示。
+ * 題庫 JSON 內的 keywords 常由固定字數機械切出，僅供後台檢索，不宜直接展示。
  */
 
 /** 受控概念詞彙（最長優先比對） */
 export const CONCEPT_TAG_LEXICON: readonly string[] = [
-  // 使用者建議示例
+  // 使用者建議示例（前台優先）
+  "技術服務費",
+  "廠商資格",
   "總價結算",
   "契約變更",
-  "技術服務費",
-  "履約期限",
+  "逾期違約金",
   "限制性招標",
   "採購評選委員會",
+  "履約期限",
   // 金額／門檻
   "公告金額",
   "查核金額",
@@ -49,7 +51,6 @@ export const CONCEPT_TAG_LEXICON: readonly string[] = [
   "押標金",
   "保證金",
   "履約保證金",
-  "廠商資格",
   "特定資格",
   "基本資格",
   "合格廠商",
@@ -59,6 +60,7 @@ export const CONCEPT_TAG_LEXICON: readonly string[] = [
   "驗收",
   "保固",
   "遲延履約",
+  "違約金",
   "契約價金",
   "採購契約",
   "設計圖說",
@@ -68,6 +70,7 @@ export const CONCEPT_TAG_LEXICON: readonly string[] = [
   "勞務採購",
   "財物採購",
   "工程採購",
+  "室內裝修",
   // 監辦／爭議
   "會同監辦",
   "上級機關",
@@ -92,7 +95,8 @@ export const CONCEPT_TAG_LEXICON: readonly string[] = [
   "建造費用",
   "監造",
   "可行性評估",
-].slice()
+]
+  .slice()
   .sort((a, b) => b.length - a.length || a.localeCompare(b, "zh-Hant"));
 
 const LEXICON_SET = new Set(CONCEPT_TAG_LEXICON);
@@ -117,25 +121,28 @@ const DISPLAY_STOP = new Set([
   "關於",
   "機關",
   "廠商",
+  "服務",
+  "格得為何",
 ]);
 
-/** 機械切塊常見：過長且以不完整語助／介詞結尾 */
-const TRUNCATION_TAIL = /[之於與及或而規丈內所為後]$/;
+/** 機械切塊常見：不完整語助／介詞／截斷尾字 */
+const TRUNCATION_TAIL = /[之於與及或而規丈內所為後資得何]$/;
 
 export function isMechanicalKeyword(raw: string): boolean {
   const k = raw.trim();
   if (!k) return true;
   if (DISPLAY_STOP.has(k)) return true;
   if (LEXICON_SET.has(k)) return false;
-  // 解析器曾用 {2,10} 貪婪切中文 → 大量剛好 10 字的碎句
-  if (k.length >= 10 && TRUNCATION_TAIL.test(k)) return true;
+  // 解析器曾用 {2,10} 貪婪切中文 → 大量剛好 9～12 字的碎句
+  if (/^[\u4e00-\u9fff]{9,12}$/.test(k)) return true;
   if (k.length >= 8 && TRUNCATION_TAIL.test(k)) return true;
-  if (/^[\u4e00-\u9fff]{10}$/.test(k) && !LEXICON_SET.has(k)) return true;
+  // 非受控詞且過長：不當前台標籤
+  if (k.length > 8) return true;
   return false;
 }
 
 /**
- * 自題幹／既有 keywords 抽取語意完整的概念標籤（供前台展示）。
+ * 前台專用：只回傳受控「概念標籤」，永不回傳機械切塊 keywords。
  */
 export function extractConceptTags(input: {
   question?: string | null;
@@ -144,12 +151,15 @@ export function extractConceptTags(input: {
   max?: number;
 }): string[] {
   const max = input.max ?? 8;
+  // 仍讀取 keywords 字串僅為了從中辨識受控詞（若剛好存成完整概念詞）
   const blob = [input.question ?? "", ...(input.keywords ?? [])].join("\n");
   const out: string[] = [];
 
   const push = (tag: string) => {
     const t = tag.trim();
-    if (!t || DISPLAY_STOP.has(t) || out.includes(t)) return;
+    if (!t || !LEXICON_SET.has(t) || DISPLAY_STOP.has(t) || out.includes(t)) return;
+    // 已有較長概念詞時略過其子字串（如已有「技術服務費」則不再加「技術服務」）
+    if (out.some((x) => x.includes(t) || t.includes(x))) return;
     out.push(t);
   };
 
@@ -158,15 +168,6 @@ export function extractConceptTags(input: {
     if (out.length >= max) break;
   }
 
-  // 既有 keywords 若本身就是受控概念詞，一併納入
-  if (out.length < max) {
-    for (const kw of input.keywords ?? []) {
-      if (LEXICON_SET.has(kw.trim())) push(kw.trim());
-      if (out.length >= max) break;
-    }
-  }
-
-  // 類別名稱過長時不直接當標籤；若類別本身在詞彙中則加入
   if (input.category && LEXICON_SET.has(input.category) && out.length < max) {
     push(input.category);
   }
@@ -174,7 +175,7 @@ export function extractConceptTags(input: {
   return out.slice(0, max);
 }
 
-/** 後端檢索擴展：優先概念標籤，過濾機械切塊 */
+/** 後端檢索擴展：優先概念標籤；keywords 僅在非機械切塊時輔助 */
 export function keywordsForRetrieval(input: {
   question?: string | null;
   keywords?: string[] | null;
@@ -183,10 +184,10 @@ export function keywordsForRetrieval(input: {
   const concepts = extractConceptTags({ ...input, max: input.max ?? 12 });
   const extras: string[] = [];
   for (const kw of input.keywords ?? []) {
-    if (isMechanicalKeyword(kw)) continue;
-    if (concepts.includes(kw) || extras.includes(kw)) continue;
-    // 僅保留較短、像詞的片段
-    if (kw.length >= 2 && kw.length <= 8) extras.push(kw);
+    const t = kw.trim();
+    if (isMechanicalKeyword(t)) continue;
+    if (concepts.includes(t) || extras.includes(t)) continue;
+    if (LEXICON_SET.has(t) || (t.length >= 2 && t.length <= 6)) extras.push(t);
     if (concepts.length + extras.length >= (input.max ?? 12)) break;
   }
   return [...concepts, ...extras].slice(0, input.max ?? 12);
