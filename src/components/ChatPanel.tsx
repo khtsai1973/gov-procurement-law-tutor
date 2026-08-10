@@ -5,10 +5,10 @@ import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerFeedback } from "@/components/AnswerFeedback";
+import { CitationAnswer } from "@/components/CitationAnswer";
+import type { CitationSource } from "@/lib/citations";
 import { getPromptSuggestionsByCategory, PROMPT_TIP } from "@/lib/prompt-suggestions";
 import { SCENARIO_TEMPLATES } from "@/lib/scenario-templates";
-
-type Source = { title: string; tier: string; slug: string };
 
 /** 登入態由客戶端讀取，避免首頁 server 等待 session／DB */
 export function ChatPanel() {
@@ -17,7 +17,7 @@ export function ChatPanel() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [questionId, setQuestionId] = useState<string | null>(null);
-  const [sources, setSources] = useState<Source[] | null>(null);
+  const [sources, setSources] = useState<CitationSource[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -118,7 +118,7 @@ export function ChatPanel() {
               setError(typeof ev.error === "string" ? ev.error : "伺服器錯誤");
             } else if (ev.type === "done") {
               setQuestionId(typeof ev.questionId === "string" ? ev.questionId : null);
-              setSources(Array.isArray(ev.sources) ? (ev.sources as Source[]) : []);
+              setSources(Array.isArray(ev.sources) ? (ev.sources as CitationSource[]) : []);
               meta = {
                 model: typeof ev.model === "string" ? ev.model : undefined,
                 retrievalMode:
@@ -325,15 +325,25 @@ export function ChatPanel() {
           className="chat-block-answer mt-6 space-y-4 rounded-lg p-5"
         >
           <h2 className="text-base font-semibold">回答</h2>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">{answer}</div>
+          {sources && sources.length > 0 ? (
+            <CitationAnswer answer={answer} sources={sources} />
+          ) : (
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">{answer}</div>
+          )}
           {sources && sources.length > 0 ? (
             <div>
-              <h3 className="text-sm font-semibold text-[var(--muted)]">參考來源（摘錄所屬法規／函釋）</h3>
+              <h3 className="text-sm font-semibold text-[var(--muted)]">
+                可追溯引文（點擊回答中的「片段N」可查看原文與版本）
+              </h3>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                {sources.map((s, i) => (
-                  <li key={`${s.slug}-${i}`}>
-                    {s.title}
+                {sources.map((s) => (
+                  <li key={`${s.chunkId}-${s.index}`}>
+                    【片段{s.index}】{s.title}
+                    {s.articleKey ? `｜${s.articleKey}` : ""}
                     <span className="text-[var(--muted)]">（{s.tier}）</span>
+                    {s.versionLabel ? (
+                      <span className="text-[var(--muted)]">｜{s.versionLabel}</span>
+                    ) : null}
                   </li>
                 ))}
               </ul>
