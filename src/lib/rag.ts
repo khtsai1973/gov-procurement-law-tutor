@@ -4,6 +4,10 @@ import {
   amountTierExpansionTerms,
   isAmountTierClassificationQuery,
 } from "@/lib/amount-tier";
+import {
+  awardMethodExpansionTerms,
+  isAwardMethodPrincipleQuery,
+} from "@/lib/award-method-principle";
 import { isBelowThresholdSupervisionQuery } from "@/lib/below-threshold-supervision";
 import { bm25Rank, buildBm25Index, reciprocalRankFusion } from "@/lib/bm25";
 import { isCurrentThresholdFiguresQuery } from "@/lib/current-threshold-figures";
@@ -132,7 +136,9 @@ const QUERY_EXPANSIONS: Record<string, string[]> = {
   會同監辦: ["監辦", "未達公告金額", "十分之一", "主計", "開標", "驗收"],
   監辦: ["會同監辦", "未達公告金額", "十分之一", "主計"],
   評選委員會: ["採購評選委員會組織準則", "專家學者", "工作小組", "召集人", "評選"],
-  最有利標: ["評選", "評選委員會", "最有利標評選辦法", "採購評選委員會組織準則"],
+  最有利標: ["評選", "評選委員會", "最有利標評選辦法", "採購評選委員會組織準則", "第五十二條", "決標原則"],
+  最低標: ["決標原則", "第五十二條", "最有利標", "底價", "複數決標"],
+  決標原則: ["第五十二條", "最低標", "最有利標", "複數決標", "招標文件"],
 };
 
 const TIER_BOOST: Record<string, number> = {
@@ -193,6 +199,9 @@ function expandQuery(query: string, bank?: QuestionBankMatch): string {
   }
   if (isOpeningBidderCountQuery(query)) {
     extras.push(...openingBidderExpansionTerms(query));
+  }
+  if (isAwardMethodPrincipleQuery(query)) {
+    extras.push(...awardMethodExpansionTerms(query));
   }
   // 題庫僅作關鍵詞擴展，不注入導引文字；過濾機械切塊，改以概念標籤為主
   if (bank) {
@@ -293,6 +302,15 @@ function slugBoost(slug: string, query: string, bank?: QuestionBankMatch): numbe
     if (slug === "below-threshold-supervision-rules") boost += 12;
     // 降低「公告金額以上會同監辦」辦法權重，避免答錯門檻
     if (slug === "joint-procurement-supervision-rules") boost -= 4;
+  }
+  if (isAwardMethodPrincipleQuery(query)) {
+    if (slug === "government-procurement-act") boost += 10;
+    if (
+      slug === "most-advantageous-tender-operations-manual" ||
+      slug === "most-advantageous-tender-selection-rules"
+    ) {
+      boost += 6;
+    }
   }
   return boost;
 }
@@ -654,6 +672,10 @@ export async function retrieveForRag(
   }
   if (isProcurementAmountDefinitionQuery(query)) {
     ensureSlug("gpa-enforcement-rules", /第 6 條|選購或後續擴充|招標前認定/);
+  }
+  if (isAwardMethodPrincipleQuery(query)) {
+    ensureSlug("government-procurement-act", /第 52 條|最有利標為原則|決標.*原則之一/);
+    ensureSlug("most-advantageous-tender-operations-manual", /第52條|最有利標決標|不論採購金額/);
   }
 
   let chunks = expandHitsToParentContext(childHits, byId);

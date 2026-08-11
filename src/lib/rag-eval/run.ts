@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import {
+  buildAwardMethodPrincipleAnswer,
+  isAwardMethodPrincipleQuery,
+} from "@/lib/award-method-principle";
+import {
   buildBelowThresholdSupervisionAnswer,
   isBelowThresholdSupervisionQuery,
 } from "@/lib/below-threshold-supervision";
@@ -43,6 +47,9 @@ export function produceOfflineAnswer(c: RagEvalCase): { answer: string; model: s
   const q = c.question;
   if (!isOnTopicQuestion(q) || c.kind === "off_topic") {
     return { answer: OFF_TOPIC_REPLY, model: "off-topic" };
+  }
+  if (isAwardMethodPrincipleQuery(q)) {
+    return { answer: buildAwardMethodPrincipleAnswer(), model: "award-method-art52" };
   }
   if (isBelowThresholdSupervisionQuery(q)) {
     return { answer: buildBelowThresholdSupervisionAnswer(), model: "below-threshold-supervision-rules" };
