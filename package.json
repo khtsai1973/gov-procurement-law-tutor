@@ -30,7 +30,9 @@
     "presentation:generate": "node scripts/generate-presentation.mjs",
     "ttfb:check": "node scripts/ttfb-check.mjs",
     "rag:eval": "tsx scripts/rag-eval.ts",
-    "test:rag-eval": "tsx --test src/lib/rag-eval/metrics.test.ts"
+    "rag:eval:golden": "tsx scripts/rag-eval-golden.ts",
+    "test:rag-eval": "tsx --test src/lib/rag-eval/metrics.test.ts",
+    "test:rag-golden": "tsx --test src/lib/rag-eval/golden.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

@@ -1,0 +1,622 @@
+{
+  "generated_at": "2026-08-12T12:15:20.198Z",
+  "mode": "offline",
+  "framework": "ragas-inspired-ts",
+  "thresholds": {
+    "faithfulness": 0.7,
+    "answer_relevance": 0.65,
+    "ttfb_p95_ms": 500
+  },
+  "summary": {
+    "n": 50,
+    "faithfulness_mean": 0.973,
+    "answer_relevance_mean": 1,
+    "context_recall_mean": 0.93,
+    "pass": true
+  },
+  "cases": [
+    {
+      "id": "G001",
+      "question": "政府採購法所稱工程、財物、勞務如何定義？",
+      "kind": "rag_gold",
+      "answer_preview": "依政府採購法第7條：工程指新建、增建、改建等構造物與環境改變行為；財物指物品、材料、設備等動產不動產及權利；勞務指專業、技術、資訊服務、研發、營運管理等。兼有二種以上性質難以認定者，按預算金額比率最高者歸屬。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G002",
+      "question": "採購之招標方式分為哪三種？各自定義為何？",
+      "kind": "rag_gold",
+      "answer_preview": "依第18條分為公開招標、選擇性招標及限制性招標。公開招標以公告邀請不特定廠商；選擇性招標先資格審查再邀請合格廠商；限制性招標不經公告，邀請二家以上比價或一家議價。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G003",
+      "question": "公告金額以上採購原則上應採何種招標方式？",
+      "kind": "rag_gold",
+      "answer_preview": "依第19條，機關辦理公告金額以上之採購，除依第20條（選擇性招標）及第22條（限制性招標）辦理者外，應公開招標。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G004",
+      "question": "政府採購法第48條關於開標的合格廠商家數規定為何？",
+      "kind": "rag_gold",
+      "answer_preview": "機關依規定辦理招標，除法定不予開標決標情形外，有三家以上合格廠商投標，即應依招標文件所定時間開標決標。第一次開標因未滿三家而流標者，第二次得縮短等標期，並得不受三家限制。",
+      "faithfulness": 0.783,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G005",
+      "question": "採購法第52條規定的決標原則有哪些？",
+      "kind": "rag_gold",
+      "answer_preview": "第52條第1項規定應依下列原則之一辦理並載明於招標文件：（一）訂有底價之最低標；（二）未訂底價、標價合理且在預算內之最低標；（三）最有利標；（四）複數決標。第2項並規定公告金額以上專業／技術／資訊／社福／文創服務，以不訂底價之最有利標為原則。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G006",
+      "question": "機關辦理工程、財物採購之驗收，主驗人如何指派？承辦採購人員可否主驗？",
+      "kind": "rag_gold",
+      "answer_preview": "依第71條，驗收時應由機關首長或其授權人員指派適當人員主驗，並通知接管或使用單位會驗。機關承辦採購單位之人員不得為所辦採購之主驗人或樣品及材料之檢驗人。勞務採購準用之。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G007",
+      "question": "投標廠商有哪些情形，機關於開標前發現應不予開標？",
+      "kind": "rag_gold",
+      "answer_preview": "依第50條第1項，例如未依招標文件投標、文件不符規定、借用冒用名義證件、以不實文件投標、不同廠商投標文件重大異常關聯、有第103條第1項不得參加投標情形、其他影響採購公正之違法行為等。開標後發現者應不決標予該廠商。",
+      "faithfulness": 0.783,
+      "answer_relevance": 1,
+      "context_recall": 0.667,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G008",
+      "question": "採購法第56條對最有利標評選有何程序要求？",
+      "kind": "rag_gold",
+      "answer_preview": "決標依第52條第1項第3款者，應依招標文件評審標準就技術、品質、功能、商業條款或價格等作綜合評選；未列入項目不得作評選參考。無法評定時得協商後再評選，綜合評選不得逾三次；仍無法評定應廢標。採最有利標應先報上級機關核准。",
+      "faithfulness": 0.838,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G009",
+      "question": "現行查核金額、公告金額各是多少？",
+      "kind": "rag_gold",
+      "answer_preview": "依工程會門檻彙整：查核金額為工程及財物新臺幣5,000萬元、勞務1,000萬元；公告金額工程／財物／勞務一律150萬元。實際適用以工程會最新公告為準。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G010",
+      "question": "中央機關小額採購金額門檻是多少？",
+      "kind": "rag_gold",
+      "answer_preview": "中央機關小額採購為新臺幣15萬元以下（公告金額150萬之十分之一以下）。地方機關另定，不得逾公告金額十分之一。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G011",
+      "question": "採購金額如何認定？是否含稅、後續擴充或選購？",
+      "kind": "rag_gold",
+      "answer_preview": "依施行細則第6條：採購金額於招標前認定；招標文件含選購或後續擴充者應計入預估金額；除招標文件另有規定外原則含稅（營業稅）。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G012",
+      "question": "新臺幣250萬元的資訊服務採購，屬哪一級距？",
+      "kind": "rag_gold",
+      "answer_preview": "資訊服務屬勞務（第7條）。勞務公告金額150萬、查核金額1,000萬，故250萬屬達公告金額、未達查核金額之勞務採購。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G013",
+      "question": "工程、財物、勞務的巨額採購門檻各是多少？",
+      "kind": "rag_gold",
+      "answer_preview": "依工程會彙整：工程2億元、財物1億元、勞務2,000萬元（新臺幣）以上屬巨額。以工程會最新公告為準。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G014",
+      "question": "什麼情況下公告金額以上採購得採選擇性招標？",
+      "kind": "rag_gold",
+      "answer_preview": "依第20條，符合經常性採購、投標文件審查費時長久、準備投標需高額費用、廠商資格條件複雜、或研究發展事項之一者，得採選擇性招標。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G015",
+      "question": "限制性招標與公開招標在程序上最大差異是什麼？",
+      "kind": "rag_gold",
+      "answer_preview": "依第18條，公開招標以公告邀請不特定廠商；限制性招標不經公告程序，邀請二家以上比價或僅邀請一家議價。公告金額以上採限制性招標須符合第22條各款情形。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G016",
+      "question": "未達公告金額之採購，招標方式如何規範？",
+      "kind": "rag_gold",
+      "answer_preview": "依第23條，未達公告金額之招標方式，中央由主管機關定之，地方由直轄市或縣（市）政府定之；地方未定者比照中央。中央實務上另依《中央機關未達公告金額採購招標辦法》辦理（例如公開取得書面報價或企劃書等）。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G017",
+      "question": "公開招標等標期，公告金額以上未達查核金額至少幾日？",
+      "kind": "rag_gold",
+      "answer_preview": "依《招標期限標準》第2條，公開招標等標期除另有規定外，公告金額以上未達查核金額之採購不得少於十四日。",
+      "faithfulness": 0.783,
+      "answer_relevance": 1,
+      "context_recall": 0.667,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G018",
+      "question": "機關得否以統包方式辦理招標？統包所指為何？",
+      "kind": "rag_gold",
+      "answer_preview": "依第24條，機關基於效率及品質要求，得以統包辦理招標。統包指將工程或財物採購中之設計與施工、供應、安裝或一定期間維修等併於同一採購契約辦理招標；實施辦法由主管機關定之。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G019",
+      "question": "最有利標和最低標有什麼不同？",
+      "kind": "rag_gold",
+      "answer_preview": "最低標（第52條第1項第1、2款）以合於招標文件且價格條件（底價內或預算內標價合理）之最低者得標；最有利標（第1項第3款、第56條）依評審標準就技術、品質、功能、商業條款或價格等綜合評選。二者擇一載明於招標文件，並非金額達標即必須最低標。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G020",
+      "question": "公告金額以上之資訊服務採購，決標原則有何特別規定？",
+      "kind": "rag_gold",
+      "answer_preview": "依第52條第2項，機關辦理公告金額以上之專業服務、技術服務、資訊服務、社會福利服務或文化創意服務者，以不訂底價之最有利標為原則。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G021",
+      "question": "採最有利標決標是否須報上級機關核准？",
+      "kind": "rag_gold",
+      "answer_preview": "依第56條第3項，機關採最有利標決標者，應先報經上級機關核准。評選辦法由主管機關定之。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G022",
+      "question": "什麼是複數決標？應符合什麼競標精神？",
+      "kind": "rag_gold",
+      "answer_preview": "依第52條第1項第4款，機關得於招標文件公告保留採購項目或數量選擇之組合權利，採複數決標，但應合於最低價格或最有利標之競標精神。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G023",
+      "question": "以公開招標或選擇性招標辦理時，是否得不論金額採最有利標？",
+      "kind": "rag_gold",
+      "answer_preview": "依最有利標作業手冊說明，以公開招標或選擇性招標辦理採購，得不論採購金額大小，視個案依第52條第1項第3款以最有利標決標（並應遵守評選／核准等相關程序）。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G024",
+      "question": "公告金額以上採購是否一定要公開招標？",
+      "kind": "rag_gold",
+      "answer_preview": "不一定。依第19條原則應公開招標，但符合第20條得採選擇性招標，符合第22條所定情形者得採限制性招標。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G025",
+      "question": "第22條第1項第9款公開評選限制性招標適用哪些服務？是否適用財物採購？",
+      "kind": "rag_gold",
+      "answer_preview": "第9款適用委託專業服務、技術服務、資訊服務或社會福利服務，經公開客觀評選為優勝者。屬勞務範疇，不適用財物採購，亦不適用工程採購。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G026",
+      "question": "依第22條第1項第9款辦理公開評選之限制性招標，第一次開標是否也要三家合格廠商？",
+      "kind": "rag_gold",
+      "answer_preview": "否。施行細則第55條說明第48條「三家以上合格廠商」係指公開招標；依第22條第1項第9款公開評選之限制性招標，第一次開標不適用該三家規定，有一家合格廠商投標即得開標。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G027",
+      "question": "因相容性必須向原廠採購後續維修零配件，可能依哪一款採限制性招標？",
+      "kind": "rag_gold",
+      "answer_preview": "可能依第22條第1項第4款：原有採購之後續維修、零配件供應、更換或擴充，因相容或互通性之需要，必須向原供應廠商採購者。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G028",
+      "question": "追加契約外工程得依第22條第1項第6款限制性招標的金額上限是什麼？",
+      "kind": "rag_gold",
+      "answer_preview": "第6款規定追加契約以外之工程須符合要件，且未逾原主契約金額百分之五十者，始得洽原訂約廠商以限制性招標辦理。",
+      "faithfulness": 0.838,
+      "answer_relevance": 1,
+      "context_recall": 0.75,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G029",
+      "question": "公告金額以上採購之開標、決標及驗收，監辦規定為何？",
+      "kind": "rag_gold",
+      "answer_preview": "依第13條第1項，機關辦理公告金額以上採購之開標、比價、議價、決標及驗收，除有特殊情形者外，應由其主（會）計及有關單位會同監辦。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G030",
+      "question": "未達公告金額採購何時應通知派員監辦？",
+      "kind": "rag_gold",
+      "answer_preview": "依《中央機關未達公告金額採購監辦辦法》：未達公告金額而逾公告金額十分之一者，開標、比價、議價、決標及驗收時應通知派員監辦；公告金額十分之一以下得不通知。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G031",
+      "question": "驗收結果與契約規定不符時，機關可以怎麼處理？",
+      "kind": "rag_gold",
+      "answer_preview": "依第72條，應通知廠商限期改善、拆除、重作、退貨或換貨。不符部分非屬重要且其他部分能先行使用並經檢討必要者，得經核准就其他部分驗收並支付部分價金。不妨礙安全使用且無減少效用者，必要時得減價收受（查核金額以上須報上級核准）。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G032",
+      "question": "工程採購驗收完畢後應作成什麼文件？",
+      "kind": "rag_gold",
+      "answer_preview": "依第73條，工程、財物採購經驗收完畢後，應由驗收及監驗人員於結算驗收證明書上分別簽認；勞務驗收準用之。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G033",
+      "question": "機關對廠商履約過程得否辦理分段查驗？",
+      "kind": "rag_gold",
+      "answer_preview": "依第70條第2項，機關於廠商履約過程得辦理分段查驗，其結果並得供驗收之用。工程採購並應明訂品質管理、環安衛責任及重點檢查程序。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G034",
+      "question": "某機關辦理預算250萬元資訊系統維運（資訊服務），擬依第22條第1項第9款公開評選限制性招標。第一次開標有1家合格廠商，可否開標？決標原則應如何考量？",
+      "kind": "rag_gold",
+      "answer_preview": "可以開標：第9款限制性招標第一次開標不適用公開招標三家規定（施行細則第55條對照）。本案屬公告金額以上資訊服務，依第52條第2項以不訂底價之最有利標為原則，並應遵守評選及上級核准等規定。",
+      "faithfulness": 0.783,
+      "answer_relevance": 1,
+      "context_recall": 0.667,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G035",
+      "question": "某機關辦理4,800萬元財物採購，承辦人主張依第22條第1項第9款公開評選、第一次開標只需1家。此主張是否正確？",
+      "kind": "deterministic",
+      "answer_preview": "不正確。第22條第1項第9款僅適用專業／技術／資訊／社福等勞務服務，不適用財物。財物案不得套用第9款「一家即可」；應依實際招標方式適用規則（若公開招標則第一次原則需三家以上合格廠商）。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G036",
+      "question": "中央機關辦理80萬元工程採購，屬哪一級距？招標方式主要依何規範？",
+      "kind": "rag_gold",
+      "answer_preview": "工程公告金額150萬，80萬屬未達公告金額（且高於小額15萬）。招標方式依第23條及《中央機關未達公告金額採購招標辦法》等規定辦理，而非逕依公告金額以上之第19條公開招標原則。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G037",
+      "question": "公開招標第一次開標僅2家合格廠商而流標，第二次招標開標家數是否仍受三家限制？",
+      "kind": "rag_gold",
+      "answer_preview": "依第48條，第一次開標因未滿三家而流標者，第二次招標之等標期間得予縮短，並得不受前項三家廠商之限制。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G038",
+      "question": "機關辦理查核金額以上採購之開標決標驗收，除機關內部監辦外，還有何上級監辦義務？",
+      "kind": "rag_gold",
+      "answer_preview": "依第12條，辦理查核金額以上採購之開標、比價、議價、決標及驗收時，應於規定期限內檢送相關文件報請上級機關派員監辦；上級得訂授權條件由機關自行辦理。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G039",
+      "question": "廠商投標文件內容不符合招標文件規定，機關於開標後發現，應如何處理？",
+      "kind": "rag_gold",
+      "answer_preview": "依第50條第1項，於開標後發現者，應不決標予該廠商。若因此致採購程序無法繼續進行，機關得宣布廢標。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G040",
+      "question": "某勞務採購預算1,200萬元，屬哪一級距？若採最有利標，程序上應注意什麼？",
+      "kind": "rag_gold",
+      "answer_preview": "勞務查核金額1,000萬、巨額2,000萬，故1,200萬屬達查核金額、未達巨額之勞務。若採最有利標，須依第52、56條辦理評選，並應先報上級機關核准；若屬公告金額以上專業／技術／資訊／社福／文創服務，原則不訂底價之最有利標。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G041",
+      "question": "請說明公開招標「三家以上合格廠商」的法源，以及其是否適用第22條第1項第9款限制性招標。",
+      "kind": "rag_gold",
+      "answer_preview": "母法第48條規定三家以上合格廠商投標應開標決標；施行細則第55條明示該「三家」係指公開招標。故第22條第1項第9款公開評選限制性招標不適用該三家限制。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G042",
+      "question": "未達公告金額監辦與公告金額以上會同監辦，法源與門檻有何不同？",
+      "kind": "rag_gold",
+      "answer_preview": "公告金額以上依採購法第13條由主（會）計及有關單位會同監辦。未達公告金額則依第13條第2項授權，中央適用《中央機關未達公告金額採購監辦辦法》，以是否逾公告金額十分之一區分應通知／得不通知派員監辦。兩者不可混用。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G043",
+      "question": "決標原則寫在哪一條？最有利標評選程序又在哪一條？兩者如何銜接？",
+      "kind": "rag_gold",
+      "answer_preview": "決標原則在第52條（四原則擇一載明）；採第52條第1項第3款最有利標時，評選程序依第56條辦理（綜合評選、協商、核准等）。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G044",
+      "question": "如何判斷一筆「資訊服務」採購的金額級距，並說明可能的招標／決標路徑？",
+      "kind": "rag_gold",
+      "answer_preview": "先依第7條認定資訊服務為勞務，再對照工程會勞務門檻（公告150萬、查核1,000萬、巨額2,000萬）定級距。若達公告金額，原則公開招標（第19條），亦可能符合第22條第1項第9款公開評選限制性招標；決標則依第52條第2項以不訂底價最有利標為原則。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G045",
+      "question": "採購金額認定（施行細則）與金額門檻（工程會公告）分別解決什麼問題？",
+      "kind": "rag_gold",
+      "answer_preview": "施行細則第6條解決「金額怎麼算」（招標前認定、選購／後續擴充計入、原則含稅）；工程會門檻公告解決「算出來的金額落在哪一級距」（小額／公告／查核／巨額數字）。二者需串接使用。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G046",
+      "question": "100萬元以上的採購應依最低標原則辦理。",
+      "kind": "deterministic",
+      "answer_preview": "不正確。第52條是四原則擇一並載明於招標文件，並非逾100萬或達公告金額一律最低標。亦可能採最有利標或複數決標；公告金額以上特定服務並以不訂底價最有利標為原則。現行公告金額為150萬，100萬亦非第52條所定決標門檻。",
+      "faithfulness": 0.838,
+      "answer_relevance": 1,
+      "context_recall": 0.75,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G047",
+      "question": "公開招標和限制性招標第一次開標都一定要三家合格廠商才可以開標。",
+      "kind": "deterministic",
+      "answer_preview": "不正確。第48條三家以上規定，依施行細則第55條係針對公開招標。限制性招標（例如第22條第1項第9款公開評選）第一次開標不適用該三家限制。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G048",
+      "question": "公告金額以上採購一律必須公開招標，沒有例外。",
+      "kind": "deterministic",
+      "answer_preview": "不正確。第19條雖以公開招標為原則，但符合第20條得採選擇性招標，符合第22條得採限制性招標。",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 1,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G049",
+      "question": "今天台北天氣如何？",
+      "kind": "off_topic",
+      "answer_preview": "非本主題的範圍",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 0,
+      "latency_ms": 0,
+      "model": "gold-self"
+    },
+    {
+      "id": "G050",
+      "question": "請幫我寫一段 Python 爬蟲程式碼。",
+      "kind": "off_topic",
+      "answer_preview": "非本主題的範圍",
+      "faithfulness": 1,
+      "answer_relevance": 1,
+      "context_recall": 0,
+      "latency_ms": 0,
+      "model": "gold-self"
+    }
+  ],
+  "latency": {
+    "note": "golden dataset phase1; citation_accuracy_mean=0.826; refuse_accuracy=1; coverage={\"法條直接查詢\":{\"ready\":8,\"planned\":7},\"採購金額／門檻判斷\":{\"ready\":5,\"planned\":5},\"招標方式\":{\"ready\":5,\"planned\":5},\"決標方式\":{\"ready\":5,\"planned\":5},\"限制性招標／第22條\":{\"ready\":5,\"planned\":5},\"履約／驗收\":{\"ready\":5,\"planned\":5},\"情境案例題\":{\"ready\":7,\"planned\":8},\"跨條文／跨文件題\":{\"ready\":5,\"planned\":5},\"錯誤前提題\":{\"ready\":3,\"planned\":2},\"Out-of-domain\":{\"ready\":2,\"planned\":3}}"
+  },
+  "golden": {
+    "citation_accuracy_mean": 0.826,
+    "refuse_accuracy": 1,
+    "coverage": {
+      "ready": 50,
+      "planned": 50,
+      "byCategory": {
+        "法條直接查詢": {
+          "ready": 8,
+          "planned": 7
+        },
+        "採購金額／門檻判斷": {
+          "ready": 5,
+          "planned": 5
+        },
+        "招標方式": {
+          "ready": 5,
+          "planned": 5
+        },
+        "決標方式": {
+          "ready": 5,
+          "planned": 5
+        },
+        "限制性招標／第22條": {
+          "ready": 5,
+          "planned": 5
+        },
+        "履約／驗收": {
+          "ready": 5,
+          "planned": 5
+        },
+        "情境案例題": {
+          "ready": 7,
+          "planned": 8
+        },
+        "跨條文／跨文件題": {
+          "ready": 5,
+          "planned": 5
+        },
+        "錯誤前提題": {
+          "ready": 3,
+          "planned": 2
+        },
+        "Out-of-domain": {
+          "ready": 2,
+          "planned": 3
+        }
+      }
+    }
+  }
+}
