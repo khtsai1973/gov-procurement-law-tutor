@@ -8,6 +8,7 @@
 |------|------|-------------|
 | **Faithfulness（忠實度）** | 回答關鍵事實是否可由檢索／金標法條上下文支撐 | mean ≥ 0.70 |
 | **Answer Relevance（相關性）** | 回答是否精準對準使用者採購法問題 | mean ≥ 0.70 |
+| **Citation Accuracy（引文正確率）** | 預期條號／來源是否出現在答案（可含片段標註） | mean ≥ 0.65（見 FRC） |
 | **Context Recall（參考）** | 金標要件是否出現在上下文 | 報告用 |
 | **Latency** | 頁面暖機 TTFB p95 &lt; 0.5s；問答採 SSE 串流 | `npm run ttfb:check` |
 
@@ -38,12 +39,16 @@ npm run ttfb:check
 npm run test:rag-golden
 npm run rag:eval:golden
 
+# FRC 三指標專項
+npm run test:rag-frc
+npm run rag:eval:frc
+
 # Baseline / Contextual / Parent-Document 比較
 npm run test:rag-compare
 npm run rag:eval:compare
 ```
 
-詳見 [`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)。
+詳見 [`docs/RAG-FRC.md`](./RAG-FRC.md)、[`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)。
 
 ## 與 Ragas 的對應
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Golden Dataset 離線評測（Phase1 50 題）
+ * Golden Dataset 離線評測（Phase1 50 題）— 含 FRC
  *
- * - 預設：以 gold_answer 自洽評分（驗證標註品質／must_include）
- * - GOLDEN_EVAL_MODE=modules：優先走既有確定性模組，否則用 gold_answer
+ * - 預設：以 gold_answer 自洽評分
+ * - GOLDEN_EVAL_MODE=modules：優先走既有確定性模組
  *
  *   npm run rag:eval:golden
  */
@@ -11,6 +11,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { scoreFRC } from "../src/lib/rag-eval/frc";
 import {
   goldenToRagEvalCase,
   listReadyGoldenItems,
@@ -25,19 +26,6 @@ import {
 import { mean } from "../src/lib/rag-eval/metrics";
 import type { RagEvalCaseScore, RagEvalReport } from "../src/lib/rag-eval/types";
 
-function citationAccuracy(answer: string, articles: string[]): number | null {
-  if (!articles.length) return null;
-  const norm = (s: string) => s.replace(/\s+/g, "");
-  const a = norm(answer);
-  const hits = articles.filter((art) => {
-    const n = norm(art);
-    if (a.includes(n)) return true;
-    const m = n.match(/第(\d+)條/);
-    return m ? a.includes(`第${m[1]}條`) : false;
-  });
-  return hits.length / articles.length;
-}
-
 async function main() {
   const mode = (process.env.GOLDEN_EVAL_MODE || "gold").toLowerCase();
   const ds = loadGoldenDataset();
@@ -48,7 +36,13 @@ async function main() {
   );
 
   const scored: RagEvalCaseScore[] = [];
-  const citeScores: number[] = [];
+  const frcRows: Array<{
+    id: string;
+    faithfulness: number;
+    relevance: number;
+    citation_accuracy: number | null;
+    frc_mean: number;
+  }> = [];
   let refuseOk = 0;
   let refuseTotal = 0;
 
@@ -66,11 +60,28 @@ async function main() {
       model = "gold-self";
     }
     const latency_ms = Date.now() - t0;
-    const row = scoreCase({ case: c, answer, contexts: c.contexts, latency_ms, model });
-    scored.push(row);
+    scored.push(
+      scoreCase({ case: c, answer, contexts: c.contexts, latency_ms, model }),
+    );
 
-    const cite = citationAccuracy(answer, item.expected_articles);
-    if (cite != null) citeScores.push(cite);
+    const frc = scoreFRC({
+      question: item.question,
+      answer,
+      contexts: c.contexts,
+      mustInclude: c.must_include,
+      relevanceKeywords: c.relevance_keywords,
+      expectedArticles: item.expected_articles,
+      expectedSources: item.expected_sources,
+      behavior: item.expected_behavior,
+      expectFragmentMarkers: false,
+    });
+    frcRows.push({
+      id: item.id,
+      faithfulness: frc.faithfulness,
+      relevance: frc.relevance,
+      citation_accuracy: frc.citation_accuracy,
+      frc_mean: frc.frc_mean,
+    });
 
     if (item.expected_behavior === "refuse") {
       refuseTotal += 1;
@@ -80,7 +91,11 @@ async function main() {
 
   const fMean = mean(scored.map((s) => s.faithfulness));
   const rMean = mean(scored.map((s) => s.answer_relevance));
-  const citeMean = citeScores.length ? mean(citeScores) : null;
+  const citeVals = frcRows
+    .map((r) => r.citation_accuracy)
+    .filter((n): n is number => n != null);
+  const citeMean = citeVals.length ? mean(citeVals) : null;
+  const frcMean = mean(frcRows.map((r) => r.frc_mean));
   const refuseRate = refuseTotal ? refuseOk / refuseTotal : null;
 
   const thresholds = {
@@ -101,48 +116,61 @@ async function main() {
       context_recall_mean: mean(
         scored.map((s) => s.context_recall).filter((n): n is number => n != null),
       ),
-      pass: fMean >= thresholds.faithfulness && rMean >= thresholds.answer_relevance,
+      pass:
+        fMean >= thresholds.faithfulness &&
+        rMean >= thresholds.answer_relevance,
     },
     cases: scored,
     latency: {
-      note: `golden dataset phase1; citation_accuracy_mean=${citeMean}; refuse_accuracy=${refuseRate}; coverage=${JSON.stringify(cov.byCategory)}`,
+      note: `golden FRC; citation_accuracy_mean=${citeMean}; frc_mean=${frcMean}; refuse_accuracy=${refuseRate}`,
     },
   };
 
-  const outDir = process.env.RAG_EVAL_OUT_DIR || path.join(process.cwd(), "docs", "evidence");
+  const outDir =
+    process.env.RAG_EVAL_OUT_DIR || path.join(process.cwd(), "docs", "evidence");
   mkdirSync(outDir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const jsonPath = path.join(outDir, `rag-golden-${stamp}.json`);
   const mdPath = path.join(outDir, `rag-golden-${stamp}.md`);
-  const latestJson = path.join(outDir, "rag-golden-latest.json");
-  const latestMd = path.join(outDir, "rag-golden-latest.md");
 
   const extra = [
     "",
-    "## Golden 補充指標",
+    "## FRC（Faithfulness + Relevance + Citation）",
     "",
-    `| Citation Accuracy（條號命中） | ${citeMean ?? "—"} |`,
+    `| Faithfulness | ${fMean} |`,
+    `| Relevance | ${rMean} |`,
+    `| Citation Accuracy | ${citeMean ?? "—"} |`,
+    `| **FRC mean** | **${frcMean}** |`,
     `| 拒答正確率 | ${refuseRate ?? "—"} |`,
-    `| Phase1 ready | ${cov.ready} |`,
-    `| Phase2 planned | ${cov.planned} |`,
     "",
   ].join("\n");
 
   const jsonText = JSON.stringify(
-    { ...report, golden: { citation_accuracy_mean: citeMean, refuse_accuracy: refuseRate, coverage: cov } },
+    {
+      ...report,
+      frc: {
+        faithfulness_mean: fMean,
+        relevance_mean: rMean,
+        citation_accuracy_mean: citeMean,
+        frc_mean: frcMean,
+        refuse_accuracy: refuseRate,
+        cases: frcRows,
+        coverage: cov,
+      },
+    },
     null,
     2,
   );
   const mdText = formatRagEvalMarkdown(report) + extra;
   writeFileSync(jsonPath, jsonText);
   writeFileSync(mdPath, mdText);
-  writeFileSync(latestJson, jsonText);
-  writeFileSync(latestMd, mdText);
+  writeFileSync(path.join(outDir, "rag-golden-latest.json"), jsonText);
+  writeFileSync(path.join(outDir, "rag-golden-latest.md"), mdText);
 
   console.log(jsonText);
   console.error(`Wrote ${mdPath}`);
   console.error(
-    `faithfulness=${fMean} relevance=${rMean} citation=${citeMean} refuse=${refuseRate} pass=${report.summary.pass}`,
+    `F=${fMean} R=${rMean} C=${citeMean} FRC=${frcMean} refuse=${refuseRate} pass=${report.summary.pass}`,
   );
   if (!report.summary.pass) process.exit(1);
 }

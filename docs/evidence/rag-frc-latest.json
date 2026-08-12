@@ -1,0 +1,842 @@
+{
+  "generated_at": "2026-08-12T13:43:23.043Z",
+  "framework": "frc-ts",
+  "mode": "golden-offline",
+  "n": 50,
+  "thresholds": {
+    "faithfulness": 0.7,
+    "relevance": 0.7,
+    "citation": 0.65
+  },
+  "summary": {
+    "faithfulness_mean": 0.973,
+    "relevance_mean": 1,
+    "citation_accuracy_mean": 0.73,
+    "frc_mean": 0.905,
+    "pass": true
+  },
+  "by_category": {
+    "法條直接查詢": {
+      "n": 8,
+      "faithfulness_mean": 0.926,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.709,
+      "frc_mean": 0.878
+    },
+    "採購金額／門檻判斷": {
+      "n": 5,
+      "faithfulness_mean": 1,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.615,
+      "frc_mean": 0.872
+    },
+    "招標方式": {
+      "n": 5,
+      "faithfulness_mean": 0.957,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.895,
+      "frc_mean": 0.951
+    },
+    "決標方式": {
+      "n": 5,
+      "faithfulness_mean": 1,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.865,
+      "frc_mean": 0.955
+    },
+    "限制性招標／第22條": {
+      "n": 5,
+      "faithfulness_mean": 0.968,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.525,
+      "frc_mean": 0.831
+    },
+    "履約／驗收": {
+      "n": 5,
+      "faithfulness_mean": 1,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.71,
+      "frc_mean": 0.903
+    },
+    "情境案例題": {
+      "n": 7,
+      "faithfulness_mean": 0.969,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.663,
+      "frc_mean": 0.877
+    },
+    "跨條文／跨文件題": {
+      "n": 5,
+      "faithfulness_mean": 1,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.812,
+      "frc_mean": 0.937
+    },
+    "錯誤前提題": {
+      "n": 3,
+      "faithfulness_mean": 0.946,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": 0.875,
+      "frc_mean": 0.94
+    },
+    "Out-of-domain": {
+      "n": 2,
+      "faithfulness_mean": 1,
+      "relevance_mean": 1,
+      "citation_accuracy_mean": null,
+      "frc_mean": 1
+    }
+  },
+  "cases": [
+    {
+      "id": "G001",
+      "category": "法條直接查詢",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 1,
+      "citation": {
+        "score": 1,
+        "article_hit": 1,
+        "source_hit": 1,
+        "fragment_marker": null
+      },
+      "frc_mean": 1
+    },
+    {
+      "id": "G002",
+      "category": "法條直接查詢",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G003",
+      "category": "法條直接查詢",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G004",
+      "category": "法條直接查詢",
+      "behavior": "answer",
+      "faithfulness": 0.783,
+      "relevance": 1,
+      "citation_accuracy": 0,
+      "citation": {
+        "score": 0,
+        "article_hit": 0,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.594
+    },
+    {
+      "id": "G005",
+      "category": "法條直接查詢",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G006",
+      "category": "法條直接查詢",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G007",
+      "category": "法條直接查詢",
+      "behavior": "answer",
+      "faithfulness": 0.783,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.878
+    },
+    {
+      "id": "G008",
+      "category": "法條直接查詢",
+      "behavior": "answer",
+      "faithfulness": 0.838,
+      "relevance": 1,
+      "citation_accuracy": 0.425,
+      "citation": {
+        "score": 0.425,
+        "article_hit": 0.5,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.754
+    },
+    {
+      "id": "G009",
+      "category": "採購金額／門檻判斷",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 1,
+      "citation": {
+        "score": 1,
+        "article_hit": null,
+        "source_hit": 1,
+        "fragment_marker": null
+      },
+      "frc_mean": 1
+    },
+    {
+      "id": "G010",
+      "category": "採購金額／門檻判斷",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.15,
+      "citation": {
+        "score": 0.15,
+        "article_hit": 0,
+        "source_hit": 1,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.717
+    },
+    {
+      "id": "G011",
+      "category": "採購金額／門檻判斷",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 1,
+      "citation": {
+        "score": 1,
+        "article_hit": 1,
+        "source_hit": 1,
+        "fragment_marker": null
+      },
+      "frc_mean": 1
+    },
+    {
+      "id": "G012",
+      "category": "採購金額／門檻判斷",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.925,
+      "citation": {
+        "score": 0.925,
+        "article_hit": 1,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.975
+    },
+    {
+      "id": "G013",
+      "category": "採購金額／門檻判斷",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0,
+      "citation": {
+        "score": 0,
+        "article_hit": null,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.667
+    },
+    {
+      "id": "G014",
+      "category": "招標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G015",
+      "category": "招標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G016",
+      "category": "招標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.925,
+      "citation": {
+        "score": 0.925,
+        "article_hit": 1,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.975
+    },
+    {
+      "id": "G017",
+      "category": "招標方式",
+      "behavior": "answer",
+      "faithfulness": 0.783,
+      "relevance": 1,
+      "citation_accuracy": 1,
+      "citation": {
+        "score": 1,
+        "article_hit": 1,
+        "source_hit": 1,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.928
+    },
+    {
+      "id": "G018",
+      "category": "招標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G019",
+      "category": "決標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G020",
+      "category": "決標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G021",
+      "category": "決標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G022",
+      "category": "決標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G023",
+      "category": "決標方式",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.925,
+      "citation": {
+        "score": 0.925,
+        "article_hit": 1,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.975
+    },
+    {
+      "id": "G024",
+      "category": "限制性招標／第22條",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G025",
+      "category": "限制性招標／第22條",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0,
+      "citation": {
+        "score": 0,
+        "article_hit": 0,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.667
+    },
+    {
+      "id": "G026",
+      "category": "限制性招標／第22條",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.925,
+      "citation": {
+        "score": 0.925,
+        "article_hit": 1,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.975
+    },
+    {
+      "id": "G027",
+      "category": "限制性招標／第22條",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G028",
+      "category": "限制性招標／第22條",
+      "behavior": "answer",
+      "faithfulness": 0.838,
+      "relevance": 1,
+      "citation_accuracy": 0,
+      "citation": {
+        "score": 0,
+        "article_hit": 0,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.613
+    },
+    {
+      "id": "G029",
+      "category": "履約／驗收",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G030",
+      "category": "履約／驗收",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.15,
+      "citation": {
+        "score": 0.15,
+        "article_hit": 0,
+        "source_hit": 1,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.717
+    },
+    {
+      "id": "G031",
+      "category": "履約／驗收",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G032",
+      "category": "履約／驗收",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G033",
+      "category": "履約／驗收",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G034",
+      "category": "情境案例題",
+      "behavior": "answer",
+      "faithfulness": 0.783,
+      "relevance": 1,
+      "citation_accuracy": 0.642,
+      "citation": {
+        "score": 0.642,
+        "article_hit": 0.6666666666666666,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.808
+    },
+    {
+      "id": "G035",
+      "category": "情境案例題",
+      "behavior": "correct",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.425,
+      "citation": {
+        "score": 0.425,
+        "article_hit": 0.5,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.808
+    },
+    {
+      "id": "G036",
+      "category": "情境案例題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.95,
+      "citation": {
+        "score": 0.95,
+        "article_hit": 1,
+        "source_hit": 0.6666666666666666,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.983
+    },
+    {
+      "id": "G037",
+      "category": "情境案例題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G038",
+      "category": "情境案例題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G039",
+      "category": "情境案例題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G040",
+      "category": "情境案例題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.075,
+      "citation": {
+        "score": 0.075,
+        "article_hit": 0,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.692
+    },
+    {
+      "id": "G041",
+      "category": "跨條文／跨文件題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.925,
+      "citation": {
+        "score": 0.925,
+        "article_hit": 1,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.975
+    },
+    {
+      "id": "G042",
+      "category": "跨條文／跨文件題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.358,
+      "citation": {
+        "score": 0.358,
+        "article_hit": 0.3333333333333333,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.786
+    },
+    {
+      "id": "G043",
+      "category": "跨條文／跨文件題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G044",
+      "category": "跨條文／跨文件題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.925,
+      "citation": {
+        "score": 0.925,
+        "article_hit": 1,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.975
+    },
+    {
+      "id": "G045",
+      "category": "跨條文／跨文件題",
+      "behavior": "answer",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 1,
+      "citation": {
+        "score": 1,
+        "article_hit": 1,
+        "source_hit": 1,
+        "fragment_marker": null
+      },
+      "frc_mean": 1
+    },
+    {
+      "id": "G046",
+      "category": "錯誤前提題",
+      "behavior": "correct",
+      "faithfulness": 0.838,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.896
+    },
+    {
+      "id": "G047",
+      "category": "錯誤前提題",
+      "behavior": "correct",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.925,
+      "citation": {
+        "score": 0.925,
+        "article_hit": 1,
+        "source_hit": 0.5,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.975
+    },
+    {
+      "id": "G048",
+      "category": "錯誤前提題",
+      "behavior": "correct",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": 0.85,
+      "citation": {
+        "score": 0.85,
+        "article_hit": 1,
+        "source_hit": 0,
+        "fragment_marker": null
+      },
+      "frc_mean": 0.95
+    },
+    {
+      "id": "G049",
+      "category": "Out-of-domain",
+      "behavior": "refuse",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": null,
+      "citation": {
+        "score": null,
+        "article_hit": null,
+        "source_hit": null,
+        "fragment_marker": null
+      },
+      "frc_mean": 1
+    },
+    {
+      "id": "G050",
+      "category": "Out-of-domain",
+      "behavior": "refuse",
+      "faithfulness": 1,
+      "relevance": 1,
+      "citation_accuracy": null,
+      "citation": {
+        "score": null,
+        "article_hit": null,
+        "source_hit": null,
+        "fragment_marker": null
+      },
+      "frc_mean": 1
+    }
+  ]
+}

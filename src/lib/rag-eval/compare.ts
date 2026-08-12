@@ -2,9 +2,9 @@
  * Baseline / Contextual / Parent-Document RAG 比較管線。
  */
 
+import { scoreCitationAccuracyFr } from "@/lib/rag-eval/frc";
 import {
   latencySummary,
-  scoreCitationAccuracy,
   scoreRetrievalHitRate,
 } from "@/lib/rag-eval/compare-metrics";
 import {
@@ -134,7 +134,11 @@ export function scoreRetrievedAgainstGolden(params: {
     answer,
     relevanceKeywords: evalCase.relevance_keywords,
   });
-  const citation_accuracy = scoreCitationAccuracy(answer, item.expected_articles);
+  const citation_accuracy = scoreCitationAccuracyFr(answer, item.expected_articles, {
+    expectedSources: item.expected_sources,
+    behavior: item.expected_behavior,
+    expectFragmentMarkers: Boolean(answer.match(/\[\s*片段/)),
+  });
 
   return {
     retrieval_hit_rate: hit,

@@ -54,19 +54,11 @@ npm run rag:eval:compare
 
 ## 指標
 
-- Faithfulness、Answer Relevance  
-- Citation Accuracy（對 `expected_articles`／`expected_sources`）  
-- Retrieval Hit Rate  
-- 拒答正確率（`expected_behavior=refuse`）  
-- Latency  
-
-## 指令
+- **Faithfulness、Relevance、Citation Accuracy（FRC）** — 見 [`docs/RAG-FRC.md`](./RAG-FRC.md)  
+- Retrieval Hit Rate、拒答正確率、Latency — 見策略比較  
 
 ```bash
-# 驗證金標結構＋抽樣自洽評分
-npm run test:rag-golden
-
-# 以 Phase1 50 題跑離線評測（金標自洽／轉接既有 scorer）
+npm run rag:eval:frc
 npm run rag:eval:golden
 ```
 
