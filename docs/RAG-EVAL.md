@@ -37,7 +37,13 @@ npm run ttfb:check
 ```bash
 npm run test:rag-golden
 npm run rag:eval:golden
+
+# Baseline / Contextual / Parent-Document 比較
+npm run test:rag-compare
+npm run rag:eval:compare
 ```
+
+詳見 [`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)。
 
 ## 與 Ragas 的對應
 
