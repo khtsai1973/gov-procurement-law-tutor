@@ -36,7 +36,8 @@
     "test:rag-eval": "tsx --test src/lib/rag-eval/metrics.test.ts",
     "test:rag-golden": "tsx --test src/lib/rag-eval/golden.test.ts",
     "test:rag-compare": "tsx --test src/lib/rag-eval/compare.test.ts",
-    "test:rag-frc": "tsx --test src/lib/rag-eval/frc.test.ts"
+    "test:rag-frc": "tsx --test src/lib/rag-eval/frc.test.ts",
+    "test:guided-prompts": "tsx --test src/lib/guided-prompts.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
