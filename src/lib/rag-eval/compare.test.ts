@@ -9,7 +9,14 @@ import {
 import { parseStrategies, summarizeStrategy, type CompareCaseRow } from "./compare";
 import { applyRetrievalStrategy, type ChunkWithReg } from "@/lib/rag";
 
-function chunk(partial: Partial<ChunkWithReg> & { id: string; slug: string }): ChunkWithReg {
+function chunk(
+  partial: Partial<ChunkWithReg> & {
+    id: string;
+    slug: string;
+    title?: string;
+    tier?: string;
+  },
+): ChunkWithReg {
   return {
     id: partial.id,
     parentId: partial.parentId ?? null,

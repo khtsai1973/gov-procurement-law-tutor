@@ -7,14 +7,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnswerFeedback } from "@/components/AnswerFeedback";
 import { CitationAnswer } from "@/components/CitationAnswer";
 import type { CitationSource } from "@/lib/citations";
+import {
+  getGuidedScenario,
+  GUIDED_INTRO,
+  GUIDED_SCENARIOS,
+} from "@/lib/guided-prompts";
 import { getPromptSuggestionsByCategory, PROMPT_TIP } from "@/lib/prompt-suggestions";
-import { SCENARIO_TEMPLATES } from "@/lib/scenario-templates";
 
 /** 登入態由客戶端讀取，避免首頁 server 等待 session／DB */
 export function ChatPanel() {
   const { status } = useSession();
   const signedIn = status === "authenticated";
   const [question, setQuestion] = useState("");
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
+  const [showMoreExamples, setShowMoreExamples] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
   const [questionId, setQuestionId] = useState<string | null>(null);
   const [sources, setSources] = useState<CitationSource[] | null>(null);
@@ -36,6 +42,7 @@ export function ChatPanel() {
   }, [loading]);
 
   const suggestionsByCategory = useMemo(() => getPromptSuggestionsByCategory(), []);
+  const activeScenario = getGuidedScenario(activeScenarioId);
 
   function applyQuestion(text: string) {
     setQuestion(text);
@@ -44,9 +51,20 @@ export function ChatPanel() {
       const el = textareaRef.current;
       if (!el) return;
       el.focus();
-      const pos = text.includes("想請教：") ? text.length : text.length;
+      const marker = "想請教：";
+      const idx = text.indexOf(marker);
+      const pos = idx >= 0 ? idx + marker.length : text.length;
       el.setSelectionRange(pos, pos);
     });
+  }
+
+  function selectScenario(id: string) {
+    const next = activeScenarioId === id ? null : id;
+    setActiveScenarioId(next);
+    if (next) {
+      const s = getGuidedScenario(next);
+      if (s) applyQuestion(s.template);
+    }
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -79,7 +97,6 @@ export function ChatPanel() {
         return;
       }
 
-      // SSE 串流：先顯示狀態／逐步輸出，降低體感等待
       if (contentType.includes("text/event-stream") && res.body) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -141,7 +158,6 @@ export function ChatPanel() {
         return;
       }
 
-      // 相容：非串流 JSON
       const data = await res.json().catch(() => ({}));
       setAnswer(data.answer ?? "");
       setQuestionId(typeof data.questionId === "string" ? data.questionId : null);
@@ -206,26 +222,87 @@ export function ChatPanel() {
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <div className="chat-block-scenario rounded-lg p-4">
-          <p className="text-sm font-medium text-[var(--fg)]">情境模板</p>
-          <p className="mt-1 text-xs text-[var(--muted)]">點選後帶入填空式提問，請在括號內補充您的案情。</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {SCENARIO_TEMPLATES.map((t) => (
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-medium text-[var(--fg)]">① 選擇預設情境</p>
+            {activeScenarioId ? (
               <button
-                key={t.id}
                 type="button"
-                disabled={loading}
-                onClick={() => applyQuestion(t.body)}
-                className="rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--fg)] hover:border-blue-300 hover:bg-blue-50 disabled:opacity-60"
+                className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
+                onClick={() => setActiveScenarioId(null)}
               >
-                {t.label}
+                清除情境選擇
               </button>
-            ))}
+            ) : null}
           </div>
+          <p className="mt-1 text-xs text-[var(--muted)]">{GUIDED_INTRO}</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {GUIDED_SCENARIOS.map((s) => {
+              const selected = activeScenarioId === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => selectScenario(s.id)}
+                  aria-pressed={selected}
+                  className={
+                    selected
+                      ? "rounded-lg border border-sky-400 bg-sky-50 px-3 py-3 text-left transition disabled:opacity-60"
+                      : "rounded-lg border border-[var(--border)] bg-white/90 px-3 py-3 text-left hover:border-sky-300 hover:bg-sky-50/60 disabled:opacity-60"
+                  }
+                >
+                  <span className="block text-sm font-semibold text-[var(--fg)]">{s.title}</span>
+                  <span className="mt-1 block text-xs leading-snug text-[var(--muted)]">
+                    {s.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {activeScenario ? (
+            <div className="mt-4 rounded-lg border border-sky-100 bg-white/80 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium text-sky-950">
+                  ② 「{activeScenario.title}」提示詞範例
+                </p>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => applyQuestion(activeScenario.template)}
+                  className="rounded-md border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+                >
+                  重新帶入填空模板
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                點選範例可直接帶入完整問題；或使用填空模板補充您的案情。
+              </p>
+              <div className="mt-3 flex flex-col gap-2">
+                {activeScenario.starters.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => applyQuestion(q)}
+                    className="rounded-md border border-[var(--border)] bg-slate-50 px-3 py-2 text-left text-xs leading-snug text-[var(--fg)] hover:border-sky-300 hover:bg-sky-50 disabled:opacity-60"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="chat-block-question rounded-lg p-4">
           <label className="block text-sm font-medium text-[var(--fg)]" htmlFor="q">
-            您的問題
+            ③ 您的問題
+            {activeScenario ? (
+              <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+                （目前情境：{activeScenario.title}）
+              </span>
+            ) : null}
           </label>
           <textarea
             ref={textareaRef}
@@ -233,9 +310,9 @@ export function ChatPanel() {
             name="question"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            rows={6}
-            className="mt-2 w-full rounded-lg border border-[var(--border)] bg-white/95 p-3 text-sm outline-none ring-blue-200 backdrop-blur-sm focus:ring-2"
-            placeholder="例：未達公告金額採購，是否仍應公開閱覽招標文件？"
+            rows={7}
+            className="mt-2 w-full rounded-lg border border-[var(--border)] bg-white/95 p-3 text-sm outline-none ring-sky-200 backdrop-blur-sm focus:ring-2"
+            placeholder="可先選上方情境，或直接輸入。例：未達公告金額採購，是否仍應公開閱覽招標文件？"
             required
             minLength={2}
           />
@@ -254,36 +331,59 @@ export function ChatPanel() {
                 "送出"
               )}
             </button>
+            {question ? (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setQuestion("")}
+                className="text-xs text-[var(--muted)] underline-offset-2 hover:underline disabled:opacity-60"
+              >
+                清空內容
+              </button>
+            ) : null}
             {error ? <span className="text-sm text-red-600">{error}</span> : null}
           </div>
           <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">{PROMPT_TIP}</p>
         </div>
 
         <div className="chat-block-suggestions rounded-lg p-4">
-          <p className="text-sm font-medium text-[var(--fg)]">常見問題範例</p>
-          <p className="mt-1 text-xs text-[var(--muted)]">點選可帶入問題文字，再依需要修改後送出。</p>
-          <div className="mt-3 space-y-4">
-            {suggestionsByCategory.map(({ category, items }) => (
-              <div key={category}>
-                <p className="text-xs font-semibold text-[var(--muted)]">{category}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {items.map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      disabled={loading}
-                      onClick={() => applyQuestion(item.question)}
-                      className="max-w-full rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-2 text-left text-xs leading-snug text-[var(--fg)] hover:border-blue-300 hover:bg-blue-50 disabled:opacity-60"
-                    >
-                      {item.question}
-                    </button>
-                  ))}
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-2 text-left"
+            onClick={() => setShowMoreExamples((v) => !v)}
+            aria-expanded={showMoreExamples}
+          >
+            <span>
+              <span className="block text-sm font-medium text-[var(--fg)]">更多常見問題範例</span>
+              <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                依題庫分類瀏覽；點選可帶入文字後再修改。
+              </span>
+            </span>
+            <span className="text-xs text-[var(--muted)]">{showMoreExamples ? "收合" : "展開"}</span>
+          </button>
+          {showMoreExamples ? (
+            <div className="mt-3 space-y-4">
+              {suggestionsByCategory.map(({ category, items }) => (
+                <div key={category}>
+                  <p className="text-xs font-semibold text-[var(--muted)]">{category}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {items.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        disabled={loading}
+                        onClick={() => applyQuestion(item.question)}
+                        className="max-w-full rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-2 text-left text-xs leading-snug text-[var(--fg)] hover:border-sky-300 hover:bg-sky-50 disabled:opacity-60"
+                      >
+                        {item.question}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : null}
         </div>
-
       </form>
 
       {loading ? (
@@ -324,10 +424,7 @@ export function ChatPanel() {
       ) : null}
 
       {answer ? (
-        <div
-          ref={answerRef}
-          className="chat-block-answer mt-6 space-y-4 rounded-lg p-5"
-        >
+        <div ref={answerRef} className="chat-block-answer mt-6 space-y-4 rounded-lg p-5">
           <h2 className="text-base font-semibold">回答</h2>
           {sources && sources.length > 0 ? (
             <CitationAnswer answer={answer} sources={sources} />
