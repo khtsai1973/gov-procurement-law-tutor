@@ -31,8 +31,10 @@
     "ttfb:check": "node scripts/ttfb-check.mjs",
     "rag:eval": "tsx scripts/rag-eval.ts",
     "rag:eval:golden": "tsx scripts/rag-eval-golden.ts",
+    "rag:eval:compare": "tsx scripts/rag-eval-compare.ts",
     "test:rag-eval": "tsx --test src/lib/rag-eval/metrics.test.ts",
-    "test:rag-golden": "tsx --test src/lib/rag-eval/golden.test.ts"
+    "test:rag-golden": "tsx --test src/lib/rag-eval/golden.test.ts",
+    "test:rag-compare": "tsx --test src/lib/rag-eval/compare.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

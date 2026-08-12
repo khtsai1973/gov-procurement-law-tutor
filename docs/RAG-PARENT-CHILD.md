@@ -33,4 +33,10 @@ npm run db:generate
 npm run corpus:ingest
 ```
 
-檢索 mode 字串會帶 `+parent-child`（例如 `rag-hybrid-mmr+parent-child`）。
+檢索 mode 字串會帶策略標籤，例如：
+
+- `+strategy=baseline`
+- `+strategy=contextual`
+- `+strategy=parent_contextual+parent-child`（可再加 `+graphrag`）
+
+三策略比較實驗見 [`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)。

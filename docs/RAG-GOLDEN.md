@@ -45,6 +45,13 @@
 2. Contextual RAG  
 3. Parent-Document + Contextual RAG（可再加 Hybrid／GraphRAG）
 
+詳見 [`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)：
+
+```bash
+npm run test:rag-compare
+npm run rag:eval:compare
+```
+
 ## 指標
 
 - Faithfulness、Answer Relevance  

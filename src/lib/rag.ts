@@ -40,12 +40,100 @@ const RAG_ALLOWED_TIERS = new Set(["LAW", "REGULATION", "ADMIN_RULE", "INTERPRET
 
 export type ChunkWithReg = DocChunk & { regulation: Regulation };
 
+/** 期末報告／評測用檢索策略（生產預設 parent_contextual＋GraphRAG） */
+export type RagStrategy = "baseline" | "contextual" | "parent_contextual";
+
+export type RetrieveForRagOptions = {
+  strategy?: RagStrategy;
+  /** 比較實驗時可關閉 GraphRAG，避免與 Contextual 混淆 */
+  enableGraph?: boolean;
+};
+
 function isParentChunk(c: Pick<DocChunk, "chunkRole">): boolean {
   return c.chunkRole === "PARENT";
 }
 
 function isChildChunk(c: Pick<DocChunk, "chunkRole">): boolean {
   return c.chunkRole !== "PARENT";
+}
+
+/**
+ * 將 CHILD 命中依策略展開：
+ * - baseline：僅回傳命中的 Child（無 Parent 展開、無細則擴充、無 Graph）
+ * - contextual：保留 Child，並以條號擴充關聯施行細則 Parent
+ * - parent_contextual：Child→Parent 展開＋細則擴充（可選 GraphRAG）
+ */
+export function applyRetrievalStrategy(params: {
+  strategy: RagStrategy;
+  childHits: ChunkWithReg[];
+  byId: Map<string, ChunkWithReg>;
+  allChunks: ChunkWithReg[];
+  hasHierarchy: boolean;
+  topK: number;
+  enableGraph?: boolean;
+}): { chunks: ChunkWithReg[]; strategyTags: string[]; graphAdded: number } {
+  const {
+    strategy,
+    childHits,
+    byId,
+    allChunks,
+    hasHierarchy,
+    topK,
+    enableGraph = false,
+  } = params;
+
+  if (strategy === "baseline" || !hasHierarchy) {
+    return {
+      chunks: childHits.slice(0, topK),
+      strategyTags: ["+strategy=baseline"],
+      graphAdded: 0,
+    };
+  }
+
+  let chunks: ChunkWithReg[];
+  const strategyTags: string[] = [];
+
+  if (strategy === "contextual") {
+    // 不展開母法 Parent，但做細則／關聯擴充（Contextual 查詢時擴展）
+    chunks = enrichWithRelatedEnforcementParents(childHits, allChunks, 2);
+    strategyTags.push("+strategy=contextual");
+  } else {
+    chunks = expandHitsToParentContext(childHits, byId);
+    chunks = enrichWithRelatedEnforcementParents(chunks, allChunks, 2);
+    strategyTags.push("+strategy=parent_contextual", "+parent-child");
+  }
+
+  let graphAdded = 0;
+  if (enableGraph && strategy === "parent_contextual") {
+    const parentNodes: GraphChunkRef[] = allChunks.filter(isParentChunk).map((c) => ({
+      id: c.id,
+      regulationSlug: c.regulation.slug,
+      regulationTitle: c.regulation.title,
+      tier: c.regulation.tier,
+      articleKey: c.articleKey,
+      content: c.content,
+    }));
+    const graph = buildKnowledgeGraph(parentNodes);
+    const extras = expandGraphNeighbors(
+      graph,
+      chunks.map((c) => c.id),
+      { maxExtra: 3 },
+    );
+    for (const ex of extras) {
+      const full = byId.get(ex.id);
+      if (!full || chunks.some((c) => c.id === full.id)) continue;
+      chunks.push(full);
+      graphAdded += 1;
+    }
+    const gtag = graphExpandModeTag(graphAdded);
+    if (gtag) strategyTags.push(gtag);
+  }
+
+  return {
+    chunks: chunks.slice(0, topK + 3),
+    strategyTags,
+    graphAdded,
+  };
 }
 
 /**
@@ -477,12 +565,17 @@ const PREFER_CORE_LAW =
 
 /**
  * RAG 檢索：擴展查詢 → BM25 + Vector（RRF）→ BGE 風格 Re-rank
- * → MMR → Parent 展開 → GraphRAG（母法／細則／函釋）
+ * → MMR →（依 strategy）Parent／Contextual／GraphRAG
+ *
+ * 預設 strategy=`parent_contextual` 且 enableGraph=true（與既有生產行為一致）。
  */
 export async function retrieveForRag(
   query: string,
   topK = ragTopK(),
+  options?: RetrieveForRagOptions,
 ): Promise<{ chunks: ChunkWithReg[]; mode: string; questionBankUsed?: boolean }> {
+  const strategy: RagStrategy = options?.strategy ?? "parent_contextual";
+  const enableGraph = options?.enableGraph ?? strategy === "parent_contextual";
   const { ensureDocChunkHierarchySchema } = await import(
     "@/lib/ensure-doc-chunk-hierarchy-schema"
   );
@@ -678,47 +771,34 @@ export async function retrieveForRag(
     ensureSlug("most-advantageous-tender-operations-manual", /第52條|最有利標決標|不論採購金額/);
   }
 
-  let chunks = expandHitsToParentContext(childHits, byId);
-  if (hasHierarchy) {
-    chunks = enrichWithRelatedEnforcementParents(chunks, all, 2);
-  }
-
-  const parentNodes: GraphChunkRef[] = all.filter(isParentChunk).map((c) => ({
-    id: c.id,
-    regulationSlug: c.regulation.slug,
-    regulationTitle: c.regulation.title,
-    tier: c.regulation.tier,
-    articleKey: c.articleKey,
-    content: c.content,
-  }));
-  const graph = buildKnowledgeGraph(parentNodes);
-  const extras = expandGraphNeighbors(
-    graph,
-    chunks.map((c) => c.id),
-    { maxExtra: 3 },
-  );
-  let graphAdded = 0;
-  for (const ex of extras) {
-    const full = byId.get(ex.id);
-    if (!full || chunks.some((c) => c.id === full.id)) continue;
-    chunks.push(full);
-    graphAdded += 1;
-  }
-  chunks = chunks.slice(0, topK + 3);
+  const applied = applyRetrievalStrategy({
+    strategy,
+    childHits,
+    byId,
+    allChunks: all,
+    hasHierarchy,
+    topK,
+    enableGraph,
+  });
+  const chunks = applied.chunks;
 
   const modeBase =
     canUseEmbeddings() && searchable.some((c) => parseEmbedding(c.embedding))
       ? "rag-bm25-vector-rrf"
       : "rag-bm25";
-  const hierarchyTag = hasHierarchy ? "+parent-child" : "";
   const rerankTag = `+${rerankMode}`;
-  const graphTag = graphExpandModeTag(graphAdded);
+  const strategyTag = applied.strategyTags.join("");
+  // 無階層時 baseline 標籤已含於 strategyTags；保留相容舊字串的 parent-child 語意
+  const legacyHierarchy =
+    hasHierarchy && strategy === "parent_contextual" && !strategyTag.includes("+parent-child")
+      ? "+parent-child"
+      : "";
 
   return {
     chunks,
     mode: questionBankUsed
-      ? `${modeBase}${rerankTag}+keyword-expand${hierarchyTag}${graphTag}`
-      : `${modeBase}${rerankTag}${hierarchyTag}${graphTag}`,
+      ? `${modeBase}${rerankTag}+keyword-expand${strategyTag}${legacyHierarchy}`
+      : `${modeBase}${rerankTag}${strategyTag}${legacyHierarchy}`,
     questionBankUsed,
   };
 }
