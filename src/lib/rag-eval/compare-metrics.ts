@@ -1,5 +1,6 @@
 /**
- * RAG 策略比較指標：Citation Accuracy、Retrieval Hit Rate、Latency 分位。
+ * RAG 策略比較指標：Citation Accuracy（精簡條號命中）、Retrieval Hit Rate、Latency。
+ * 完整 FRC（含來源／片段標註）請用 `frc.ts`。
  */
 
 export function normalizeArticleToken(raw: string): string {
