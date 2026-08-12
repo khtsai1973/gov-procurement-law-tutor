@@ -31,7 +31,13 @@ npm run ttfb:check
 
 ## 金標案例
 
-見 `data/rag-eval/cases.json`（門檻數字、小額、金額認定、監辦、離題拒答、公開招標三家、第22條第9款範圍等）。
+- **CI smoke**：`data/rag-eval/cases.json`（門檻數字、小額、金額認定、監辦、決標原則、離題拒答、公開招標三家、第22條第9款範圍等）。
+- **研究用 Golden Dataset（50／100）**：見 [`docs/RAG-GOLDEN.md`](./RAG-GOLDEN.md) 與 `data/rag-eval/golden/dataset.json`。
+
+```bash
+npm run test:rag-golden
+npm run rag:eval:golden
+```
 
 ## 與 Ragas 的對應
 
