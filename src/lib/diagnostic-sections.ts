@@ -1,9 +1,9 @@
 /**
- * 模考／題庫 AI 診斷分段：弱點分析、錯題原因分析、建議補強法規
+ * 模考／題庫 AI 診斷分段：個人化學習弱點診斷書欄位＋錯題原因
  */
 
 export type DiagnosticSections = {
-  /** 弱點分析（含補強指引） */
+  /** 弱點分析（含補強指引）／關鍵弱點敘述 */
   weaknessAnalysis: string;
   /** 錯題原因分析（逐題） */
   wrongReasonAnalysis: string;
@@ -13,6 +13,12 @@ export type DiagnosticSections = {
   cognitiveMisconception: string;
   /** 正確／錯誤選項適用條件差異（單題 LLM，宜為 2 句） */
   applicabilityDiff: string;
+  /** 核心強項（診斷書） */
+  coreStrengths: string;
+  /** 關鍵弱點（診斷書） */
+  keyWeaknesses: string;
+  /** 行動建議（診斷書） */
+  actionAdvice: string;
 };
 
 const SECTION_ALIASES: Record<string, keyof DiagnosticSections> = {
@@ -25,9 +31,12 @@ const SECTION_ALIASES: Record<string, keyof DiagnosticSections> = {
   建議補強法規: "regulationAdvice",
   認知誤區: "cognitiveMisconception",
   適用條件差異: "applicabilityDiff",
+  核心強項: "coreStrengths",
+  關鍵弱點: "keyWeaknesses",
+  行動建議: "actionAdvice",
 };
 
-/** 將 markdown ## 標題診斷文拆成弱點／錯題原因／法規建議／認知誤區 */
+/** 將 markdown ## 標題診斷文拆成診斷書欄位 */
 export function parseDiagnosticSections(summary: string | null | undefined): DiagnosticSections {
   const empty: DiagnosticSections = {
     weaknessAnalysis: "",
@@ -35,6 +44,9 @@ export function parseDiagnosticSections(summary: string | null | undefined): Dia
     regulationAdvice: "",
     cognitiveMisconception: "",
     applicabilityDiff: "",
+    coreStrengths: "",
+    keyWeaknesses: "",
+    actionAdvice: "",
   };
   if (!summary?.trim()) return empty;
 
@@ -45,6 +57,9 @@ export function parseDiagnosticSections(summary: string | null | undefined): Dia
     regulationAdvice: [],
     cognitiveMisconception: [],
     applicabilityDiff: [],
+    coreStrengths: [],
+    keyWeaknesses: [],
+    actionAdvice: [],
   };
   let current: keyof DiagnosticSections | null = null;
 
@@ -64,6 +79,9 @@ export function parseDiagnosticSections(summary: string | null | undefined): Dia
     regulationAdvice: buckets.regulationAdvice.join("\n").trim(),
     cognitiveMisconception: buckets.cognitiveMisconception.join("\n").trim(),
     applicabilityDiff: buckets.applicabilityDiff.join("\n").trim(),
+    coreStrengths: buckets.coreStrengths.join("\n").trim(),
+    keyWeaknesses: buckets.keyWeaknesses.join("\n").trim(),
+    actionAdvice: buckets.actionAdvice.join("\n").trim(),
   };
 }
 

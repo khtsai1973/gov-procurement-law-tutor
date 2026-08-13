@@ -12,11 +12,22 @@ import {
 } from "@/lib/diagnostic-sections";
 import {
   computeKnowledgeRadar,
+  formatCoreStrengths,
+  formatKeyWeaknesses,
   formatRadarForPrompt,
   type KnowledgeRadarSnapshot,
 } from "@/lib/knowledge-radar";
-import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
+import { resolveAllQuestionTags, resolveKnowledgeTags } from "@/lib/knowledge-tags";
 import { formatAnswerLabel } from "@/lib/mock-exam";
+import {
+  buildPersonalWeaknessReport,
+  collectWrongConceptTags,
+  parseDiagnosisBundle,
+  PERSONAL_WEAKNESS_REPORT_TITLE,
+  pickPracticeQuestionsByTags,
+  stringifyDiagnosisBundle,
+  type PracticeQuestionBrief,
+} from "@/lib/personal-weakness-report";
 import prisma from "@/lib/prisma";
 import { formatRagContext, retrieveForRag } from "@/lib/rag";
 
@@ -26,51 +37,40 @@ export type {
   WrongQuestionBrief,
 } from "@/lib/exam-diagnostics-types";
 export { parseDiagnosticSections } from "@/lib/diagnostic-sections";
+export type { PracticeQuestionBrief, PersonalWeaknessReport } from "@/lib/personal-weakness-report";
 
 /** 納入綜合診斷的錯題上限（控制 prompt／延遲） */
 export const DIAGNOSE_MAX_WRONG = 10;
 
-const DIAGNOSTIC_SYSTEM_PROMPT = `你是政府採購法規教學助教。學習者剛完成模擬考試。
-系統已用「確定性規則引擎」依錯題知識標籤算出雷達圖數值與弱點標籤；這些數字不可改寫或否定。
+/** 行動建議：補強法規連結數 */
+const ACTION_REG_LIMIT = 3;
+/** 行動建議：精準練習題數 */
+const ACTION_PRACTICE_LIMIT = 2;
 
-你的任務是結合題庫錯題與弱點標籤，產出「弱點分析」與「錯題原因分析」，格式必須如下：
+const DIAGNOSTIC_SYSTEM_PROMPT = `你是政府採購法規教學助教，負責學習者知識追蹤（Learner Knowledge Tracing）。
+學習者剛完成模擬考試。系統已用「確定性規則引擎」依題目知識標籤算出能力矩陣（雷達）與核心強項／關鍵弱點；這些數字不可改寫或否定。
 
-## 弱點分析
-（先 3～6 句總結本場弱點與學習優先順序；再針對每一個弱點標籤各 2～4 句補強指引，以「【標籤名】：」開頭）
+請依錯題標籤（含條次款項與概念詞）做知識圖譜式分析，產出《${PERSONAL_WEAKNESS_REPORT_TITLE}》，格式必須如下：
+
+## 核心強項
+（條列正確率 ≥ 85% 的主題；可改寫為通順中文，但正確率數字須與系統一致。若系統顯示無強項，寫「本場尚無正確率達 85% 的主題」。）
+
+## 關鍵弱點
+（先 2～4 句總結知識缺口與優先順序；再針對弱點標籤／錯題概念各 1～3 句，以「【標籤名】：」開頭。正確率數字不可改寫。）
+
+## 行動建議
+（必須包含：
+1. 恰好 3 條針對性補強法條／法規複習方向（對應檢索片段或題目相關法規，格式：- 《法規名稱》：一句理由）；
+2. 說明為何需針對弱點標籤練習（1～2 句）。
+實際練習題由系統另附，你不必編造題號。）
 
 ## 錯題原因分析
 （針對每一道錯題各 2～4 句：為何參考答案正確、學員答案錯在何處、常見陷阱；以「第N題：」開頭）
 
-## 建議補強法規
-（條列 3～8 項；每項格式：- 《法規或函釋名稱》：一句複習理由。名稱須能對應檢索片段或題目相關法規，勿捏造條號／文號）
-
 規則：
-- 雷達數值與弱點標籤以系統提供為準（Deterministic），你只負責語意化建議（Generative）。
-- 僅依檢索片段與錯題資料作答；片段未出現的條號、文號、金額數字不可寫出。
-- 語氣清楚、適合作考後複習；錯題原因須對照學員答案與參考答案。`;
-
-function parseRecommendationsJson(raw: string | null | undefined): DiagnosticRegulation[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    const out: DiagnosticRegulation[] = [];
-    for (const row of parsed) {
-      if (!row || typeof row !== "object") continue;
-      const r = row as Record<string, unknown>;
-      if (typeof r.slug !== "string" || typeof r.title !== "string") continue;
-      out.push({
-        slug: r.slug,
-        title: r.title,
-        sourceUrl: typeof r.sourceUrl === "string" ? r.sourceUrl : null,
-        reason: typeof r.reason === "string" ? r.reason : null,
-      });
-    }
-    return out;
-  } catch {
-    return [];
-  }
-}
+- 雷達數值與標籤以系統提供為準（Deterministic），你只負責語意化診斷（Generative）。
+- 僅依檢索片段與錯題資料作答；片段未出現的條號、文號、金額數字不可寫出（錯題標籤已列之條次可引用）。
+- 語氣清楚、適合作考後複習。`;
 
 function parseRadarJson(raw: string | null | undefined): KnowledgeRadarSnapshot | null {
   if (!raw) return null;
@@ -92,34 +92,54 @@ function buildFallbackDiagnosis(params: {
   wrongs: WrongQuestionBrief[];
   regulations: DiagnosticRegulation[];
   radar: KnowledgeRadarSnapshot;
+  wrongConceptTags: string[];
+  practiceQuestions: PracticeQuestionBrief[];
 }): string {
-  const weak = params.radar.weakTags;
+  const strengths = formatCoreStrengths(params.radar);
+  const weaks = formatKeyWeaknesses(params.radar);
+  const conceptExtra = params.wrongConceptTags.filter(
+    (t) => !params.radar.axes.some((a) => String(a.tag) === t),
+  );
   const lines = [
-    "## 弱點分析",
-    `本場共答錯 ${params.wrongs.length} 題。依規則引擎雷達圖，弱點標籤為：${weak.join("、") || "相關單元"}。`,
-    "建議先依弱點標籤釐清構成要件與適用範圍，再對照題庫錯題與法規全文複習，避免僅背誦選項。",
+    `# 《${PERSONAL_WEAKNESS_REPORT_TITLE}》`,
     "",
-    ...(weak.length > 0
-      ? weak.map(
-          (t) =>
-            `【${t}】：請複習該主題的法定要件、程序時點與常見例外；搭配錯題對照參考答案推理過程。`,
-        )
+    "## 核心強項",
+    strengths.length > 0
+      ? strengths.map((s) => `- ${s}`).join("\n")
+      : "本場尚無正確率達 85% 的主題。",
+    "",
+    "## 關鍵弱點",
+    `本場共答錯 ${params.wrongs.length} 題。依能力矩陣，關鍵弱點為：${weaks.join("、") || "相關單元"}。`,
+    conceptExtra.length > 0
+      ? `錯題概念／條次標籤：${conceptExtra.slice(0, 8).join("、")}。`
+      : "",
+    "建議先依弱點標籤釐清構成要件與適用範圍，再對照題庫錯題與法規全文複習。",
+    "",
+    ...(weaks.length > 0
+      ? weaks.slice(0, 5).map((t) => {
+          const name = t.replace(/（正確率.*$/, "");
+          return `【${name}】：請複習該主題的法定要件、程序時點與常見例外；搭配錯題對照參考答案推理過程。`;
+        })
       : ["【一般】：請依錯題類別複習對應法規單元。"]),
+    "",
+    "## 行動建議",
+    ...params.regulations.slice(0, ACTION_REG_LIMIT).map(
+      (r) => `- 《${r.title}》：建議複習與弱點標籤／錯題相關之構成要件與程序規定。`,
+    ),
+    ...(params.regulations.length === 0
+      ? ["- 請至本站「法規／函釋清單」依錯題關鍵詞查閱全文。"]
+      : []),
+    params.practiceQuestions.length > 0
+      ? `系統已依弱點標籤推薦 ${params.practiceQuestions.length} 道精準練習題，請至診斷結果頁作答。`
+      : "請至題庫依弱點類別篩選重要題練習。",
     "",
     "## 錯題原因分析",
     ...params.wrongs.map((w) => {
       const tags = w.knowledgeTags.join("、") || w.category;
       return `第${w.questionIndex + 1}題：知識標籤「${tags}」。您的答案為 ${formatAnswerLabel(w.userAnswer, "MULTIPLE_CHOICE")}，參考答案為 ${formatAnswerLabel(w.referenceAnswer, "MULTIPLE_CHOICE")}。請對照題意要件、排除易混淆選項，並回題庫完整教學解析複習。`;
     }),
-    "",
-    "## 建議補強法規",
-    ...(params.regulations.length > 0
-      ? params.regulations.map(
-          (r) => `- 《${r.title}》：建議複習與弱點標籤／錯題相關之構成要件與程序規定。`,
-        )
-      : ["- 請至本站「法規／函釋清單」依錯題關鍵詞查閱全文。"]),
   ];
-  return lines.join("\n");
+  return lines.filter((l) => l !== "").join("\n");
 }
 
 function mergeRegulations(
@@ -132,9 +152,20 @@ function mergeRegulations(
     if (seen.has(r.slug)) continue;
     seen.add(r.slug);
     out.push(r);
-    if (out.length >= 10) break;
+    if (out.length >= ACTION_REG_LIMIT) break;
   }
   return out;
+}
+
+function bankSelectFields() {
+  return {
+    key: true,
+    question: true,
+    category: true,
+    keywords: true,
+    relatedSlugs: true,
+    knowledgeTags: true,
+  } as const;
 }
 
 async function generateHybridAdvice(params: {
@@ -142,10 +173,18 @@ async function generateHybridAdvice(params: {
   questionType: string;
   relatedSlugs: string[];
   radar: KnowledgeRadarSnapshot;
-}): Promise<{ summary: string; recommendations: DiagnosticRegulation[]; model: string }> {
+  wrongConceptTags: string[];
+  practiceQuestions: PracticeQuestionBrief[];
+}): Promise<{
+  summary: string;
+  recommendations: DiagnosticRegulation[];
+  practiceQuestions: PracticeQuestionBrief[];
+  model: string;
+}> {
   const probeParts = [
-    "模擬考試弱點診斷",
+    "模擬考試個人化學習弱點診斷",
     `弱點標籤：${params.radar.weakTags.join("、")}`,
+    `錯題概念標籤：${params.wrongConceptTags.join("、")}`,
     ...params.wrongs.slice(0, 6).map(
       (w) =>
         `第${w.questionIndex + 1}題（${w.knowledgeTags.join("/") || w.category}）：${w.question.slice(0, 220)}`,
@@ -190,8 +229,11 @@ async function generateHybridAdvice(params: {
         wrongs: params.wrongs,
         regulations: recommendations,
         radar: params.radar,
+        wrongConceptTags: params.wrongConceptTags,
+        practiceQuestions: params.practiceQuestions,
       }),
       recommendations,
+      practiceQuestions: params.practiceQuestions,
       model: !apiKey || aiDisabled ? "hybrid-fallback" : "hybrid-no-chunks",
     };
   }
@@ -202,7 +244,7 @@ async function generateHybridAdvice(params: {
       return [
         `### 第${w.questionIndex + 1}題`,
         `類別：${w.category}`,
-        `知識標籤：${w.knowledgeTags.join("、") || "—"}`,
+        `知識／概念標籤：${w.knowledgeTags.join("、") || "—"}`,
         `題目：${w.question}`,
         `學員答案：${formatAnswerLabel(w.userAnswer, type)}`,
         `參考答案：${formatAnswerLabel(w.referenceAnswer, type)}`,
@@ -223,8 +265,14 @@ async function generateHybridAdvice(params: {
         {
           role: "user",
           content: [
-            "【確定性雷達圖（不可改寫）】",
+            `請產出《${PERSONAL_WEAKNESS_REPORT_TITLE}》。`,
+            "",
+            "【確定性能力矩陣（不可改寫）】",
             radarBlock,
+            "",
+            `系統核心強項：${formatCoreStrengths(params.radar).join("；") || "無"}`,
+            `系統關鍵弱點：${formatKeyWeaknesses(params.radar).join("；") || "無"}`,
+            `錯題概念／條次標籤：${params.wrongConceptTags.join("、") || "無"}`,
             "",
             "【檢索片段】",
             context,
@@ -232,7 +280,7 @@ async function generateHybridAdvice(params: {
             "【錯題清單】",
             wrongBlock,
             "",
-            "請輸出「弱點分析」「錯題原因分析」與「建議補強法規」。",
+            "請輸出「核心強項」「關鍵弱點」「行動建議」與「錯題原因分析」。",
           ].join("\n"),
         },
       ],
@@ -244,15 +292,18 @@ async function generateHybridAdvice(params: {
         wrongs: params.wrongs,
         regulations: recommendations,
         radar: params.radar,
+        wrongConceptTags: params.wrongConceptTags,
+        practiceQuestions: params.practiceQuestions,
       });
 
-    const recSection = summary.split(/##\s*建議補強法規/)[1] ?? "";
+    const sections = parseDiagnosticSections(summary);
+    const recSection = sections.actionAdvice || sections.regulationAdvice || "";
     const enriched = recommendations.map((r) => {
       const line = recSection
         .split("\n")
         .find((l) => l.includes(r.title) || (r.title.length > 6 && l.includes(r.title.slice(0, 8))));
       const reason = line
-        ?.replace(/^[-*・]\s*/, "")
+        ?.replace(/^[-*・\d.、)\s]*/, "")
         .replace(/^《[^》]+》[:：]?\s*/, "")
         .trim();
       return { ...r, reason: reason || r.reason || null };
@@ -260,7 +311,8 @@ async function generateHybridAdvice(params: {
 
     return {
       summary,
-      recommendations: enriched,
+      recommendations: enriched.slice(0, ACTION_REG_LIMIT),
+      practiceQuestions: params.practiceQuestions,
       model: completion.model,
     };
   } catch (err) {
@@ -270,8 +322,11 @@ async function generateHybridAdvice(params: {
         wrongs: params.wrongs,
         regulations: recommendations,
         radar: params.radar,
+        wrongConceptTags: params.wrongConceptTags,
+        practiceQuestions: params.practiceQuestions,
       }),
       recommendations,
+      practiceQuestions: params.practiceQuestions,
       model: "hybrid-fallback",
     };
   }
@@ -283,14 +338,7 @@ async function buildRadarForSession(
   const keys = [...new Set(answers.map((a) => a.itemKey))];
   const items = await prisma.questionBankItem.findMany({
     where: { key: { in: keys } },
-    select: {
-      key: true,
-      category: true,
-      keywords: true,
-      relatedSlugs: true,
-      question: true,
-      knowledgeTags: true,
-    },
+    select: bankSelectFields(),
   });
   const map = new Map(items.map((i) => [i.key, i]));
   return computeKnowledgeRadar(
@@ -299,12 +347,82 @@ async function buildRadarForSession(
       return {
         isCorrect: a.isCorrect,
         revealed: a.revealed,
-        tags: item
-          ? resolveKnowledgeTags(item)
-          : ["招標程序"],
+        tags: item ? resolveKnowledgeTags(item) : ["招標程序"],
       };
     }),
   );
+}
+
+async function loadPracticeCandidates(
+  weakTags: string[],
+  excludeKeys: string[],
+): Promise<PracticeQuestionBrief[]> {
+  if (weakTags.length === 0) return [];
+  const exclude = new Set(excludeKeys);
+  // 取較多候選再依標籤重疊排序
+  const candidates = await prisma.questionBankItem.findMany({
+    take: 80,
+    orderBy: { updatedAt: "desc" },
+    select: {
+      key: true,
+      category: true,
+      question: true,
+      keywords: true,
+      relatedSlugs: true,
+      knowledgeTags: true,
+    },
+  });
+  return pickPracticeQuestionsByTags({
+    candidates,
+    weakTags,
+    excludeKeys: exclude,
+    limit: ACTION_PRACTICE_LIMIT,
+  });
+}
+
+function toWrongBrief(
+  a: { questionIndex: number; itemKey: string; userAnswer: string | null; referenceAnswer: string | null; diagnosticNote?: string | null },
+  bank:
+    | {
+        category: string;
+        question: string;
+        keywords?: string[] | null;
+        relatedSlugs?: string[] | null;
+        knowledgeTags?: string[] | null;
+      }
+    | undefined,
+): WrongQuestionBrief {
+  return {
+    questionIndex: a.questionIndex,
+    itemKey: a.itemKey,
+    category: bank?.category ?? "未分類",
+    knowledgeTags: bank ? resolveAllQuestionTags(bank) : [],
+    question: bank?.question ?? a.itemKey,
+    userAnswer: a.userAnswer,
+    referenceAnswer: a.referenceAnswer,
+    diagnosticNote: a.diagnosticNote ?? null,
+  };
+}
+
+function attachPersonalReport(params: {
+  radar: KnowledgeRadarSnapshot;
+  wrongs: WrongQuestionBrief[];
+  recommendations: DiagnosticRegulation[];
+  practiceQuestions: PracticeQuestionBrief[];
+}) {
+  const wrongConceptTags = collectWrongConceptTags(
+    params.wrongs.map((w) => ({
+      category: w.category,
+      question: w.question,
+      knowledgeTags: w.knowledgeTags,
+    })),
+  );
+  return buildPersonalWeaknessReport({
+    radar: params.radar,
+    wrongConceptTags,
+    regulations: params.recommendations,
+    practiceQuestions: params.practiceQuestions,
+  });
 }
 
 export async function diagnoseMockExamSession(
@@ -329,24 +447,35 @@ export async function diagnoseMockExamSession(
   const wrongAnswers = session.answers.filter((a) => a.isCorrect === false);
   if (wrongAnswers.length === 0) {
     const emptySummary =
-      "本場沒有答錯題目，無需錯題診斷。可依雷達圖強項持續保持，或再測一次加深印象。";
+      "本場沒有答錯題目，無需錯題診斷。可依能力矩陣強項持續保持，或再測一次加深印象。";
     if (!session.diagnosticSummary || options?.force) {
       await prisma.mockExamSession.update({
         where: { id: session.id },
         data: {
           diagnosticSummary: emptySummary,
-          diagnosticRecommendations: "[]",
+          diagnosticRecommendations: stringifyDiagnosisBundle({
+            regulations: [],
+            practiceQuestions: [],
+          }),
           diagnosticModel: "none",
           diagnosticRadar: JSON.stringify(radar),
           diagnosedAt: new Date(),
         },
       });
     }
+    const personalReport = buildPersonalWeaknessReport({
+      radar,
+      wrongConceptTags: [],
+      regulations: [],
+      practiceQuestions: [],
+    });
     return {
       sessionId,
       wrongCount: 0,
       summary: session.diagnosticSummary && !options?.force ? session.diagnosticSummary : emptySummary,
       recommendations: [],
+      practiceQuestions: [],
+      personalReport,
       wrongQuestions: [],
       radar,
       model: "none",
@@ -359,34 +488,24 @@ export async function diagnoseMockExamSession(
     const keys = wrongAnswers.map((a) => a.itemKey);
     const items = await prisma.questionBankItem.findMany({
       where: { key: { in: keys } },
-      select: {
-        key: true,
-        question: true,
-        category: true,
-        keywords: true,
-        relatedSlugs: true,
-        knowledgeTags: true,
-      },
+      select: bankSelectFields(),
     });
     const map = new Map(items.map((i) => [i.key, i]));
+    const bundle = parseDiagnosisBundle(session.diagnosticRecommendations);
+    const wrongQuestions = wrongAnswers.map((a) => toWrongBrief(a, map.get(a.itemKey)));
     return {
       sessionId,
       wrongCount: wrongAnswers.length,
       summary: session.diagnosticSummary,
-      recommendations: parseRecommendationsJson(session.diagnosticRecommendations),
-      wrongQuestions: wrongAnswers.map((a) => {
-        const bank = map.get(a.itemKey);
-        return {
-          questionIndex: a.questionIndex,
-          itemKey: a.itemKey,
-          category: bank?.category ?? "未分類",
-          knowledgeTags: bank ? resolveKnowledgeTags(bank) : [],
-          question: bank?.question ?? a.itemKey,
-          userAnswer: a.userAnswer,
-          referenceAnswer: a.referenceAnswer,
-          diagnosticNote: a.diagnosticNote,
-        };
+      recommendations: bundle.regulations.slice(0, ACTION_REG_LIMIT),
+      practiceQuestions: bundle.practiceQuestions.slice(0, ACTION_PRACTICE_LIMIT),
+      personalReport: attachPersonalReport({
+        radar,
+        wrongs: wrongQuestions,
+        recommendations: bundle.regulations,
+        practiceQuestions: bundle.practiceQuestions,
       }),
+      wrongQuestions,
       radar,
       model: session.diagnosticModel ?? "cached",
       diagnosedAt: session.diagnosedAt?.toISOString() ?? null,
@@ -400,19 +519,24 @@ export async function diagnoseMockExamSession(
   });
   const bankMap = new Map(bankItems.map((i) => [i.key, i]));
 
-  const wrongs: WrongQuestionBrief[] = targets.map((a) => {
-    const bank = bankMap.get(a.itemKey);
-    return {
-      questionIndex: a.questionIndex,
-      itemKey: a.itemKey,
-      category: bank?.category ?? "未分類",
-      knowledgeTags: bank ? resolveKnowledgeTags(bank) : [],
-      question: bank?.question ?? a.itemKey,
-      userAnswer: a.userAnswer,
-      referenceAnswer: a.referenceAnswer,
-      diagnosticNote: null,
-    };
-  });
+  const wrongs: WrongQuestionBrief[] = targets.map((a) => toWrongBrief(a, bankMap.get(a.itemKey)));
+  const wrongConceptTags = collectWrongConceptTags(
+    wrongs.map((w) => {
+      const bank = bankMap.get(w.itemKey);
+      return {
+        category: w.category,
+        question: w.question,
+        keywords: bank?.keywords,
+        knowledgeTags: bank?.knowledgeTags,
+      };
+    }),
+  );
+
+  const excludeKeys = session.answers.map((a) => a.itemKey);
+  const practiceQuestions = await loadPracticeCandidates(
+    [...radar.weakTags, ...wrongConceptTags].slice(0, 12),
+    excludeKeys,
+  );
 
   const relatedSlugs = bankItems.flatMap((b) => b.relatedSlugs ?? []);
   const result = await generateHybridAdvice({
@@ -420,6 +544,8 @@ export async function diagnoseMockExamSession(
     questionType: session.questionType,
     relatedSlugs,
     radar,
+    wrongConceptTags,
+    practiceQuestions,
   });
 
   const noteMap = extractWrongReasonNotes(
@@ -427,12 +553,18 @@ export async function diagnoseMockExamSession(
     wrongs.map((w) => w.questionIndex),
   );
 
+  const recommendations = result.recommendations.slice(0, ACTION_REG_LIMIT);
+  const practices = result.practiceQuestions.slice(0, ACTION_PRACTICE_LIMIT);
+
   await prisma.$transaction([
     prisma.mockExamSession.update({
       where: { id: session.id },
       data: {
         diagnosticSummary: result.summary,
-        diagnosticRecommendations: JSON.stringify(result.recommendations),
+        diagnosticRecommendations: stringifyDiagnosisBundle({
+          regulations: recommendations,
+          practiceQuestions: practices,
+        }),
         diagnosticModel: result.model,
         diagnosticRadar: JSON.stringify(radar),
         diagnosedAt: new Date(),
@@ -446,15 +578,24 @@ export async function diagnoseMockExamSession(
     ),
   ]);
 
+  const wrongQuestions = wrongs.map((w) => ({
+    ...w,
+    diagnosticNote: noteMap.get(w.questionIndex) ?? null,
+  }));
+
   return {
     sessionId,
     wrongCount: wrongAnswers.length,
     summary: result.summary,
-    recommendations: result.recommendations,
-    wrongQuestions: wrongs.map((w) => ({
-      ...w,
-      diagnosticNote: noteMap.get(w.questionIndex) ?? null,
-    })),
+    recommendations,
+    practiceQuestions: practices,
+    personalReport: attachPersonalReport({
+      radar,
+      wrongs: wrongQuestions,
+      recommendations,
+      practiceQuestions: practices,
+    }),
+    wrongQuestions,
     radar,
     model: result.model,
     diagnosedAt: new Date().toISOString(),
@@ -487,6 +628,13 @@ export async function loadSessionDiagnosis(
       wrongCount: session.answers.filter((a) => a.isCorrect === false).length,
       summary: "",
       recommendations: [],
+      practiceQuestions: [],
+      personalReport: buildPersonalWeaknessReport({
+        radar,
+        wrongConceptTags: [],
+        regulations: [],
+        practiceQuestions: [],
+      }),
       wrongQuestions: [],
       radar,
       model: "pending",
@@ -498,35 +646,25 @@ export async function loadSessionDiagnosis(
   const wrongAnswers = session.answers.filter((a) => a.isCorrect === false);
   const items = await prisma.questionBankItem.findMany({
     where: { key: { in: wrongAnswers.map((a) => a.itemKey) } },
-    select: {
-      key: true,
-      question: true,
-      category: true,
-      keywords: true,
-      relatedSlugs: true,
-      knowledgeTags: true,
-    },
+    select: bankSelectFields(),
   });
   const map = new Map(items.map((i) => [i.key, i]));
+  const bundle = parseDiagnosisBundle(session.diagnosticRecommendations);
+  const wrongQuestions = wrongAnswers.map((a) => toWrongBrief(a, map.get(a.itemKey)));
 
   return {
     sessionId,
     wrongCount: wrongAnswers.length,
     summary: session.diagnosticSummary,
-    recommendations: parseRecommendationsJson(session.diagnosticRecommendations),
-    wrongQuestions: wrongAnswers.map((a) => {
-      const bank = map.get(a.itemKey);
-      return {
-        questionIndex: a.questionIndex,
-        itemKey: a.itemKey,
-        category: bank?.category ?? "未分類",
-        knowledgeTags: bank ? resolveKnowledgeTags(bank) : [],
-        question: bank?.question ?? a.itemKey,
-        userAnswer: a.userAnswer,
-        referenceAnswer: a.referenceAnswer,
-        diagnosticNote: a.diagnosticNote,
-      };
+    recommendations: bundle.regulations.slice(0, ACTION_REG_LIMIT),
+    practiceQuestions: bundle.practiceQuestions.slice(0, ACTION_PRACTICE_LIMIT),
+    personalReport: attachPersonalReport({
+      radar,
+      wrongs: wrongQuestions,
+      recommendations: bundle.regulations,
+      practiceQuestions: bundle.practiceQuestions,
     }),
+    wrongQuestions,
     radar,
     model: session.diagnosticModel ?? "cached",
     diagnosedAt: session.diagnosedAt?.toISOString() ?? null,

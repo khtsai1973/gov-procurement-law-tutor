@@ -3,7 +3,7 @@ import path from "node:path";
 
 import type { PrismaClient } from "@prisma/client";
 
-import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
+import { resolveAllQuestionTags } from "@/lib/knowledge-tags";
 import {
   questionBankExplanationOverlaySchema,
   questionBankFileSchema,
@@ -98,7 +98,7 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
           ...item,
           category,
           importance: item.importance ?? "normal",
-          knowledgeTags: resolveKnowledgeTags({ ...item, category }),
+          knowledgeTags: resolveAllQuestionTags({ ...item, category }),
         });
       }
     } catch (e) {
@@ -117,7 +117,7 @@ export async function loadQuestionBankEntriesFromDisk(): Promise<QuestionBankEnt
           ...item,
           category,
           importance: item.importance ?? "normal",
-          knowledgeTags: resolveKnowledgeTags({ ...item, category }),
+          knowledgeTags: resolveAllQuestionTags({ ...item, category }),
         });
       }
       console.log(`[question-bank] loaded ${byKey.size} item(s) from bundled JSON fallback`);
@@ -187,7 +187,7 @@ export async function importQuestionBank(
             relatedSlugs: item.relatedSlugs,
             hintAnswer: item.hintAnswer ?? null,
             category: item.category,
-            knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
+            knowledgeTags: item.knowledgeTags ?? resolveAllQuestionTags(item),
             importance: item.importance ?? "normal",
           },
           update: {
@@ -196,7 +196,7 @@ export async function importQuestionBank(
             relatedSlugs: item.relatedSlugs,
             hintAnswer: item.hintAnswer ?? null,
             category: item.category,
-            knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
+            knowledgeTags: item.knowledgeTags ?? resolveAllQuestionTags(item),
             importance: item.importance ?? "normal",
           },
         }),
@@ -256,7 +256,7 @@ export async function replaceQuestionBankFromDisk(
         relatedSlugs: item.relatedSlugs,
         hintAnswer: item.hintAnswer ?? null,
         category: item.category,
-        knowledgeTags: item.knowledgeTags ?? resolveKnowledgeTags(item),
+        knowledgeTags: item.knowledgeTags ?? resolveAllQuestionTags(item),
         importance: item.importance ?? "normal",
       })),
       skipDuplicates: true,

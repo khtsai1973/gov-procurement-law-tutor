@@ -38,7 +38,8 @@
     "test:rag-compare": "tsx --test src/lib/rag-eval/compare.test.ts",
     "test:rag-frc": "tsx --test src/lib/rag-eval/frc.test.ts",
     "test:guided-prompts": "tsx --test src/lib/guided-prompts.test.ts",
-    "test:wrong-reason": "tsx --test src/lib/question-wrong-reason.test.ts src/lib/diagnostic-sections.test.ts"
+    "test:wrong-reason": "tsx --test src/lib/question-wrong-reason.test.ts src/lib/diagnostic-sections.test.ts",
+    "test:learner-kt": "tsx --test src/lib/knowledge-radar.test.ts src/lib/concept-tags.test.ts src/lib/personal-weakness-report.test.ts src/lib/diagnostic-sections.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

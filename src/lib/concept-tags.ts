@@ -1,7 +1,11 @@
 /**
- * 前台用「概念標籤」：語意完整的採購法概念詞。
+ * 前台用「概念標籤」：語意完整的採購法概念詞＋條次款項。
  * 題庫 JSON 內的 keywords 常由固定字數機械切出，僅供後台檢索，不宜直接展示。
  */
+
+/** 條／項／款標籤（例：第22條第1項第7款） */
+const ARTICLE_CLAUSE_RE =
+  /第\s*\d+\s*條(?:\s*之\s*\d+)?(?:\s*第\s*\d+\s*項)?(?:\s*第\s*\d+\s*款)?/g;
 
 /** 受控概念詞彙（最長優先比對） */
 export const CONCEPT_TAG_LEXICON: readonly string[] = [
@@ -47,7 +51,8 @@ export const CONCEPT_TAG_LEXICON: readonly string[] = [
   "比減價格",
   "議價",
   "減價",
-  // 保證／資格
+  // 保證／資格／時程
+  "押標金退還",
   "押標金",
   "保證金",
   "履約保證金",
@@ -55,6 +60,11 @@ export const CONCEPT_TAG_LEXICON: readonly string[] = [
   "基本資格",
   "合格廠商",
   "拒絕往來廠商",
+  "招標公告時程",
+  "招標公告",
+  "異議與申訴期限",
+  "異議期限",
+  "申訴期限",
   // 履約／契約
   "履約管理",
   "驗收",
@@ -141,6 +151,42 @@ export function isMechanicalKeyword(raw: string): boolean {
   return false;
 }
 
+/** 正規化條次款項字串（去空白） */
+export function normalizeArticleClauseTag(raw: string): string {
+  return raw.replace(/\s+/g, "").trim();
+}
+
+/** 是否為條／項／款標籤 */
+export function isArticleClauseTag(value: string): boolean {
+  return /^第\d+條(之\d+)?(第\d+項)?(第\d+款)?$/.test(normalizeArticleClauseTag(value));
+}
+
+/**
+ * 自題幹／解析擷取條次款項標籤（例：第22條第1項第7款）。
+ * 較長匹配優先：已有「第22條第1項第7款」時不再另加「第22條」。
+ */
+export function extractArticleClauseTags(
+  text: string | null | undefined,
+  max = 6,
+): string[] {
+  if (!text?.trim()) return [];
+  const found: string[] = [];
+  for (const m of text.matchAll(ARTICLE_CLAUSE_RE)) {
+    const tag = normalizeArticleClauseTag(m[0] ?? "");
+    if (!tag || found.includes(tag)) continue;
+    // 略過已被更長條次涵蓋者
+    if (found.some((x) => x.startsWith(tag) && x.length > tag.length)) continue;
+    // 若新標籤更長且涵蓋既有短標，替換
+    for (let i = found.length - 1; i >= 0; i--) {
+      const prev = found[i]!;
+      if (tag.startsWith(prev) && tag.length > prev.length) found.splice(i, 1);
+    }
+    found.push(tag);
+    if (found.length >= max) break;
+  }
+  return found.slice(0, max);
+}
+
 /**
  * 前台專用：只回傳受控「概念標籤」，永不回傳機械切塊 keywords。
  */
@@ -173,6 +219,35 @@ export function extractConceptTags(input: {
   }
 
   return out.slice(0, max);
+}
+
+/**
+ * 題目完整概念標籤＝條次款項 ∪ 受控概念詞（供知識圖譜／診斷書）。
+ */
+export function resolveQuestionConceptTags(input: {
+  question?: string | null;
+  keywords?: string[] | null;
+  category?: string | null;
+  explanation?: string | null;
+  max?: number;
+}): string[] {
+  const max = input.max ?? 12;
+  const blob = [input.question ?? "", input.explanation ?? "", ...(input.keywords ?? [])].join(
+    "\n",
+  );
+  const articles = extractArticleClauseTags(blob, Math.min(6, max));
+  const concepts = extractConceptTags({
+    question: blob,
+    keywords: input.keywords,
+    category: input.category,
+    max: Math.max(0, max - articles.length),
+  });
+  const out: string[] = [...articles];
+  for (const c of concepts) {
+    if (!out.includes(c)) out.push(c);
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 /** 後端檢索擴展：優先概念標籤；keywords 僅在非機械切塊時輔助 */

@@ -4,12 +4,30 @@
 
 | 層 | 元件 | 職責 |
 |----|------|------|
-| **標籤化** | `knowledge-tags.ts` | 受控知識軸（10 類）＋自 category／keywords／slug／顯式 `knowledgeTags` 推導 |
-| **確定性** | `knowledge-radar.ts` | 依錯題／正答標籤計算雷達正確率、弱點／強項標籤（不經 LLM） |
-| **生成式（整場）** | `exam-diagnostics.ts` | 以弱點標籤＋錯題＋RAG 片段，請 LLM 產出語意化建議與補強指引 |
+| **標籤化** | `knowledge-tags.ts` + `concept-tags.ts` | 知識軸（10 類）∪ 條次款項（例：第22條第1項第7款）∪ 概念詞（限制性招標、金額門檻…） |
+| **確定性** | `knowledge-radar.ts` | 能力矩陣：依知識軸計算正確率；核心強項 ≥ 85%、關鍵弱點 &lt; 60% |
+| **生成式（整場・階段2）** | `exam-diagnostics.ts` + `personal-weakness-report.ts` | 錯題標籤送入 LLM 知識圖譜分析 → 《個人化學習弱點診斷書》 |
 | **生成式（單題・階段1）** | `question-wrong-reason.ts` | 答錯選擇題時：認知誤區＋正確／錯誤選項適用條件差異（2 句） |
 
-雷達數值寫入 `MockExamSession.diagnosticRadar`；AI 全文寫入 `diagnosticSummary`。
+雷達數值寫入 `MockExamSession.diagnosticRadar`；AI 全文寫入 `diagnosticSummary`；法規＋練習題寫入 `diagnosticRecommendations`（bundle JSON）。
+
+## 階段 2：能力矩陣與個人化弱點儀表板
+
+測驗結束後：
+
+1. 規則引擎依本場作答產出**能力矩陣**（雷達圖）。
+2. 彙整錯題完整標籤（軸＋條次＋概念）送入 LLM。
+3. 產出《個人化學習弱點診斷書》：
+
+| 區塊 | 內容 |
+|------|------|
+| **核心強項** | 正確率 ≥ 85% 的主題（例：招標公告時程、押標金退還規定） |
+| **關鍵弱點** | 正確率偏低之軸／概念（例：異議與申訴期限計算 30%） |
+| **行動建議** | 恰好 **3** 條補強法規連結＋**2** 道精準推薦練習題 |
+
+API：`POST /api/mock-exam/diagnose`（回傳 `personalReport`、`practiceQuestions`、`recommendations`、`radar`）。
+
+UI：`ExamDiagnosticsPanel`（模考結果／單次測驗頁）。
 
 ## 階段 1：錯題 AI 動態診斷
 
@@ -28,10 +46,10 @@
 
 ## 使用
 
-1. 交卷後摘要頁／單次測驗頁顯示雷達圖。
-2. 「開始診斷」呼叫 `POST /api/mock-exam/diagnose`（亦可 autoStart）。
+1. 交卷後摘要頁／單次測驗頁顯示能力矩陣與診斷書。
+2. 「開始分析」呼叫 `POST /api/mock-exam/diagnose`（亦可 autoStart）。
 3. 單題答錯時自動顯示「AI 動態錯題診斷」。
-4. 題庫匯入時自動寫入推導後的 `knowledgeTags`；JSON 亦可選填顯式標籤。
+4. 題庫匯入時自動寫入 `resolveAllQuestionTags`（軸＋概念＋條次）；JSON 亦可選填顯式標籤。
 
 ## 升級
 
