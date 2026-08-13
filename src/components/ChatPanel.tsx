@@ -13,6 +13,7 @@ import {
   GUIDED_SCENARIOS,
 } from "@/lib/guided-prompts";
 import { getPromptSuggestionsByCategory, PROMPT_TIP } from "@/lib/prompt-suggestions";
+import { GuidedSlotForm } from "@/components/GuidedSlotForm";
 
 /** 登入態由客戶端讀取，避免首頁 server 等待 session／DB */
 export function ChatPanel() {
@@ -20,6 +21,7 @@ export function ChatPanel() {
   const signedIn = status === "authenticated";
   const [question, setQuestion] = useState("");
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
+  const [slotFormOpen, setSlotFormOpen] = useState(false);
   const [showMoreExamples, setShowMoreExamples] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
   const [questionId, setQuestionId] = useState<string | null>(null);
@@ -59,12 +61,19 @@ export function ChatPanel() {
   }
 
   function selectScenario(id: string) {
-    const next = activeScenarioId === id ? null : id;
-    setActiveScenarioId(next);
-    if (next) {
-      const s = getGuidedScenario(next);
-      if (s) applyQuestion(s.template);
+    if (activeScenarioId === id && slotFormOpen) {
+      setActiveScenarioId(null);
+      setSlotFormOpen(false);
+      return;
     }
+    setActiveScenarioId(id);
+    setSlotFormOpen(true);
+    setError(null);
+  }
+
+  function handleAssembledPrompt(prompt: string) {
+    applyQuestion(prompt);
+    setSlotFormOpen(false);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -228,7 +237,10 @@ export function ChatPanel() {
               <button
                 type="button"
                 className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
-                onClick={() => setActiveScenarioId(null)}
+                onClick={() => {
+                  setActiveScenarioId(null);
+                  setSlotFormOpen(false);
+                }}
               >
                 清除情境選擇
               </button>
@@ -260,37 +272,33 @@ export function ChatPanel() {
             })}
           </div>
 
-          {activeScenario ? (
+          {activeScenario && slotFormOpen ? (
+            <GuidedSlotForm
+              scenario={activeScenario}
+              disabled={loading}
+              onCancel={() => setSlotFormOpen(false)}
+              onAssemble={handleAssembledPrompt}
+            />
+          ) : null}
+
+          {activeScenario && !slotFormOpen ? (
             <div className="mt-4 rounded-lg border border-sky-100 bg-white/80 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium text-sky-950">
-                  ② 「{activeScenario.title}」提示詞範例
+                  目前情境：{activeScenario.title}
                 </p>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={() => applyQuestion(activeScenario.template)}
+                  onClick={() => setSlotFormOpen(true)}
                   className="rounded-md border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 hover:bg-sky-100 disabled:opacity-60"
                 >
-                  重新帶入填空模板
+                  重新填寫欄位組裝
                 </button>
               </div>
               <p className="mt-1 text-xs text-[var(--muted)]">
-                點選範例可直接帶入完整問題；或使用填空模板補充您的案情。
+                已組裝的問題可在下方編輯後送出；也可再次開啟表單調整標的／金額。
               </p>
-              <div className="mt-3 flex flex-col gap-2">
-                {activeScenario.starters.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    disabled={loading}
-                    onClick={() => applyQuestion(q)}
-                    className="rounded-md border border-[var(--border)] bg-slate-50 px-3 py-2 text-left text-xs leading-snug text-[var(--fg)] hover:border-sky-300 hover:bg-sky-50 disabled:opacity-60"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
             </div>
           ) : null}
         </div>
@@ -300,7 +308,8 @@ export function ChatPanel() {
             ③ 您的問題
             {activeScenario ? (
               <span className="ml-2 text-xs font-normal text-[var(--muted)]">
-                （目前情境：{activeScenario.title}）
+                （目前情境：{activeScenario.title}
+                {slotFormOpen ? "｜請先完成欄位組裝" : ""}）
               </span>
             ) : null}
           </label>
