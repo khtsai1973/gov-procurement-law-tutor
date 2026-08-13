@@ -8,6 +8,7 @@
 | **確定性** | `knowledge-radar.ts` | 能力矩陣：依知識軸計算正確率；核心強項 ≥ 85%、關鍵弱點 &lt; 60% |
 | **生成式（整場・階段2）** | `exam-diagnostics.ts` + `personal-weakness-report.ts` | 錯題標籤送入 LLM 知識圖譜分析 → 《個人化學習弱點診斷書》 |
 | **生成式（單題・階段1）** | `question-wrong-reason.ts` | 答錯選擇題時：認知誤區＋正確／錯誤選項適用條件差異（2 句） |
+| **申論批改（階段3）** | `scenario-essay-grade.ts` | 開放式採購情境題 + Rubric（30／40／30）JSON 批改 |
 
 雷達數值寫入 `MockExamSession.diagnosticRadar`；AI 全文寫入 `diagnosticSummary`；法規＋練習題寫入 `diagnosticRecommendations`（bundle JSON）。
 
@@ -39,6 +40,22 @@ UI：`ExamDiagnosticsPanel`（模考結果／單次測驗頁）。
 - UI：`WrongAnswerLlmDiagnosis`（模考揭示後自動；題庫練習「送出並診斷」）
 
 輸出區塊：`## 認知誤區`／`## 適用條件差異`／`## 弱點提示`
+
+## 階段 3：採購實務情境申論題 AI 批改（Rubric-Based）
+
+開放式情境題（例：勞務履約逾期 10 日，依第 63 條及契約如何處置）。
+
+| Rubric | 權重 |
+|--------|------|
+| 法條引用正確性 | 30% |
+| 處置程序合法性 | 40% |
+| 邏輯連貫與公文用語 | 30% |
+
+- System Prompt：`SCENARIO_ESSAY_GRADING_SYSTEM`（嚴格規準）
+- Output：JSON（`scores`／`total`／`deductions`／`strengths`／`modelAnswer`）
+- API：`POST /api/scenario-essay/grade`；題目列表 `GET /api/scenario-essay/questions`
+- UI：`/scenario-essay`（`ScenarioEssayPanel`）
+- 題庫：`src/lib/scenario-essay-bank.ts`（內建 4 題，含第 63 條逾期情境）
 
 ## 知識軸
 

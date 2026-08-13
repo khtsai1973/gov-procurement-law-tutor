@@ -30,6 +30,9 @@ export function Nav() {
         <Link href="/mock-exam" className="no-underline hover:underline">
           模擬考試
         </Link>
+        <Link href="/scenario-essay" className="no-underline hover:underline">
+          情境申論
+        </Link>
         <AuthNavControls googleReady={googleReady} />
         <Link href="/privacy" className="no-underline hover:underline">
           隱私權
