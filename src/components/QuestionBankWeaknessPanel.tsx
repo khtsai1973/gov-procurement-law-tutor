@@ -11,10 +11,9 @@ export function QuestionBankWeaknessPanel({
   if (weakness.totalGraded === 0) {
     return (
       <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-        <h2 className="text-sm font-semibold">弱點分析（結合模擬考試）</h2>
+        <h2 className="text-sm font-semibold">學習弱點儀表板（結合模擬考試）</h2>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          完成模擬考試並交卷後，系統會依題庫知識標籤彙總您的弱點，並可在模考結果頁使用 AI
-          錯題原因分析。
+          完成模擬考試並交卷後，系統會依題庫標籤彙總能力矩陣與弱點，並可在模考結果頁產生《個人化學習弱點診斷書》。
         </p>
         <p className="mt-3 text-sm">
           <Link href="/mock-exam" className="font-medium no-underline hover:underline">
@@ -29,10 +28,10 @@ export function QuestionBankWeaknessPanel({
     <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-amber-950">弱點分析（結合模擬考試）</h2>
+          <h2 className="text-sm font-semibold text-amber-950">學習弱點儀表板（結合模擬考試）</h2>
           <p className="mt-1 text-xs text-amber-900/80">
             依最近模考 {weakness.totalGraded} 題評分結果統計；錯題 {weakness.totalWrong}{" "}
-            題。可搭配下方題庫練習的「AI 錯題原因分析」。
+            題。完整《個人化學習弱點診斷書》請至模考結果頁查看。
           </p>
         </div>
         <Link
@@ -45,7 +44,7 @@ export function QuestionBankWeaknessPanel({
 
       {weakness.weakTags.length > 0 ? (
         <p className="mt-3 text-sm text-amber-950">
-          <span className="font-medium">弱點標籤：</span>
+          <span className="font-medium">關鍵弱點：</span>
           {weakness.weakTags.join("、")}
         </p>
       ) : null}
@@ -70,7 +69,7 @@ export function QuestionBankWeaknessPanel({
 
       {weakness.strongTags.length > 0 ? (
         <p className="mt-3 text-xs text-[var(--muted)]">
-          相對強項：{weakness.strongTags.join("、")}
+          核心強項（正確率 ≥ 85%）：{weakness.strongTags.join("、")}
         </p>
       ) : null}
     </div>

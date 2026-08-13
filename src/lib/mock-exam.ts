@@ -1,6 +1,6 @@
 import type { QuestionBankItem } from "@prisma/client";
 
-import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
+import { resolveAllQuestionTags } from "@/lib/knowledge-tags";
 
 export type MockExamQuestionType = "TRUE_FALSE" | "MULTIPLE_CHOICE";
 
@@ -14,7 +14,7 @@ export type MockExamQuestionPayload = {
   question: string;
   type: MockExamQuestionType;
   category: string;
-  /** 受控知識標籤（規則解析後） */
+  /** 知識軸 ∪ 條次／概念標籤（規則解析後） */
   knowledgeTags: string[];
   options: MockExamOption[];
   relatedSlugs: string[];
@@ -128,7 +128,7 @@ export function toMockExamQuestionPayload(item: QuestionBankItem): MockExamQuest
     question: item.question,
     type,
     category: item.category,
-    knowledgeTags: resolveKnowledgeTags(item),
+    knowledgeTags: resolveAllQuestionTags(item),
     options: getMockExamOptions(item, type),
     relatedSlugs: item.relatedSlugs,
   };

@@ -1,8 +1,12 @@
 /**
  * 題庫知識標籤（Knowledge Tagging）— 受控詞彙＋規則推導。
  * 供確定性雷達圖與 LLM 弱點建議共用，避免僅依賴自由文字 keywords。
+ *
+ * 階段 2：另以 resolveAllQuestionTags 合併知識軸＋條次／概念標籤，
+ * 供《個人化學習弱點診斷書》知識圖譜分析。
  */
 
+import { resolveQuestionConceptTags } from "@/lib/concept-tags";
 import { OFFICIAL_QUESTION_BANK_CATEGORIES } from "@/lib/question-bank-categories";
 
 /** 雷達圖／診斷用的知識軸（精簡、穩定） */
@@ -85,6 +89,7 @@ export type TagSourceItem = {
   keywords?: string[] | null;
   relatedSlugs?: string[] | null;
   question?: string | null;
+  explanation?: string | null;
   knowledgeTags?: string[] | null;
 };
 
@@ -121,6 +126,36 @@ export function resolveKnowledgeTags(item: TagSourceItem): KnowledgeTag[] {
 
   if (out.length === 0) pushUnique(out, "招標程序");
   return out as KnowledgeTag[];
+}
+
+/**
+ * 題目完整標籤＝知識軸 ∪ 條次款項 ∪ 概念詞（例：金額門檻、限制性招標、第22條第1項第7款）。
+ * 匯入題庫與診斷書／LLM 使用；雷達圖仍只用 resolveKnowledgeTags（知識軸）。
+ */
+export function resolveAllQuestionTags(item: TagSourceItem, max = 16): string[] {
+  const axes = resolveKnowledgeTags(item);
+  const concepts = resolveQuestionConceptTags({
+    question: item.question,
+    keywords: item.keywords,
+    category: item.category,
+    explanation: item.explanation,
+    max: Math.max(4, max - axes.length),
+  });
+  const out: string[] = [...axes];
+  for (const t of concepts) {
+    if (!out.includes(t)) out.push(t);
+    if (out.length >= max) break;
+  }
+  // 顯式存於 DB 的非軸標籤（匯入後）也納入
+  for (const raw of item.knowledgeTags ?? []) {
+    const t = raw.trim();
+    if (!t || out.includes(t)) continue;
+    if (AXIS_SET.has(t) || t.length <= 24) {
+      out.push(t);
+      if (out.length >= max) break;
+    }
+  }
+  return out;
 }
 
 export function isKnowledgeTag(value: string): value is KnowledgeTag {

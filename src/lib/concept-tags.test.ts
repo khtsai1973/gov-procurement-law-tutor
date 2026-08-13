@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  extractArticleClauseTags,
   extractConceptTags,
   isMechanicalKeyword,
   keywordsForRetrieval,
+  resolveQuestionConceptTags,
 } from "./concept-tags";
 
 describe("isMechanicalKeyword", () => {
@@ -57,6 +59,23 @@ describe("extractConceptTags", () => {
     });
     assert.ok(tags.includes("技術服務") || tags.includes("技術服務費") || tags.includes("專案管理"));
     assert.ok(!tags.includes("管理技術服務之工作內"));
+  });
+});
+
+describe("extractArticleClauseTags / resolveQuestionConceptTags", () => {
+  it("extracts clause-level article tags", () => {
+    const articles = extractArticleClauseTags(
+      "依政府採購法第22條第1項第7款辦理限制性招標，金額門檻如何認定？",
+    );
+    assert.ok(articles.includes("第22條第1項第7款"));
+    assert.ok(!articles.includes("第22條"));
+
+    const tags = resolveQuestionConceptTags({
+      question: "依政府採購法第22條第1項第7款辦理限制性招標，金額門檻如何認定？",
+    });
+    assert.ok(tags.includes("第22條第1項第7款"));
+    assert.ok(tags.includes("限制性招標"));
+    assert.ok(tags.includes("金額門檻"));
   });
 });
 

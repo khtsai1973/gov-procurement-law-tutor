@@ -53,6 +53,24 @@ describe("parseDiagnosticSections", () => {
     assert.match(sections.weaknessAnalysis, /金額門檻/);
     assert.match(sections.wrongReasonAnalysis, /第3題/);
   });
+  it("parses personal weakness report sections", () => {
+    const sections = parseDiagnosticSections(`## 核心強項
+- 招標程序（正確率 100%）
+
+## 關鍵弱點
+- 爭議處理（正確率 30%）
+
+## 行動建議
+- 《政府採購法》：複習異議期限。
+
+## 錯題原因分析
+第1題：混淆期限起算日。
+`);
+    assert.match(sections.coreStrengths, /招標程序/);
+    assert.match(sections.keyWeaknesses, /爭議處理/);
+    assert.match(sections.actionAdvice, /政府採購法/);
+    assert.match(sections.wrongReasonAnalysis, /第1題/);
+  });
 });
 
 describe("extractWrongReasonNotes", () => {

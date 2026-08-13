@@ -20,11 +20,11 @@ export type RadarAxisStat = {
 
 export type KnowledgeRadarSnapshot = {
   engine: "rule-v1";
-  /** 本場有出現的知識軸統計（含正確率） */
+  /** 本場有出現的知識軸統計（含正確率）＝能力矩陣 */
   axes: RadarAxisStat[];
   /** 弱點標籤（正確率低或錯題多），供 LLM 生成建議 */
   weakTags: string[];
-  /** 強項標籤 */
+  /** 強項標籤（正確率 ≥ 85%） */
   strongTags: string[];
 };
 
@@ -34,8 +34,48 @@ export type TaggedAnswerRow = {
   tags: string[];
 };
 
-const WEAK_PCT_THRESHOLD = 60;
-const STRONG_PCT_THRESHOLD = 80;
+/** 關鍵弱點：正確率低於此值（或有錯題） */
+export const WEAK_PCT_THRESHOLD = 60;
+/** 核心強項：正確率需 ≥ 此值（對齊學習弱點診斷書） */
+export const STRONG_PCT_THRESHOLD = 85;
+
+export type CapabilityMatrixLabel = {
+  tag: string;
+  pct: number;
+  role: "strength" | "weakness" | "neutral";
+};
+
+/** 由雷達產出能力矩陣標籤（強項／弱點／中性） */
+export function buildCapabilityMatrix(radar: KnowledgeRadarSnapshot): CapabilityMatrixLabel[] {
+  return radar.axes
+    .filter((a) => a.pct != null)
+    .map((a) => {
+      const pct = a.pct!;
+      let role: CapabilityMatrixLabel["role"] = "neutral";
+      if (pct >= STRONG_PCT_THRESHOLD) role = "strength";
+      else if (pct < WEAK_PCT_THRESHOLD || a.wrong > 0) role = "weakness";
+      return { tag: String(a.tag), pct, role };
+    });
+}
+
+/** 核心強項文案（正確率 > 85% 門檻以 ≥85 實作） */
+export function formatCoreStrengths(radar: KnowledgeRadarSnapshot): string[] {
+  return radar.axes
+    .filter((a) => a.pct != null && a.pct >= STRONG_PCT_THRESHOLD && a.total >= 1)
+    .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0))
+    .map((a) => `${a.tag}（正確率 ${a.pct}%）`);
+}
+
+/** 關鍵弱點文案 */
+export function formatKeyWeaknesses(radar: KnowledgeRadarSnapshot): string[] {
+  return radar.axes
+    .filter(
+      (a) =>
+        a.pct != null && (a.pct < WEAK_PCT_THRESHOLD || (a.wrong > 0 && a.pct < STRONG_PCT_THRESHOLD)),
+    )
+    .sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0) || b.wrong - a.wrong)
+    .map((a) => `${a.tag}（正確率 ${a.pct}%）`);
+}
 
 /**
  * 由已標籤的作答列計算雷達軸。
@@ -119,7 +159,9 @@ export function formatRadarForPrompt(radar: KnowledgeRadarSnapshot): string {
     (a) =>
       `- ${a.tag}：正確率 ${a.pct ?? "—"}%（對 ${a.correct}／錯 ${a.wrong}／計 ${a.total}）`,
   );
-  lines.push(`弱點標籤：${radar.weakTags.join("、") || "無"}`);
-  lines.push(`相對強項：${radar.strongTags.join("、") || "無"}`);
+  lines.push(`關鍵弱點（正確率 < ${WEAK_PCT_THRESHOLD}% 或有錯題）：${radar.weakTags.join("、") || "無"}`);
+  lines.push(
+    `核心強項（正確率 ≥ ${STRONG_PCT_THRESHOLD}%）：${radar.strongTags.join("、") || "無"}`,
+  );
   return lines.join("\n");
 }

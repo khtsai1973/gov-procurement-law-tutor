@@ -525,14 +525,13 @@ export function MockExamPanel({
     questions.map((q) => ({
       isCorrect: q.revealed?.isCorrect ?? null,
       revealed: !!q.revealed,
-      tags:
-        q.knowledgeTags?.length > 0
-          ? q.knowledgeTags
-          : resolveKnowledgeTags({
-              category: q.category,
-              question: q.question,
-              relatedSlugs: q.relatedSlugs,
-            }),
+      // 能力矩陣僅用知識軸；完整標籤含概念／條次，需過濾
+      tags: resolveKnowledgeTags({
+        category: q.category,
+        question: q.question,
+        relatedSlugs: q.relatedSlugs,
+        knowledgeTags: q.knowledgeTags,
+      }),
     })),
   );
 

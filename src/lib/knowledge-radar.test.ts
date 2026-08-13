@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { computeKnowledgeRadar } from "@/lib/knowledge-radar";
-import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
+import { computeKnowledgeRadar, STRONG_PCT_THRESHOLD } from "@/lib/knowledge-radar";
+import { resolveAllQuestionTags, resolveKnowledgeTags } from "@/lib/knowledge-tags";
 
 describe("knowledge tags", () => {
   it("maps official categories and keyword rules", () => {
@@ -30,6 +30,18 @@ describe("knowledge tags", () => {
     );
     assert.ok(!(tags as string[]).includes("不是合法標籤"));
   });
+
+  it("resolveAllQuestionTags merges axes with article and concept tags", () => {
+    const tags = resolveAllQuestionTags({
+      category: "政府採購法之總則、招標及決標",
+      question: "依第22條第1項第7款限制性招標，金額門檻如何計算？",
+      keywords: [],
+      relatedSlugs: [],
+    });
+    assert.ok(tags.includes("招標程序") || tags.includes("金額門檻"));
+    assert.ok(tags.includes("第22條第1項第7款"));
+    assert.ok(tags.includes("限制性招標"));
+  });
 });
 
 describe("knowledge radar rule engine", () => {
@@ -48,5 +60,25 @@ describe("knowledge radar rule engine", () => {
     assert.equal(amount!.pct, 33);
     assert.ok(radar.weakTags.includes("金額門檻"));
     assert.ok(!radar.axes.some((a) => a.tag === "爭議處理"));
+  });
+
+  it(`marks strong tags only at >= ${STRONG_PCT_THRESHOLD}%`, () => {
+    const radar = computeKnowledgeRadar([
+      { revealed: true, isCorrect: true, tags: ["招標程序"] },
+      { revealed: true, isCorrect: true, tags: ["招標程序"] },
+      { revealed: true, isCorrect: true, tags: ["招標程序"] },
+      { revealed: true, isCorrect: true, tags: ["招標程序"] },
+      { revealed: true, isCorrect: false, tags: ["招標程序"] }, // 80%
+      { revealed: true, isCorrect: true, tags: ["電子採購"] },
+      { revealed: true, isCorrect: true, tags: ["電子採購"] },
+      { revealed: true, isCorrect: true, tags: ["電子採購"] },
+      { revealed: true, isCorrect: true, tags: ["電子採購"] },
+      { revealed: true, isCorrect: true, tags: ["電子採購"] },
+      { revealed: true, isCorrect: true, tags: ["電子採購"] },
+      { revealed: true, isCorrect: true, tags: ["電子採購"] }, // 100%
+    ]);
+    assert.equal(STRONG_PCT_THRESHOLD, 85);
+    assert.ok(!radar.strongTags.includes("招標程序"));
+    assert.ok(radar.strongTags.includes("電子採購"));
   });
 });
