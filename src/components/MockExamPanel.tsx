@@ -543,6 +543,11 @@ export function MockExamPanel({
             <h1 className="text-xl font-semibold">題庫模擬考試</h1>
             <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
               自題庫隨機抽題，支援計時模式與測驗紀錄；作答後顯示參考答案、法規來源，並可為每題註記解答來源。
+              開放式情境申論請至{" "}
+              <Link href="/scenario-essay" className="font-medium no-underline hover:underline">
+                情境申論 AI 批改
+              </Link>
+              。
             </p>
           </div>
           <Link href="/" className="text-sm no-underline hover:underline">
