@@ -23,6 +23,22 @@ describe("parseDiagnosticSections", () => {
     assert.match(sections.regulationAdvice, /政府採購法/);
   });
 
+  it("parses cognitive misconception sections", () => {
+    const sections = parseDiagnosticSections(`## 認知誤區
+把三家規則套到限制性招標。
+
+## 適用條件差異
+正確選項適用第22條第1項第9款。
+錯誤選項適用公開招標第48條。
+
+## 弱點提示
+複習第22條範圍。
+`);
+    assert.match(sections.cognitiveMisconception, /三家/);
+    assert.match(sections.applicabilityDiff, /第22條/);
+    assert.match(sections.weaknessAnalysis, /複習/);
+  });
+
   it("maps legacy headers", () => {
     const sections = parseDiagnosticSections(`## 綜合觀念診斷
 綜合說明

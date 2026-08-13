@@ -9,6 +9,10 @@ export type DiagnosticSections = {
   wrongReasonAnalysis: string;
   /** 建議補強法規（原文區塊，可選） */
   regulationAdvice: string;
+  /** 選擇錯誤選項的常見認知誤區（單題 LLM） */
+  cognitiveMisconception: string;
+  /** 正確／錯誤選項適用條件差異（單題 LLM，宜為 2 句） */
+  applicabilityDiff: string;
 };
 
 const SECTION_ALIASES: Record<string, keyof DiagnosticSections> = {
@@ -19,14 +23,18 @@ const SECTION_ALIASES: Record<string, keyof DiagnosticSections> = {
   錯題原因分析: "wrongReasonAnalysis",
   逐題要點: "wrongReasonAnalysis",
   建議補強法規: "regulationAdvice",
+  認知誤區: "cognitiveMisconception",
+  適用條件差異: "applicabilityDiff",
 };
 
-/** 將 markdown ## 標題診斷文拆成弱點／錯題原因／法規建議 */
+/** 將 markdown ## 標題診斷文拆成弱點／錯題原因／法規建議／認知誤區 */
 export function parseDiagnosticSections(summary: string | null | undefined): DiagnosticSections {
   const empty: DiagnosticSections = {
     weaknessAnalysis: "",
     wrongReasonAnalysis: "",
     regulationAdvice: "",
+    cognitiveMisconception: "",
+    applicabilityDiff: "",
   };
   if (!summary?.trim()) return empty;
 
@@ -35,6 +43,8 @@ export function parseDiagnosticSections(summary: string | null | undefined): Dia
     weaknessAnalysis: [],
     wrongReasonAnalysis: [],
     regulationAdvice: [],
+    cognitiveMisconception: [],
+    applicabilityDiff: [],
   };
   let current: keyof DiagnosticSections | null = null;
 
@@ -52,6 +62,8 @@ export function parseDiagnosticSections(summary: string | null | undefined): Dia
     weaknessAnalysis: buckets.weaknessAnalysis.join("\n").trim(),
     wrongReasonAnalysis: buckets.wrongReasonAnalysis.join("\n").trim(),
     regulationAdvice: buckets.regulationAdvice.join("\n").trim(),
+    cognitiveMisconception: buckets.cognitiveMisconception.join("\n").trim(),
+    applicabilityDiff: buckets.applicabilityDiff.join("\n").trim(),
   };
 }
 

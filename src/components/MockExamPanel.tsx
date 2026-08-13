@@ -27,6 +27,7 @@ import {
   type MockExamRevealResult,
 } from "@/lib/mock-exam";
 import { ExamDiagnosticsPanel } from "@/components/ExamDiagnosticsPanel";
+import { WrongAnswerLlmDiagnosis } from "@/components/WrongAnswerLlmDiagnosis";
 import { computeKnowledgeRadar } from "@/lib/knowledge-radar";
 import { resolveKnowledgeTags } from "@/lib/knowledge-tags";
 
@@ -864,6 +865,15 @@ export function MockExamPanel({
                     <p className="mt-1">請在下方輸入您的補充說明或參考來源，系統會為您保存。</p>
                   </div>
                 )}
+
+                {current.revealed.isCorrect === false && current.userAnswer ? (
+                  <WrongAnswerLlmDiagnosis
+                    itemKey={current.key}
+                    userAnswer={current.userAnswer}
+                    enabled
+                    autoStart
+                  />
+                ) : null}
 
                 {current.revealed.regulations.length > 0 ? (
                   <div>
