@@ -14,6 +14,8 @@ import {
 } from "./knowledge-graph";
 import { localBgeStyleRerank } from "./rerank";
 import { buildCitationSources, splitAnswerWithCitations } from "./citations";
+import { applyRetrievalStrategy, expandHitsToParentContext } from "./rag";
+import type { ChunkWithReg } from "./rag";
 
 describe("bm25", () => {
   it("tokenizes article numbers", () => {
@@ -108,5 +110,114 @@ describe("rerank + citations", () => {
     ]);
     assert.equal(sources[0]?.index, 1);
     assert.equal(sources[0]?.versionLabel, "2024-01-01");
+  });
+});
+
+describe("parent-document retrieval strategy", () => {
+  function fakeChunk(opts: {
+    id: string;
+    chunkRole: string;
+    content?: string;
+    parentId?: string | null;
+    articleKey?: string | null;
+    regulationId?: string;
+    slug?: string;
+    title?: string;
+    tier?: string;
+  }): ChunkWithReg {
+    const regulationId = opts.regulationId ?? "reg1";
+    return {
+      id: opts.id,
+      content: opts.content ?? "content",
+      embedding: null,
+      regulationId,
+      chunkIndex: 0,
+      chunkRole: opts.chunkRole,
+      parentId: opts.parentId ?? null,
+      articleKey: opts.articleKey ?? "第 48 條",
+      createdAt: new Date(),
+      regulation: {
+        id: regulationId,
+        slug: opts.slug ?? "government-procurement-act",
+        title: opts.title ?? "政府採購法",
+        tier: (opts.tier ?? "LAW") as ChunkWithReg["regulation"]["tier"],
+        sortOrder: 0,
+        sourceUrl: null,
+        notes: null,
+        lastModifiedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    } as unknown as ChunkWithReg;
+  }
+
+  it("expands child hits to parent context", () => {
+    const parent = fakeChunk({
+      id: "p1",
+      chunkRole: "PARENT",
+      content: "### 第 48 條\n完整條文上下文",
+    });
+    const child = fakeChunk({
+      id: "c1",
+      chunkRole: "CHILD",
+      parentId: "p1",
+      content: "【檢索單元】三家以上",
+    });
+    const byId = new Map([
+      [parent.id, parent],
+      [child.id, child],
+    ]);
+    const expanded = expandHitsToParentContext([child], byId);
+    assert.equal(expanded[0]?.id, "p1");
+    assert.match(expanded[0]!.content, /完整條文/);
+  });
+
+  it("parent_contextual strategy tags include parent-child", () => {
+    const parent = fakeChunk({ id: "p1", chunkRole: "PARENT", content: "母法全文" });
+    const child = fakeChunk({
+      id: "c1",
+      chunkRole: "CHILD",
+      parentId: "p1",
+      content: "child",
+    });
+    const byId = new Map([
+      [parent.id, parent],
+      [child.id, child],
+    ]);
+    const applied = applyRetrievalStrategy({
+      strategy: "parent_contextual",
+      childHits: [child],
+      byId,
+      allChunks: [parent, child],
+      hasHierarchy: true,
+      topK: 4,
+      enableGraph: false,
+    });
+    assert.ok(applied.strategyTags.includes("+parent-child"));
+    assert.equal(applied.chunks[0]?.id, "p1");
+  });
+
+  it("baseline keeps child without parent expand", () => {
+    const parent = fakeChunk({ id: "p1", chunkRole: "PARENT", content: "母法全文" });
+    const child = fakeChunk({
+      id: "c1",
+      chunkRole: "CHILD",
+      parentId: "p1",
+      content: "child",
+    });
+    const byId = new Map([
+      [parent.id, parent],
+      [child.id, child],
+    ]);
+    const applied = applyRetrievalStrategy({
+      strategy: "baseline",
+      childHits: [child],
+      byId,
+      allChunks: [parent, child],
+      hasHierarchy: true,
+      topK: 4,
+    });
+    assert.equal(applied.chunks[0]?.id, "c1");
+    assert.ok(applied.strategyTags.some((t) => t.includes("baseline")));
   });
 });

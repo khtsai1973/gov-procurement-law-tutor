@@ -31,12 +31,16 @@
 npm run db:push
 npm run db:generate
 npm run corpus:ingest
+npm run corpus:embed   # 僅 CHILD；Parent 不寫 embedding
 ```
+
+檢索流程：**Hybrid（BM25＋Vector）搜 CHILD → 展開 PARENT 完整條文**，避免條文被切碎後失去 Context。
 
 檢索 mode 字串會帶策略標籤，例如：
 
 - `+strategy=baseline`
 - `+strategy=contextual`
 - `+strategy=parent_contextual+parent-child`（可再加 `+graphrag`）
+- `+hybrid=bm25+vector+rrf`（或 `+hybrid=bm25-only`）
 
-三策略比較實驗見 [`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)。
+與 Hybrid Search 總覽見 [`docs/RAG-HYBRID-GRAPH.md`](./RAG-HYBRID-GRAPH.md)；三策略比較見 [`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)。

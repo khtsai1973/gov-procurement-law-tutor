@@ -33,6 +33,7 @@ import { prisma } from "@/lib/prisma";
 import { keywordsForRetrieval } from "@/lib/concept-tags";
 import { matchQuestionBank } from "@/lib/question-bank";
 import type { QuestionBankMatch } from "@/lib/question-bank-types";
+import { getRagHybridConfig, hybridConfigModeTag } from "@/lib/rag-hybrid-config";
 import { rerankCandidates } from "@/lib/rerank";
 
 /** 問答檢索僅限法規／函釋資料庫（不含題庫分類） */
@@ -416,6 +417,7 @@ function hybridScore(
   bm25 = 0,
 ): number {
   if (isStubChunk(chunk.content)) return 0;
+  const cfg = getRagHybridConfig();
   const kw = keywordScore(chunk.content, query, bank);
   const slug = chunk.regulation.slug;
   const figures = hasThresholdFigures(chunk.content);
@@ -437,14 +439,14 @@ function hybridScore(
       ? tierBoost(chunk.regulation.tier) * 0.25
       : tierBoost(chunk.regulation.tier);
 
-  // BM25（條號／關鍵字）+ 向量語意 + 既有加權
+  // Hybrid：BM25（關鍵字／條號）+ Dense Vector 語意 + 領域加權
   return (
-    bm25 * 0.28 +
-    kw * 0.14 +
-    semantic * 0.38 +
-    tier * 0.08 +
-    slugB * 0.07 +
-    figureBoost(chunk.content, query) * 0.05
+    bm25 * cfg.bm25Weight +
+    kw * cfg.keywordWeight +
+    semantic * cfg.semanticWeight +
+    tier * cfg.tierWeight +
+    slugB * cfg.slugWeight +
+    figureBoost(chunk.content, query) * cfg.figureWeight
   );
 }
 
@@ -507,10 +509,12 @@ async function scoreAllChunks(
   query: string,
   bank?: QuestionBankMatch,
 ): Promise<ScoredChunk[]> {
+  const cfg = getRagHybridConfig();
   let queryVec: number[] | null = null;
   const expanded = expandQuery(query, bank);
+  const useVector = cfg.enableVector && canUseEmbeddings();
 
-  if (canUseEmbeddings()) {
+  if (useVector) {
     try {
       const [vec] = await embedTexts([expanded]);
       queryVec = vec ?? null;
@@ -526,25 +530,30 @@ async function scoreAllChunks(
   const bm25ById = new Map(bm25Rows.map((r) => [r.id, r.score]));
   const maxBm = Math.max(...bm25Rows.map((r) => r.score), 1e-9);
 
-  // Vector rank list（有 embedding 時）
-  const vectorRanked = all
-    .map((chunk) => {
-      const vec = parseEmbedding(chunk.embedding);
-      const sem = queryVec && vec ? cosineSimilarity(queryVec, vec) : 0;
-      return { id: chunk.id, score: sem, vec, sem };
-    })
-    .filter((r) => r.score > 0)
-    .sort((a, b) => b.score - a.score);
+  // Dense Vector rank list（有 embedding 且未關閉向量時）
+  const vectorRanked = useVector
+    ? all
+        .map((chunk) => {
+          const vec = parseEmbedding(chunk.embedding);
+          const sem = queryVec && vec ? cosineSimilarity(queryVec, vec) : 0;
+          return { id: chunk.id, score: sem, vec, sem };
+        })
+        .filter((r) => r.score > 0)
+        .sort((a, b) => b.score - a.score)
+    : [];
 
-  const rrf = reciprocalRankFusion([
-    bm25Rows.map((r) => ({ id: r.id })),
-    vectorRanked.map((r) => ({ id: r.id })),
-  ]);
+  const rrfLists =
+    vectorRanked.length > 0
+      ? [bm25Rows.map((r) => ({ id: r.id })), vectorRanked.map((r) => ({ id: r.id }))]
+      : [bm25Rows.map((r) => ({ id: r.id }))];
+  const rrf = reciprocalRankFusion(rrfLists);
   const maxRrf = Math.max(...[...rrf.values()], 1e-9);
+  const baseBlend = 1 - cfg.rrfBlend;
 
   return all.map((chunk) => {
     const vec = parseEmbedding(chunk.embedding);
-    const semantic = queryVec && vec ? cosineSimilarity(queryVec, vec) : 0;
+    const semantic =
+      useVector && queryVec && vec ? cosineSimilarity(queryVec, vec) : 0;
     const bm25Raw = bm25ById.get(chunk.id) ?? 0;
     const bm25 = bm25Raw / maxBm;
     const rrfNorm = (rrf.get(chunk.id) ?? 0) / maxRrf;
@@ -552,7 +561,7 @@ async function scoreAllChunks(
     return {
       chunk,
       // RRF 混合分與加權分融合
-      score: base * 0.65 + rrfNorm * 0.35,
+      score: base * baseBlend + rrfNorm * cfg.rrfBlend,
       vec,
       bm25,
       semantic,
@@ -656,17 +665,21 @@ export async function retrieveForRag(
   if (!hasSignal) {
     const weakChildren = scored.filter((s) => s.score > 0.06).slice(0, topK).map((s) => s.chunk);
     if (weakChildren.length > 0) {
-      let weakParents = expandHitsToParentContext(weakChildren, byId);
-      if (hasHierarchy) {
-        weakParents = enrichWithRelatedEnforcementParents(weakParents, all, 2);
-      }
+      const appliedWeak = applyRetrievalStrategy({
+        strategy,
+        childHits: weakChildren,
+        byId,
+        allChunks: all,
+        hasHierarchy,
+        topK,
+        enableGraph,
+      });
+      const hybridTag = hybridConfigModeTag(getRagHybridConfig());
       return {
-        chunks: weakParents.slice(0, topK + 2),
+        chunks: appliedWeak.chunks,
         mode: questionBankUsed
-          ? "rag-weak-match+keyword-expand+parent-child"
-          : hasHierarchy
-            ? "rag-weak-match+parent-child"
-            : "rag-weak-match",
+          ? `rag-weak-match+keyword-expand${hybridTag}${appliedWeak.strategyTags.join("")}`
+          : `rag-weak-match${hybridTag}${appliedWeak.strategyTags.join("")}`,
         questionBankUsed,
       };
     }
@@ -782,10 +795,14 @@ export async function retrieveForRag(
   });
   const chunks = applied.chunks;
 
+  const hybridCfg = getRagHybridConfig();
   const modeBase =
-    canUseEmbeddings() && searchable.some((c) => parseEmbedding(c.embedding))
+    hybridCfg.enableVector &&
+    canUseEmbeddings() &&
+    searchable.some((c) => parseEmbedding(c.embedding))
       ? "rag-bm25-vector-rrf"
       : "rag-bm25";
+  const hybridTag = hybridConfigModeTag(hybridCfg);
   const rerankTag = `+${rerankMode}`;
   const strategyTag = applied.strategyTags.join("");
   // 無階層時 baseline 標籤已含於 strategyTags；保留相容舊字串的 parent-child 語意
@@ -797,8 +814,8 @@ export async function retrieveForRag(
   return {
     chunks,
     mode: questionBankUsed
-      ? `${modeBase}${rerankTag}+keyword-expand${strategyTag}${legacyHierarchy}`
-      : `${modeBase}${rerankTag}${strategyTag}${legacyHierarchy}`,
+      ? `${modeBase}${hybridTag}${rerankTag}+keyword-expand${strategyTag}${legacyHierarchy}`
+      : `${modeBase}${hybridTag}${rerankTag}${strategyTag}${legacyHierarchy}`,
     questionBankUsed,
   };
 }
