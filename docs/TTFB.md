@@ -7,7 +7,8 @@
 3. **縮小 serverless 打包**：`outputFileTracingIncludes` 勿掛在 `"/*"`，只掛管理／匯入相關路徑，降低冷啟動與函式體積。
 4. **暖機**：`GET /api/health`（不連 DB）可供 cron 或量測腳本預熱。
 5. **教材頁**：列表只查摘要（`unstable_cache` 約 60s），全文經 `/api/materials/[id]` 點選後載入；Neon 建議用 pooled 連線。
-6. **可重現證據**：用 `npm run ttfb:check` 產出 `docs/evidence/ttfb-*.md`／`.json`（含 p50／p95）。
+6. **動態列表頁**（`/mock-exam`、`/question-bank`、`/materials`、`/regulations`）：公開資料用 `unstable_cache` + ISR（`revalidate`）；登入態／個人紀錄改客戶端 `useSession` + API 延後載入，避免 SSR 等 Auth 拉高 TTFB。
+7. **可重現證據**：用 `npm run ttfb:check` 產出 `docs/evidence/ttfb-*.md`／`.json`（含 p50／p95）。
 
 ## 合格定義（建議寫進驗收）
 

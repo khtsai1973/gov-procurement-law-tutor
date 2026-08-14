@@ -3,10 +3,10 @@ import Link from "next/link";
 import { RegulationTier } from "@prisma/client";
 
 import { isDatabaseReady } from "@/lib/ensure-db";
-import prisma from "@/lib/prisma";
-import { tierLabel, tierSortKey } from "@/lib/tier-order";
+import { loadRegulationListSummary } from "@/lib/regulations-public";
 
-export const dynamic = "force-dynamic";
+/** 法規清單摘要可快取（5 分鐘） */
+export const revalidate = 300;
 
 export default async function RegulationsPage() {
   const ready = await isDatabaseReady();
@@ -33,11 +33,7 @@ npm run corpus:rag-init   # 選填，語意檢索需 OPENAI_API_KEY`}
     );
   }
 
-  const rows = await prisma.regulation.findMany();
-  rows.sort((a, b) => tierSortKey(a.tier, a.sortOrder) - tierSortKey(b.tier, b.sortOrder));
-
-  const questionBankCount = rows.filter((r) => r.tier === RegulationTier.QUESTION_BANK).length;
-  const lawCount = rows.length - questionBankCount;
+  const { rows, lawCount, questionBankCount } = await loadRegulationListSummary();
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
@@ -71,14 +67,16 @@ npm run corpus:rag-init   # 選填，語意檢索需 OPENAI_API_KEY`}
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-[var(--border)] align-top">
-                <td className="py-3 pr-4 whitespace-nowrap">{tierLabel(r.tier)}</td>
+                <td className="py-3 pr-4 whitespace-nowrap">{r.tierLabel}</td>
                 <td className="py-3 pr-4">
                   <div className="font-medium">{r.title}</div>
                   {r.notes ? <div className="mt-1 text-xs text-[var(--muted)]">{r.notes}</div> : null}
                 </td>
                 <td className="py-3 pr-4 whitespace-nowrap">
                   {r.lastModifiedAt
-                    ? new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }).format(r.lastModifiedAt)
+                    ? new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }).format(
+                        new Date(r.lastModifiedAt),
+                      )
                     : "—"}
                 </td>
                 <td className="py-3 pr-4">

@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
   useTransition,
-  type ReactNode,
 } from "react";
+
+import { MockExamUserExtras } from "@/components/MockExamUserExtras";
 
 import { updateNickname } from "@/app/actions/profile";
 import { MockExamSingleSessionCharts } from "@/components/MockExamSingleSessionCharts";
@@ -47,23 +49,15 @@ type QuestionState = MockExamQuestionPayload & {
 };
 
 type MockExamPanelProps = {
-  signedIn: boolean;
-  initialNickname: string | null;
   categories: MockExamCategoryOption[];
-  history: ReactNode;
-  analytics: ReactNode;
 };
 
-export function MockExamPanel({
-  signedIn,
-  initialNickname,
-  categories,
-  history,
-  analytics,
-}: MockExamPanelProps) {
+export function MockExamPanel({ categories }: MockExamPanelProps) {
   const router = useRouter();
+  const { status } = useSession();
+  const signedIn = status === "authenticated";
   const [phase, setPhase] = useState<Phase>("setup");
-  const [nickname, setNickname] = useState(initialNickname ?? "");
+  const [nickname, setNickname] = useState("");
   const [nicknameMsg, setNicknameMsg] = useState<string | null>(null);
   const [examType, setExamType] = useState<MockExamQuestionType>("MULTIPLE_CHOICE");
   const [examCount, setExamCount] = useState<(typeof MOCK_EXAM_COUNT_OPTIONS)[number]>(5);
@@ -153,6 +147,15 @@ export function MockExamPanel({
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
   }, [phase, timedMode, timeLimitSec, completeExam]);
+
+  if (status === "loading") {
+    return (
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+        <h1 className="text-xl font-semibold">題庫模擬考試</h1>
+        <p className="mt-3 text-sm text-[var(--muted)]">載入中…</p>
+      </section>
+    );
+  }
 
   if (!signedIn) {
     return (
@@ -744,8 +747,6 @@ export function MockExamPanel({
               {loading ? "載入題目中…" : nickname.trim() ? `${nickname}，開始測驗` : "開始測驗"}
             </button>
           </div>
-          {history}
-          {analytics}
         </>
       ) : null}
 
@@ -1119,11 +1120,10 @@ export function MockExamPanel({
               initialRadar={summaryRadar}
             />
           ) : null}
-
-          {history}
-          {analytics}
         </>
       ) : null}
+
+      {phase !== "exam" ? <MockExamUserExtras onNicknameLoaded={setNickname} /> : null}
     </section>
   );
 }

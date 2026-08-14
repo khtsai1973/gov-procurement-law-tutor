@@ -6,7 +6,9 @@ import { z } from "zod";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 import { clearQuestionBankCache } from "@/lib/question-bank";
+import { invalidateQuestionBankPublicCache } from "@/lib/question-bank-public";
 import { syncQuestionBankRegulations } from "@/lib/question-bank-corpus";
+import { invalidateRegulationsPublicCache } from "@/lib/regulations-public";
 import { ensureQuestionBankSchema } from "@/lib/ensure-question-bank-schema";
 import { canAccessTeacher } from "@/lib/roles";
 
@@ -90,6 +92,8 @@ export async function saveQuestionBankItem(raw: unknown) {
 
     await syncQuestionBankRegulations(prisma);
     clearQuestionBankCache();
+    invalidateQuestionBankPublicCache();
+    invalidateRegulationsPublicCache();
     revalidatePath("/question-bank");
     revalidatePath("/teacher/question-bank");
     revalidatePath("/regulations");
@@ -109,6 +113,8 @@ export async function deleteQuestionBankItem(id: string) {
     await prisma.questionBankItem.delete({ where: { id } });
     await syncQuestionBankRegulations(prisma);
     clearQuestionBankCache();
+    invalidateQuestionBankPublicCache();
+    invalidateRegulationsPublicCache();
     revalidatePath("/question-bank");
     revalidatePath("/teacher/question-bank");
     revalidatePath("/regulations");
