@@ -1,45 +1,69 @@
-# RAG 架構升級：Hybrid Search + GraphRAG + 可追溯引文
+# RAG 架構：Hybrid Search + Parent-Document Chunking + GraphRAG
 
-## 1. Hybrid Search + Re-ranking
+生產預設管線（`retrieveForRag`，strategy=`parent_contextual`）：
 
-檢索管線（`src/lib/rag.ts`）：
+```text
+查詢擴展
+  → Hybrid Search（BM25 關鍵字 + Dense Vector 語意，RRF 融合）
+  → BGE 風格 Re-rank → MMR
+  → Hierarchical／Parent-Document：命中 CHILD，回傳 PARENT 完整條文上下文
+  →（可選）GraphRAG 同條號細則／函釋擴展
+  → 可追溯引文
+```
 
-1. **BM25**（`src/lib/bm25.ts`）：繁中 n-gram＋條號 token，強化關鍵字／條號精準
-2. **Vector Search**：既有 embedding 餘弦相似度
-3. **RRF**（Reciprocal Rank Fusion）：合併 BM25 與向量排序
-4. **Re-ranker**（`src/lib/rerank.ts`）
-   - 預設：**本地 BGE 風格**（語意 + BM25 正規化 + 條號／片語加權）
-   - 可選遠端：設定 `BGE_RERANKER_URL`，或 `HF_API_TOKEN` + `BGE_RERANKER_MODEL`（預設 `BAAI/bge-reranker-v2-m3`）
-5. **MMR** 多樣性 → Parent-Child 展開
+## 1. Hybrid Search（BM25 + Dense Vector）
 
-`retrievalMode` 範例：`rag-bm25-vector-rrf+bge-local+parent-child+graphrag`
+| 元件 | 檔案 | 說明 |
+|------|------|------|
+| BM25 | `src/lib/bm25.ts` | 繁中 n-gram＋條號 token，強化關鍵字／條號精準 |
+| Dense Vector | `src/lib/embeddings.ts` | Child 片段 embedding 餘弦相似度 |
+| RRF | `reciprocalRankFusion` | 合併 BM25 與向量排序 |
+| 加權融合 | `src/lib/rag-hybrid-config.ts` | BM25／語意／RRF 權重可調 |
+| Re-rank | `src/lib/rerank.ts` | 本地 BGE 風格；可選遠端 BGE |
 
-## 2. GraphRAG（知識圖譜）
+`retrievalMode` 範例：`rag-bm25-vector-rrf+hybrid=bm25+vector+rrf+bge-local+strategy=parent_contextual+parent-child+graphrag`
 
-`src/lib/knowledge-graph.ts`：
-
-- 以 **條號（articleKey）** 連結母法（LAW）、施行細則（REGULATION）、函釋（INTERPRETATION）
-- 邊類型：`SAME_ARTICLE`、`MENTIONS_ARTICLE`
-- 命中母法後自動擴展同條號細則／函釋脈絡（最多 +3）
-
-## 3. 100% 可追溯引文（Citation Popover）
-
-- API 回傳每個【片段N】的原文、法規標題、條號、版本／異動日、來源 URL（`src/lib/citations.ts`）
-- 前端 `CitationAnswer`：回答內 `[片段N]` 變為可點擊標籤，彈出原文與版本資訊
-
-## 環境變數（選填）
+### 環境變數（選填）
 
 ```bash
-# 遠端 BGE-Reranker（自架）
-BGE_RERANKER_URL="https://your-reranker/rerank"
+# Hybrid 權重（預設與既有生產行為一致）
+RAG_BM25_WEIGHT="0.28"
+RAG_SEMANTIC_WEIGHT="0.38"
+RAG_KEYWORD_WEIGHT="0.14"
+RAG_RRF_BLEND="0.35"          # 最終分 = base*(1-blend) + rrf*blend
+RAG_DISABLE_VECTOR="false"    # true 時僅 BM25／關鍵字
 
-# 或 Hugging Face Inference
-HF_API_TOKEN=""
-BGE_RERANKER_MODEL="BAAI/bge-reranker-v2-m3"
+RAG_FETCH_K="40"
+RAG_TOP_K="8"
+RAG_MMR_LAMBDA="0.65"
+
+# 遠端 BGE-Reranker（未設定則用本地）
+# BGE_RERANKER_URL=""
+# HF_API_TOKEN=""
+# BGE_RERANKER_MODEL="BAAI/bge-reranker-v2-m3"
 ```
+
+## 2. Hierarchical / Parent-Document Chunking
+
+詳見 [`RAG-PARENT-CHILD.md`](./RAG-PARENT-CHILD.md)。
+
+| 層級 | 用途 |
+|------|------|
+| **CHILD（小切片）** | 僅此層做 BM25／向量檢索，提高命中精準度 |
+| **PARENT（條文級）** | 命中後展開完整法條上下文，避免條文被切碎後失去 Context |
+
+- Ingest：`chunkMarkdownParentChild`（`src/lib/chunk-text.ts`）
+- Embed：`npm run corpus:embed` **僅對 CHILD** 寫入 embedding
+- Retrieve：搜 CHILD → `expandHitsToParentContext` 回 PARENT
+
+## 3. GraphRAG 與可追溯引文
+
+- `src/lib/knowledge-graph.ts`：同條號母法／細則／函釋擴展
+- `CitationAnswer`：回答內 `[片段N]` 可點開原文與版本
 
 ## 測試
 
 ```bash
-npx tsx --test src/lib/rag-upgrade.test.ts
+npx tsx --test src/lib/rag-upgrade.test.ts src/lib/rag-hybrid-config.test.ts
+npx tsx --test src/lib/chunk-text.parent-child.test.ts
 ```
