@@ -1,0 +1,83 @@
+name: RAG Live Eval
+
+on:
+  schedule:
+    # 每週一 02:15 UTC（台灣 10:15）— 檢索 smoke + compare + 離線 FRC
+    - cron: "15 2 * * 1"
+  workflow_dispatch:
+    inputs:
+      generate:
+        description: "含 LLM 生成（compare + FRC live，需 OPENAI_API_KEY）"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      compare_limit:
+        description: "Compare golden 題數上限"
+        required: false
+        default: "50"
+      frc_limit:
+        description: "FRC 題數上限（live 模式時）"
+        required: false
+        default: "15"
+
+jobs:
+  rag-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Preflight secrets
+        id: preflight
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "DATABASE_URL not configured — skipping live RAG eval."
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Run live RAG suite
+        if: steps.preflight.outputs.skip != 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RAG_LIVE_SUITE_GENERATE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.generate || 'false' }}
+          RAG_LIVE_SUITE_COMPARE_LIMIT: ${{ github.event.inputs.compare_limit || '50' }}
+          RAG_FRC_LIMIT: ${{ github.event.inputs.frc_limit || '15' }}
+          RAG_EVAL_OUT_DIR: ${{ runner.temp }}/rag-evidence
+        run: npm run rag:eval:live
+
+      - name: Upload evidence artifacts
+        if: steps.preflight.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-live-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/rag-evidence/rag-live-suite-latest.*
+            ${{ runner.temp }}/rag-evidence/rag-eval-latest.*
+            ${{ runner.temp }}/rag-evidence/rag-compare-latest.*
+            ${{ runner.temp }}/rag-evidence/rag-frc-latest.*
+          retention-days: 30
+
+      - name: Summary
+        if: always() && steps.preflight.outputs.skip != 'true'
+        run: |
+          EVID="${{ runner.temp }}/rag-evidence"
+          if [ -f "$EVID/rag-live-suite-latest.md" ]; then
+            echo "## RAG Live Suite" >> "$GITHUB_STEP_SUMMARY"
+            cat "$EVID/rag-live-suite-latest.md" >> "$GITHUB_STEP_SUMMARY"
+          fi

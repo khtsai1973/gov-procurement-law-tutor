@@ -43,12 +43,18 @@ npm run rag:eval:golden
 npm run test:rag-frc
 npm run rag:eval:frc
 
+# Live 子集（真實檢索＋生成，需 DATABASE_URL、OPENAI_API_KEY）
+RAG_FRC_MODE=live RAG_FRC_LIMIT=15 npm run rag:eval:frc
+
+# 一輪 live suite（smoke + compare + FRC，見 docs/RAG-LIVE-SUITE.md）
+npm run rag:eval:live
+
 # Baseline / Contextual / Parent-Document 比較
 npm run test:rag-compare
 npm run rag:eval:compare
 ```
 
-詳見 [`docs/RAG-FRC.md`](./RAG-FRC.md)、[`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)。
+詳見 [`docs/RAG-FRC.md`](./RAG-FRC.md)、[`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)、[`docs/RAG-LIVE-SUITE.md`](./RAG-LIVE-SUITE.md)。
 
 ## 與 Ragas 的對應
 
