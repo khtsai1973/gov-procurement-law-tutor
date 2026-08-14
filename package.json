@@ -33,6 +33,7 @@
     "rag:eval:golden": "tsx scripts/rag-eval-golden.ts",
     "rag:eval:compare": "tsx scripts/rag-eval-compare.ts",
     "rag:eval:frc": "tsx scripts/rag-eval-frc.ts",
+    "rag:eval:live": "node scripts/rag-live-suite.mjs",
     "test:rag-eval": "tsx --test src/lib/rag-eval/metrics.test.ts",
     "test:rag-golden": "tsx --test src/lib/rag-eval/golden.test.ts",
     "test:rag-compare": "tsx --test src/lib/rag-eval/compare.test.ts",

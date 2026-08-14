@@ -27,8 +27,11 @@ OOD 拒答（`非本主題的範圍`）不計 Citation（回傳 `null`）。
 npm run test:rag-frc
 npm run rag:eval:frc
 
-# Golden 總評（含 FRC 區塊）
-npm run rag:eval:golden
+# Live 子集（真實檢索＋生成）
+RAG_FRC_MODE=live RAG_FRC_LIMIT=15 npm run rag:eval:frc
+
+# 整輪 live suite
+npm run rag:eval:live
 ```
 
 產出：`docs/evidence/rag-frc-latest.{md,json}`
@@ -36,7 +39,8 @@ npm run rag:eval:golden
 ## 與策略比較的關係
 
 - `rag:eval:compare`：偏檢索（Hit Rate／Latency）；加 `RAG_COMPARE_GENERATE=1` 才有完整 F／R／C  
-- `rag:eval:frc`：專注生成品質三指標（離線金標自洽或後續接 live 答案）
+- `rag:eval:frc`：專注生成品質三指標（離線金標自洽；`RAG_FRC_MODE=live` 接真實管線）
+- `rag:eval:live`：一輪 suite，見 [`docs/RAG-LIVE-SUITE.md`](./RAG-LIVE-SUITE.md)
 
 ## 門檻（預設）
 
