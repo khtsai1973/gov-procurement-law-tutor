@@ -1,10 +1,12 @@
 import Link from "next/link";
 
-import { QuestionBankWeaknessPanel } from "@/components/QuestionBankWeaknessPanel";
+import {
+  QuestionBankSignedInOnly,
+  QuestionBankTeacherLink,
+  QuestionBankUserSection,
+} from "@/components/QuestionBankUserSection";
 import { QuestionWrongReasonPractice } from "@/components/QuestionWrongReasonPractice";
 import { isDatabaseReady } from "@/lib/ensure-db";
-import { ensureQuestionBankSchema } from "@/lib/ensure-question-bank-schema";
-import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 import {
   explanationDisplayLabel,
@@ -12,10 +14,10 @@ import {
   resolveQuestionExplanation,
 } from "@/lib/question-bank-explanations";
 import { extractConceptTags } from "@/lib/concept-tags";
-import { loadUserQuestionBankWeakness } from "@/lib/question-bank-weakness";
-import { canAccessTeacher } from "@/lib/roles";
+import { loadQuestionBankCategorySummary } from "@/lib/question-bank-public";
 
-export const dynamic = "force-dynamic";
+/** 分類統計可快取；篩選結果仍依 searchParams 動態查詢 */
+export const revalidate = 60;
 
 const PAGE_SIZE = 40;
 
@@ -25,7 +27,6 @@ export default async function QuestionBankPage({
   searchParams?: Promise<{ category?: string; q?: string; page?: string; important?: string }>;
 }) {
   const ready = await isDatabaseReady();
-  const session = await getSession();
   const sp = (searchParams ? await searchParams : {}) ?? {};
   const categoryFilter = typeof sp.category === "string" ? sp.category.trim() : "";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
@@ -42,15 +43,7 @@ export default async function QuestionBankPage({
   }
 
   try {
-    await ensureQuestionBankSchema().catch(() => undefined);
-
-    const grouped = await prisma.questionBankItem.groupBy({
-      by: ["category"],
-      _count: { _all: true },
-      orderBy: { category: "asc" },
-    });
-    const categories = grouped.map((g) => g.category);
-    const totalCount = grouped.reduce((sum, g) => sum + g._count._all, 0);
+    const { categories, totalCount } = await loadQuestionBankCategorySummary();
 
     const overlayKeys = [...getExplanationOverlayMap().keys()];
 
@@ -89,8 +82,12 @@ export default async function QuestionBankPage({
     let safePage = 1;
 
     try {
-      filteredCount = await prisma.questionBankItem.count({ where });
-      totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+      const countPromise = prisma.questionBankItem.count({ where });
+      const totalPagesPromise = countPromise.then((c) =>
+        Math.max(1, Math.ceil(c / PAGE_SIZE)),
+      );
+      filteredCount = await countPromise;
+      totalPages = await totalPagesPromise;
       safePage = Math.min(page, totalPages);
       pageItems = await prisma.questionBankItem.findMany({
         where,
@@ -171,10 +168,6 @@ export default async function QuestionBankPage({
       return s ? `/question-bank?${s}` : "/question-bank";
     };
 
-    const weakness = session?.user?.id
-      ? await loadUserQuestionBankWeakness(session.user.id).catch(() => null)
-      : null;
-
     return (
       <section className="space-y-6">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
@@ -194,11 +187,7 @@ export default async function QuestionBankPage({
               <Link href="/mock-exam" className="no-underline hover:underline">
                 模擬考試
               </Link>
-              {canAccessTeacher(session?.user?.role) ? (
-                <Link href="/teacher/question-bank" className="no-underline hover:underline">
-                  管理題庫
-                </Link>
-              ) : null}
+              <QuestionBankTeacherLink />
               <Link href="/" className="no-underline hover:underline">
                 ← 回到問答
               </Link>
@@ -219,13 +208,7 @@ export default async function QuestionBankPage({
           </div>
         </div>
 
-        {session?.user?.id && weakness ? (
-          <QuestionBankWeaknessPanel weakness={weakness} />
-        ) : !session?.user?.id ? (
-          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[var(--muted)]">
-            登入後可依模擬考試紀錄顯示弱點分析，並對題庫單題使用 AI 錯題原因分析。
-          </div>
-        ) : null}
+        <QuestionBankUserSection />
 
         {pageItems.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">沒有符合的題目。</p>
@@ -297,9 +280,9 @@ export default async function QuestionBankPage({
                             </p>
                           </details>
                         ) : null}
-                        {session?.user?.id ? (
+                        <QuestionBankSignedInOnly>
                           <QuestionWrongReasonPractice itemKey={item.key} />
-                        ) : null}
+                        </QuestionBankSignedInOnly>
                       </li>
                     );
                   })}

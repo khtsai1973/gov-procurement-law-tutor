@@ -10,6 +10,12 @@ export async function isDatabaseReady(): Promise<boolean> {
     return true;
   } catch (error) {
     if (
+      error instanceof Prisma.PrismaClientInitializationError ||
+      (error instanceof Error && error.message.includes("DATABASE_URL"))
+    ) {
+      return false;
+    }
+    if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       (error.code === "P2021" || error.message.includes("does not exist"))
     ) {

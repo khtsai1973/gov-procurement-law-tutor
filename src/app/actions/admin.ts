@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { ingestCorpus } from "@/lib/ingest";
 import { replaceQuestionBankFromDisk } from "@/lib/import-question-bank";
 import { clearQuestionBankCache } from "@/lib/question-bank";
+import { invalidateQuestionBankPublicCache } from "@/lib/question-bank-public";
+import { invalidateRegulationsPublicCache } from "@/lib/regulations-public";
 import { getSession } from "@/lib/get-session";
 import prisma from "@/lib/prisma";
 import {
@@ -45,6 +47,8 @@ export async function runQuestionBankReplace() {
       session.user.email ?? "admin-replace",
     );
     clearQuestionBankCache();
+    invalidateQuestionBankPublicCache();
+    invalidateRegulationsPublicCache();
     revalidatePath("/admin");
     revalidatePath("/question-bank");
     revalidatePath("/mock-exam");

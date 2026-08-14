@@ -1,13 +1,14 @@
 import Link from "next/link";
 
+import { RegulationTier } from "@prisma/client";
+
 import { MaterialsBrowser } from "@/components/MaterialsBrowser";
-import { getSession } from "@/lib/get-session";
 import {
   loadPublishedMaterialDetail,
   loadPublishedMaterialSummaries,
 } from "@/lib/materials-public";
 
-/** 列表摘要可快取；點選後再取全文 */
+/** 列表摘要可快取；登入提示改由客戶端 Nav 判斷以降低 TTFB */
 export const revalidate = 60;
 
 export default async function MaterialsPage({
@@ -15,7 +16,6 @@ export default async function MaterialsPage({
 }: {
   searchParams?: Promise<{ id?: string; category?: string }>;
 }) {
-  const session = await getSession();
   const sp = searchParams ? await searchParams : {};
   const focusId = sp.id?.trim() || null;
   const filterCategory = sp.category?.trim() || null;
@@ -30,7 +30,6 @@ export default async function MaterialsPage({
       ? focusId
       : (filtered[0]?.id ?? null);
 
-  // 僅預取「目前選中」一篇全文，避免一次載入全部 content
   const initialDetail = selectedId
     ? await loadPublishedMaterialDetail(selectedId)
     : null;
@@ -43,7 +42,6 @@ export default async function MaterialsPage({
             <h1 className="text-xl font-semibold">單元教材</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">
               由老師依主題分類發布的課程單元。列表先載入摘要，點選後再取得全文。
-              {session?.user ? "" : "登入後可一併使用問答與模擬考試。"}
             </p>
           </div>
           <Link href="/" className="text-sm no-underline hover:underline">
