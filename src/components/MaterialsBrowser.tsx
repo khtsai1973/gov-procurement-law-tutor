@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { MaterialInfoFields } from "@/components/MaterialInfoFields";
@@ -14,10 +15,6 @@ import { groupMaterialsByCategory } from "@/lib/unit-materials";
 
 type Props = {
   materials: PublishedMaterialSummary[];
-  initialId: string | null;
-  filterCategory: string | null;
-  /** SSR 預取的目前選中全文（可空；之後改由 API 載入） */
-  initialDetail: PublishedMaterialDetail | null;
 };
 
 function hrefFor(
@@ -39,12 +36,10 @@ function formatUpdatedAt(iso: string) {
   }).format(new Date(iso));
 }
 
-export function MaterialsBrowser({
-  materials,
-  initialId,
-  filterCategory,
-  initialDetail,
-}: Props) {
+export function MaterialsBrowser({ materials }: Props) {
+  const searchParams = useSearchParams();
+  const filterCategory = searchParams.get("category")?.trim() || null;
+  const urlId = searchParams.get("id")?.trim() || null;
   const availableCategories = useMemo(
     () => TOPIC_CATEGORY_OPTIONS.filter((cat) => materials.some((m) => m.category === cat)),
     [materials],
@@ -57,19 +52,16 @@ export function MaterialsBrowser({
   const groups = useMemo(() => groupMaterialsByCategory(filtered), [filtered]);
 
   const selectedId = useMemo(() => {
-    if (initialId && filtered.some((m) => m.id === initialId)) return initialId;
+    if (urlId && filtered.some((m) => m.id === urlId)) return urlId;
     return filtered[0]?.id ?? null;
-  }, [filtered, initialId]);
+  }, [filtered, urlId]);
 
   const selectedSummary = useMemo(
     () => (selectedId ? materials.find((m) => m.id === selectedId) ?? null : null),
     [materials, selectedId],
   );
 
-  const [detail, setDetail] = useState<PublishedMaterialDetail | null>(() => {
-    if (initialDetail && selectedId && initialDetail.id === selectedId) return initialDetail;
-    return null;
-  });
+  const [detail, setDetail] = useState<PublishedMaterialDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,10 +94,6 @@ export function MaterialsBrowser({
       return;
     }
     if (detail?.id === selectedId) return;
-    if (initialDetail?.id === selectedId) {
-      setDetail(initialDetail);
-      return;
-    }
     void loadDetail(selectedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to selection change
   }, [selectedId]);

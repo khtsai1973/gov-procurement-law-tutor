@@ -42,6 +42,7 @@
     "test:guided-prompts": "tsx --test src/lib/guided-prompts.test.ts",
     "test:wrong-reason": "tsx --test src/lib/question-wrong-reason.test.ts src/lib/diagnostic-sections.test.ts",
     "test:learner-kt": "tsx --test src/lib/knowledge-radar.test.ts src/lib/concept-tags.test.ts src/lib/personal-weakness-report.test.ts src/lib/diagnostic-sections.test.ts",
+    "test:question-bank-list": "tsx --test src/lib/question-bank-list.test.ts src/lib/materials-public.test.ts",
     "test:scenario-essay": "tsx --test src/lib/scenario-essay-grade.test.ts"
   },
   "dependencies": {

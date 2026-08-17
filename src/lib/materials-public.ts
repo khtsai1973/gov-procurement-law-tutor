@@ -106,26 +106,6 @@ export async function loadPublishedMaterialSummaries(): Promise<PublishedMateria
   }
 }
 
-export async function loadPublishedMaterialDetail(
-  id: string,
-): Promise<PublishedMaterialDetail | null> {
-  const materialId = id.trim();
-  if (!materialId) return null;
-
-  try {
-    return await fetchPublishedMaterialDetail(materialId);
-  } catch (e) {
-    console.error("[materials] detail query failed, ensuring schema:", e);
-    try {
-      await ensureTeacherSchema();
-      return await fetchPublishedMaterialDetail(materialId);
-    } catch (e2) {
-      console.error("[materials] detail fallback failed:", e2);
-      return null;
-    }
-  }
-}
-
 async function fetchPublishedMaterialDetail(
   materialId: string,
 ): Promise<PublishedMaterialDetail | null> {
@@ -191,4 +171,30 @@ async function fetchPublishedMaterialDetail(
         : null,
     }),
   };
+}
+
+const getCachedPublishedDetail = unstable_cache(
+  async (id: string) => fetchPublishedMaterialDetail(id),
+  ["published-material-detail-v1"],
+  { revalidate: MATERIALS_LIST_REVALIDATE_SEC, tags: [MATERIALS_CACHE_TAG] },
+);
+
+export async function loadPublishedMaterialDetail(
+  id: string,
+): Promise<PublishedMaterialDetail | null> {
+  const materialId = id.trim();
+  if (!materialId) return null;
+
+  try {
+    return await getCachedPublishedDetail(materialId);
+  } catch (e) {
+    console.error("[materials] detail query failed, ensuring schema:", e);
+    try {
+      await ensureTeacherSchema();
+      return await fetchPublishedMaterialDetail(materialId);
+    } catch (e2) {
+      console.error("[materials] detail fallback failed:", e2);
+      return null;
+    }
+  }
 }
