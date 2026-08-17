@@ -14,11 +14,11 @@ import {
 } from "@/lib/guided-prompts";
 import { getPromptSuggestionsByCategory, PROMPT_TIP } from "@/lib/prompt-suggestions";
 import { GuidedSlotForm } from "@/components/GuidedSlotForm";
+import "./chat-panel.css";
 
 /** 登入態由客戶端讀取，避免首頁 server 等待 session／DB */
 export function ChatPanel() {
   const { status } = useSession();
-  const signedIn = status === "authenticated";
   const [question, setQuestion] = useState("");
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
   const [slotFormOpen, setSlotFormOpen] = useState(false);
@@ -185,15 +185,7 @@ export function ChatPanel() {
     }
   }
 
-  if (status === "loading") {
-    return (
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-        <p className="text-sm text-[var(--muted)]">載入中…</p>
-      </section>
-    );
-  }
-
-  if (!signedIn) {
+  if (status !== "authenticated") {
     return (
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
         <h1 className="text-xl font-semibold">開始學習</h1>

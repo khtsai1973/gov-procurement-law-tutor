@@ -34,6 +34,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "4mb",
     },
   },
+  // 依頁面拆 CSS，避免首頁聊天樣式變成題庫的 render-blocking
+  cssChunking: "strict",
   // 僅管理／匯入相關路由需要題庫與語料檔，避免所有 serverless 函式打包過大拖慢冷啟動
   outputFileTracingIncludes: {
     "/admin": ["./data/question-bank/**/*", "./data/corpus/**/*"],

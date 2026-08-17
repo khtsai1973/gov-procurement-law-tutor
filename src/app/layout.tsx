@@ -6,7 +6,14 @@ import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { SessionProvider } from "@/components/SessionProvider";
 
-const noto = Noto_Sans_TC({ subsets: ["latin"], variable: "--font-noto-sans", weight: ["400", "500", "700"] });
+const noto = Noto_Sans_TC({
+  subsets: ["latin"],
+  variable: "--font-noto-sans",
+  weight: ["400", "700"],
+  display: "swap",
+  adjustFontFallback: true,
+  preload: true,
+});
 
 // 不在 root layout 強制 dynamic，讓公開頁可靜態／快取；需即時資料的頁面各自宣告 force-dynamic
 

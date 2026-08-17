@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   QUESTION_BANK_PAGE_SIZE,
+  isDefaultQuestionBankQuery,
   parseQuestionBankListQuery,
   questionBankHref,
   type QuestionBankListItem,
@@ -35,6 +36,12 @@ describe("question-bank list query", () => {
       "/question-bank?category=%E6%8B%9B%E6%A8%99&important=1&page=2",
     );
     assert.equal(questionBankHref({ page: 1 }), "/question-bank");
+  });
+
+  it("identifies default unfiltered first page", () => {
+    assert.equal(isDefaultQuestionBankQuery(parseQuestionBankListQuery({})), true);
+    assert.equal(isDefaultQuestionBankQuery(parseQuestionBankListQuery({ page: "2" })), false);
+    assert.equal(isDefaultQuestionBankQuery(parseQuestionBankListQuery({ q: "22" })), false);
   });
 
   it("list item contract omits hintAnswer", () => {

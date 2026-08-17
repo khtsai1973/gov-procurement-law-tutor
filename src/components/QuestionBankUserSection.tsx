@@ -47,17 +47,9 @@ export function QuestionBankUserSection() {
     };
   }, [status, session?.user?.id]);
 
-  if (status === "loading") {
-    return (
-      <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[var(--muted)]">
-        載入個人化分析中…
-      </div>
-    );
-  }
-
   if (status !== "authenticated" || !session?.user) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[var(--muted)]">
+      <div className="min-h-[4.5rem] rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[var(--muted)]">
         登入後可依模擬考試紀錄顯示弱點分析，並對題庫單題使用 AI 錯題原因分析。
       </div>
     );
@@ -65,7 +57,7 @@ export function QuestionBankUserSection() {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[var(--muted)]">
+      <div className="min-h-[4.5rem] rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[var(--muted)]">
         載入弱點分析中…
       </div>
     );

@@ -19,7 +19,7 @@ export function Nav() {
           回答來源限於已匯入之法規／函釋資料庫（檢索並整合分析）
         </p>
       </div>
-      <nav className="flex flex-wrap items-center gap-3 text-sm">
+      <nav className="flex min-h-[2.25rem] flex-wrap items-center gap-3 text-sm">
         <Link href="/regulations" className="no-underline hover:underline">
           法規／函釋／題庫清單
         </Link>
