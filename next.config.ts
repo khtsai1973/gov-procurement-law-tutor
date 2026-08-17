@@ -33,6 +33,19 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "4mb",
     },
+    // 儀表板／模擬考圖表才用到 recharts，避免整包打進無關頁
+    optimizePackageImports: ["recharts"],
+    // 依實際 CSS 依賴切塊，減少各頁下載未使用樣式
+    cssChunking: "strict",
+  },
+  // 目標瀏覽器已支援 ES modules；略過 Next 內建 nomodule polyfill（Lighthouse ~11–13KB）
+  webpack: (config) => {
+    config.plugins = config.plugins?.filter((plugin) => {
+      if (plugin?.constructor?.name !== "CopyFilePlugin") return true;
+      const filePath = (plugin as { filePath?: string }).filePath;
+      return !filePath?.includes("polyfill-nomodule");
+    });
+    return config;
   },
   // 僅管理／匯入相關路由需要題庫與語料檔，避免所有 serverless 函式打包過大拖慢冷啟動
   outputFileTracingIncludes: {
