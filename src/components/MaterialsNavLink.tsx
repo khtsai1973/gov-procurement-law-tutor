@@ -16,7 +16,7 @@ export function MaterialsNavLink() {
   const href = isTeacher ? "/teacher/materials" : "/materials";
 
   return (
-    <a href={href} className="no-underline hover:underline">
+    <a href={href} className="nav-link">
       單元教材
     </a>
   );
