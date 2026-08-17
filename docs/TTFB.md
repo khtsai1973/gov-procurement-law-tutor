@@ -6,9 +6,10 @@
 2. **拿掉公開頁的 server session／DB**：root layout 不 `force-dynamic`；`Nav`／首頁／註冊頁改客戶端讀 `useSession`，避免每個請求等 Auth／Postgres。
 3. **縮小 serverless 打包**：`outputFileTracingIncludes` 勿掛在 `"/*"`，只掛管理／匯入相關路徑，降低冷啟動與函式體積。
 4. **暖機**：`GET /api/health`（不連 DB）可供 cron 或量測腳本預熱。
-5. **教材頁**：列表只查摘要（`unstable_cache` 約 60s），全文經 `/api/materials/[id]` 點選後載入；Neon 建議用 pooled 連線。
-6. **動態列表頁**（`/mock-exam`、`/question-bank`、`/materials`、`/regulations`）：公開資料用 `unstable_cache` + ISR（`revalidate`）；登入態／個人紀錄改客戶端 `useSession` + API 延後載入，避免 SSR 等 Auth 拉高 TTFB。
-7. **可重現證據**：用 `npm run ttfb:check` 產出 `docs/evidence/ttfb-*.md`／`.json`（含 p50／p95）。
+5. **教材頁**：`/materials` 為 ISR（`revalidate` 60s），列表只查摘要（`unstable_cache`）；`id`／`category` 由客戶端 `useSearchParams` 讀取（包在 `Suspense` 內），全文經 `/api/materials/[id]` 點選後載入。勿在 page 讀 `searchParams`，否則會變成動態 SSR。
+6. **題庫頁**：`/question-bank` 同樣 ISR，SSR 只輸出分類統計殼；題目列表經 `/api/question-bank/items` 客戶端分頁 fetch（每頁 40 題、不含解析正文），完整解析於展開時打 `/api/question-bank/explanation`。
+7. **其他動態列表頁**（`/mock-exam`、`/regulations`）：公開資料用 `unstable_cache` + ISR（`revalidate`）；登入態／個人紀錄改客戶端 `useSession` + API 延後載入，避免 SSR 等 Auth 拉高 TTFB。
+8. **可重現證據**：用 `npm run ttfb:check` 產出 `docs/evidence/ttfb-*.md`／`.json`（含 p50／p95）。
 
 ## 合格定義（建議寫進驗收）
 

@@ -1,38 +1,14 @@
+import { Suspense } from "react";
 import Link from "next/link";
 
-import { RegulationTier } from "@prisma/client";
-
 import { MaterialsBrowser } from "@/components/MaterialsBrowser";
-import {
-  loadPublishedMaterialDetail,
-  loadPublishedMaterialSummaries,
-} from "@/lib/materials-public";
+import { loadPublishedMaterialSummaries } from "@/lib/materials-public";
 
-/** 列表摘要可快取；登入提示改由客戶端 Nav 判斷以降低 TTFB */
+/** ISR：列表只查摘要；id／分類由客戶端讀 URL，全文走 /api/materials/[id] */
 export const revalidate = 60;
 
-export default async function MaterialsPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ id?: string; category?: string }>;
-}) {
-  const sp = searchParams ? await searchParams : {};
-  const focusId = sp.id?.trim() || null;
-  const filterCategory = sp.category?.trim() || null;
-
+export default async function MaterialsPage() {
   const materials = await loadPublishedMaterialSummaries();
-
-  const filtered = filterCategory
-    ? materials.filter((m) => m.category === filterCategory)
-    : materials;
-  const selectedId =
-    focusId && filtered.some((m) => m.id === focusId)
-      ? focusId
-      : (filtered[0]?.id ?? null);
-
-  const initialDetail = selectedId
-    ? await loadPublishedMaterialDetail(selectedId)
-    : null;
 
   return (
     <section className="space-y-6">
@@ -52,13 +28,9 @@ export default async function MaterialsPage({
         {materials.length === 0 ? (
           <p className="mt-6 text-sm text-[var(--muted)]">目前尚無已發布的單元教材。</p>
         ) : (
-          <MaterialsBrowser
-            key={`${selectedId ?? "none"}:${filterCategory ?? "all"}`}
-            materials={materials}
-            initialId={selectedId}
-            filterCategory={filterCategory}
-            initialDetail={initialDetail}
-          />
+          <Suspense fallback={<p className="mt-6 text-sm text-[var(--muted)]">載入教材列表…</p>}>
+            <MaterialsBrowser materials={materials} />
+          </Suspense>
         )}
       </div>
     </section>

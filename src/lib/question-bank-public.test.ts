@@ -1,24 +1,27 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import {
   QUESTION_BANK_CACHE_TAG,
   QUESTION_BANK_LIST_REVALIDATE_SEC,
-} from "@/lib/question-bank-public";
+  QUESTION_BANK_PAGE_SIZE,
+} from "./question-bank-public";
 import {
   REGULATIONS_CACHE_TAG,
   REGULATIONS_LIST_REVALIDATE_SEC,
-} from "@/lib/regulations-public";
+} from "./regulations-public";
 
 describe("question-bank-public cache config", () => {
   it("uses short revalidate window for category stats", () => {
-    expect(QUESTION_BANK_LIST_REVALIDATE_SEC).toBe(60);
-    expect(QUESTION_BANK_CACHE_TAG).toBe("question-bank-public");
+    assert.equal(QUESTION_BANK_LIST_REVALIDATE_SEC, 60);
+    assert.equal(QUESTION_BANK_CACHE_TAG, "question-bank-public");
+    assert.equal(QUESTION_BANK_PAGE_SIZE, 40);
   });
 });
 
 describe("regulations-public cache config", () => {
   it("uses 5-minute revalidate for regulation list", () => {
-    expect(REGULATIONS_LIST_REVALIDATE_SEC).toBe(300);
-    expect(REGULATIONS_CACHE_TAG).toBe("regulations-public");
+    assert.equal(REGULATIONS_LIST_REVALIDATE_SEC, 300);
+    assert.equal(REGULATIONS_CACHE_TAG, "regulations-public");
   });
 });
