@@ -20,6 +20,9 @@ export function AuthNavControls({ googleReady }: AuthNavControlsProps) {
   if (session?.user) {
     return (
       <>
+        <Link href="/dashboard" className="no-underline hover:underline">
+          學習儀表板
+        </Link>
         <Link href="/my-questions" className="no-underline hover:underline">
           我的提問紀錄
         </Link>

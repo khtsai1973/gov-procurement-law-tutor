@@ -5,7 +5,7 @@ import {
   extractQuestionFromJsonBody,
 } from "@/lib/defense/input-guard";
 
-const PROTECTED_PREFIXES = ["/admin", "/teacher", "/my-questions"];
+const PROTECTED_PREFIXES = ["/admin", "/teacher", "/my-questions", "/dashboard"];
 
 function hasSessionCookie(req: NextRequest): boolean {
   return Boolean(
@@ -85,6 +85,7 @@ export const config = {
     "/admin/:path*",
     "/teacher/:path*",
     "/my-questions/:path*",
+    "/dashboard/:path*",
     "/api/:path*",
   ],
 };
