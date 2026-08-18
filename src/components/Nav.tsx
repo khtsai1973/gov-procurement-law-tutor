@@ -19,22 +19,22 @@ export function Nav() {
           回答來源限於已匯入之法規／函釋資料庫（檢索並整合分析）
         </p>
       </div>
-      <nav className="flex flex-wrap items-center gap-3 text-sm">
-        <Link href="/regulations" className="no-underline hover:underline">
+      <nav className="flex min-h-[2.25rem] flex-wrap items-center gap-3 text-sm">
+        <Link href="/regulations" className="nav-link">
           法規／函釋／題庫清單
         </Link>
-        <Link href="/question-bank" className="no-underline hover:underline">
+        <Link href="/question-bank" className="nav-link">
           題庫
         </Link>
         <MaterialsNavLink />
-        <Link href="/mock-exam" className="no-underline hover:underline">
+        <Link href="/mock-exam" className="nav-link">
           模擬考試
         </Link>
-        <Link href="/scenario-essay" className="no-underline hover:underline">
+        <Link href="/scenario-essay" className="nav-link">
           情境申論
         </Link>
         <AuthNavControls googleReady={googleReady} />
-        <Link href="/privacy" className="no-underline hover:underline">
+        <Link href="/privacy" className="nav-link">
           隱私權
         </Link>
       </nav>

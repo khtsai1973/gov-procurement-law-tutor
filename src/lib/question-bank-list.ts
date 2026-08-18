@@ -64,3 +64,8 @@ export function questionBankHref(params: {
   const s = next.toString();
   return s ? `/question-bank?${s}` : "/question-bank";
 }
+
+/** 預設列表（無篩選、第 1 頁）可由 ISR HTML 直接帶出，避免 LCP 等客戶端 fetch */
+export function isDefaultQuestionBankQuery(query: QuestionBankListQuery): boolean {
+  return !query.category && !query.q && !query.important && query.page === 1;
+}

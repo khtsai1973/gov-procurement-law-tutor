@@ -1,15 +1,18 @@
 import { Suspense } from "react";
 import Link from "next/link";
 
-import { QuestionBankBrowser } from "@/components/QuestionBankBrowser";
+import { QuestionBankBrowser, QuestionBankListView } from "@/components/QuestionBankBrowser";
 import { QuestionBankTeacherLink, QuestionBankUserSection } from "@/components/QuestionBankUserSection";
-import { loadQuestionBankCategorySummary } from "@/lib/question-bank-public";
+import { loadQuestionBankCategorySummary, loadQuestionBankPage } from "@/lib/question-bank-public";
 
-/** 僅載入分類統計；題目列表改客戶端分頁 fetch，避免 searchParams 讓整頁動態 SSR */
+/** ISR 殼＋預設第 1 頁題目（不含解析）；篩選改客戶端 fetch */
 export const revalidate = 60;
 
 export default async function QuestionBankPage() {
-  const { categories, totalCount } = await loadQuestionBankCategorySummary();
+  const [{ categories, totalCount }, initialPage] = await Promise.all([
+    loadQuestionBankCategorySummary(),
+    loadQuestionBankPage({ category: "", q: "", important: false, page: 1 }),
+  ]);
 
   return (
     <section className="space-y-6">
@@ -39,8 +42,16 @@ export default async function QuestionBankPage() {
 
       <QuestionBankUserSection />
 
-      <Suspense fallback={<p className="text-sm text-[var(--muted)]">載入題目中…</p>}>
-        <QuestionBankBrowser totalCount={totalCount} />
+      <Suspense
+        fallback={
+          <QuestionBankListView
+            totalCount={totalCount}
+            data={initialPage}
+            query={{ category: "", q: "", important: false, page: 1 }}
+          />
+        }
+      >
+        <QuestionBankBrowser totalCount={totalCount} initialData={initialPage} />
       </Suspense>
     </section>
   );

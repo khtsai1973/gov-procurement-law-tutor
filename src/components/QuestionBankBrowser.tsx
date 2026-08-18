@@ -7,8 +7,10 @@ import { useEffect, useMemo, useState } from "react";
 import { extractConceptTags } from "@/lib/concept-tags";
 import {
   QUESTION_BANK_PAGE_SIZE,
+  isDefaultQuestionBankQuery,
   questionBankHref,
   type QuestionBankListItem,
+  type QuestionBankListQuery,
   type QuestionBankListResult,
 } from "@/lib/question-bank-list";
 import { QuestionBankSignedInOnly } from "@/components/QuestionBankUserSection";
@@ -16,6 +18,7 @@ import { QuestionWrongReasonPractice } from "@/components/QuestionWrongReasonPra
 
 type Props = {
   totalCount: number;
+  initialData: QuestionBankListResult;
 };
 
 function LazyExplanation({
@@ -76,78 +79,36 @@ function LazyExplanation({
   );
 }
 
-export function QuestionBankBrowser({ totalCount }: Props) {
-  const searchParams = useSearchParams();
-  const category = searchParams.get("category")?.trim() ?? "";
-  const q = searchParams.get("q")?.trim() ?? "";
-  const important = searchParams.get("important") === "1" || searchParams.get("important") === "true";
-  const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+type ListViewProps = {
+  totalCount: number;
+  data: QuestionBankListResult | null;
+  query: QuestionBankListQuery;
+  loading?: boolean;
+  error?: string | null;
+};
 
-  const [data, setData] = useState<QuestionBankListResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const apiUrl = useMemo(() => {
-    const params = new URLSearchParams();
-    if (category) params.set("category", category);
-    if (q) params.set("q", q);
-    if (important) params.set("important", "1");
-    if (page > 1) params.set("page", String(page));
-    const s = params.toString();
-    return s ? `/api/question-bank/items?${s}` : "/api/question-bank/items";
-  }, [category, q, important, page]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    (async () => {
-      try {
-        const res = await fetch(apiUrl, { headers: { Accept: "application/json" } });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(typeof json.error === "string" ? json.error : `HTTP ${res.status}`);
-        }
-        if (!cancelled) {
-          setData({
-            items: json.items ?? [],
-            filteredCount: json.filteredCount ?? 0,
-            totalPages: json.totalPages ?? 1,
-            page: json.page ?? 1,
-          });
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setData(null);
-          setError(e instanceof Error ? e.message : "題庫讀取失敗");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [apiUrl]);
-
-  const byCategory = useMemo(() => {
+export function QuestionBankListView({
+  totalCount,
+  data,
+  query,
+  loading = false,
+  error = null,
+}: ListViewProps) {
+  const { category, q, important, page } = query;
+  const byCategory: [string, QuestionBankListItem[]][] = [];
+  if (data?.items.length) {
     const map = new Map<string, QuestionBankListItem[]>();
-    for (const item of data?.items ?? []) {
+    for (const item of data.items) {
       const list = map.get(item.category) ?? [];
       list.push(item);
       map.set(item.category, list);
     }
-    return [...map.entries()];
-  }, [data]);
-
-  const indexById = useMemo(() => {
-    const map = new Map<string, number>();
-    (data?.items ?? []).forEach((item, i) => {
-      map.set(item.id, ((data?.page ?? page) - 1) * QUESTION_BANK_PAGE_SIZE + i + 1);
-    });
-    return map;
-  }, [data, page]);
-
+    byCategory.push(...map.entries());
+  }
+  const indexById = new Map<string, number>();
+  (data?.items ?? []).forEach((item, i) => {
+    indexById.set(item.id, ((data?.page ?? page) - 1) * QUESTION_BANK_PAGE_SIZE + i + 1);
+  });
   const safePage = data?.page ?? page;
   const totalPages = data?.totalPages ?? 1;
   const filteredCount = data?.filteredCount ?? 0;
@@ -189,7 +150,7 @@ export function QuestionBankBrowser({ totalCount }: Props) {
       </div>
 
       {loading ? (
-        <p className="mt-6 text-sm text-[var(--muted)]">載入題目中…</p>
+        <p className="mt-6 min-h-[24rem] text-sm text-[var(--muted)]">載入題目中…</p>
       ) : error ? (
         <p className="mt-6 text-sm text-amber-900">
           題庫資料讀取失敗。請確認已執行資料庫初始化與題庫匯入。
@@ -290,5 +251,77 @@ export function QuestionBankBrowser({ totalCount }: Props) {
         </div>
       )}
     </>
+  );
+}
+
+export function QuestionBankBrowser({ totalCount, initialData }: Props) {
+  const searchParams = useSearchParams();
+  const category = searchParams.get("category")?.trim() ?? "";
+  const q = searchParams.get("q")?.trim() ?? "";
+  const important = searchParams.get("important") === "1" || searchParams.get("important") === "true";
+  const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const useInitial = isDefaultQuestionBankQuery({ category, q, important, page });
+
+  const [data, setData] = useState<QuestionBankListResult | null>(useInitial ? initialData : null);
+  const [loading, setLoading] = useState(!useInitial);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (q) params.set("q", q);
+    if (important) params.set("important", "1");
+    if (page > 1) params.set("page", String(page));
+    const s = params.toString();
+    return s ? `/api/question-bank/items?${s}` : "/api/question-bank/items";
+  }, [category, q, important, page]);
+
+  useEffect(() => {
+    if (useInitial) {
+      setData(initialData);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const res = await fetch(apiUrl, { headers: { Accept: "application/json" } });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(typeof json.error === "string" ? json.error : `HTTP ${res.status}`);
+        }
+        if (!cancelled) {
+          setData({
+            items: json.items ?? [],
+            filteredCount: json.filteredCount ?? 0,
+            totalPages: json.totalPages ?? 1,
+            page: json.page ?? 1,
+          });
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setData(null);
+          setError(e instanceof Error ? e.message : "題庫讀取失敗");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiUrl, useInitial, initialData]);
+
+  return (
+    <QuestionBankListView
+      totalCount={totalCount}
+      data={data}
+      query={{ category, q, important, page }}
+      loading={loading}
+      error={error}
+    />
   );
 }

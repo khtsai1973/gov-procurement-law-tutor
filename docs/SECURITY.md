@@ -8,7 +8,7 @@
 |------|------|
 | 登入驗證 | Google OAuth + Auth.js JWT；API／頁面以 `requireUser`／角色檢查 |
 | Middleware | `/admin`、`/teacher`、`my-questions` 無 session cookie 導回首頁；API 變更請求同站 Origin 檢查 |
-| 安全標頭 | CSP、`X-Frame-Options: DENY`、`nosniff`、`Referrer-Policy`、`Permissions-Policy` |
+| 安全標頭 | CSP（正式環境無 `unsafe-eval`；`script-src-attr 'none'` 縮小 inline handler）、`X-Frame-Options: DENY`、`nosniff`、`Referrer-Policy`、`Permissions-Policy` |
 | 速率限制 | `/api/chat`、`/api/feedback`、模考交卷、題庫重匯（記憶體桶；多實例建議改 Redis） |
 | 模考交卷 | **伺服器端重新評分**，不信任客戶端 `isCorrect` |
 | 題庫重匯 | 僅 ADMIN 或 `QUESTION_BANK_REIMPORT_SECRET` Bearer |
@@ -74,7 +74,7 @@ ENABLE_FORCE_RLS=true
 1. 速率限制改接 Upstash Redis（多區域 Vercel）
 2. Neon 使用非表擁有者角色 + `ENABLE_FORCE_RLS=true`
 3. 個資刪除／匯出流程（當事人權利）
-4. CSP 逐步收斂 `unsafe-inline`／`unsafe-eval`
+4. CSP 下一步：若可接受動態渲染，再對 HTML 文件改 nonce + `strict-dynamic` 以拿掉 script-src `unsafe-inline`（與目前 ISR 靜態頁不相容）
 5. 輸入層可再加小型 embedding／分類模型（目前為正則權重分類器）
 6. 輸出層可接獨立 moderation API 作為第四道防線
 

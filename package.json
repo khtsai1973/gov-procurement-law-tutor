@@ -43,7 +43,10 @@
     "test:wrong-reason": "tsx --test src/lib/question-wrong-reason.test.ts src/lib/diagnostic-sections.test.ts",
     "test:learner-kt": "tsx --test src/lib/knowledge-radar.test.ts src/lib/concept-tags.test.ts src/lib/personal-weakness-report.test.ts src/lib/diagnostic-sections.test.ts",
     "test:question-bank-list": "tsx --test src/lib/question-bank-list.test.ts src/lib/materials-public.test.ts",
-    "test:scenario-essay": "tsx --test src/lib/scenario-essay-grade.test.ts"
+    "test:scenario-essay": "tsx --test src/lib/scenario-essay-grade.test.ts",
+    "test:chat-split": "tsx --test src/components/ChatPanel.split.test.ts",
+    "test:seo": "tsx --test src/lib/seo-routes.test.ts",
+    "test:csp": "tsx --test src/lib/csp.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
@@ -76,5 +79,18 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
+  },
+  "browserslist": {
+    "production": [
+      "chrome >= 111",
+      "edge >= 111",
+      "firefox >= 111",
+      "safari >= 16.4"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
