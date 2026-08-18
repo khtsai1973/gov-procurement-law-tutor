@@ -1,4 +1,4 @@
-/* 僅首頁 ChatPanel 使用，勿放入 globals 以免所有頁面 render-blocking */
+/* 僅登入後提問面板載入，勿放入 globals 以免訪客首頁／其他頁 render-blocking */
 
 .chat-panel-tech {
   position: relative;
