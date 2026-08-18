@@ -44,7 +44,8 @@
     "test:learner-kt": "tsx --test src/lib/knowledge-radar.test.ts src/lib/concept-tags.test.ts src/lib/personal-weakness-report.test.ts src/lib/diagnostic-sections.test.ts",
     "test:question-bank-list": "tsx --test src/lib/question-bank-list.test.ts src/lib/materials-public.test.ts",
     "test:scenario-essay": "tsx --test src/lib/scenario-essay-grade.test.ts",
-    "test:chat-split": "tsx --test src/components/ChatPanel.split.test.ts"
+    "test:chat-split": "tsx --test src/components/ChatPanel.split.test.ts",
+    "test:seo": "tsx --test src/lib/seo-routes.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

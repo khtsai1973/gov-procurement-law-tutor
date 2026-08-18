@@ -20,3 +20,22 @@ body {
 a {
   color: var(--accent);
 }
+
+/* 導覽／頁尾文字連結：不只靠顏色區分（Lighthouse link color） */
+a.nav-link {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a.nav-link:hover {
+  text-decoration-thickness: 2px;
+  color: #1e40af;
+}
+
+a.nav-link:focus-visible,
+.nav-control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
