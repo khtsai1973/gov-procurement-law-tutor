@@ -36,14 +36,25 @@ describe("guided-prompts", () => {
     assert.equal(guidedAsScenarioTemplates().length, GUIDED_SCENARIOS.length);
   });
 
+  it("award-method chipGroup slots are present", () => {
+    const s = getGuidedScenario("award-method")!;
+    const chips = s.slots.filter((sl) => sl.chipGroup);
+    const keys = chips.map((sl) => sl.key);
+    assert.ok(keys.includes("subject"), "should have subject chip");
+    assert.ok(keys.includes("amountTier"), "should have amountTier chip");
+    assert.ok(keys.includes("specType"), "should have specType chip");
+    assert.equal(chips.length, 3);
+  });
+
   it("validates required slot values", () => {
     const s = getGuidedScenario("award-method")!;
-    assert.match(validateSlotValues(s, defaultSlotValues(s)) ?? "", /採購標的|採購金額/);
+    // subject 沒有預設值，應提示採購類別
+    assert.match(validateSlotValues(s, defaultSlotValues(s)) ?? "", /採購類別/);
     const ok = validateSlotValues(s, {
       ...defaultSlotValues(s),
       subject: "資訊服務（屬勞務）",
-      amountWan: "250",
-      awardPrinciple: "最有利標",
+      amountTier: "達公告金額、未達查核金額",
+      specType: "具異質性（服務品質差異大）",
     });
     assert.equal(ok, null);
   });
@@ -72,15 +83,18 @@ describe("guided-prompts", () => {
       scenario: s,
       values: {
         subject: "勞務",
-        amountWan: "100",
-        taxIncluded: "是",
+        amountTier: "達公告金額、未達查核金額",
+        specType: "具異質性（服務品質差異大）",
         awardPrinciple: "最低標",
         specialService: "否",
       },
-      ask: "100萬元以上應依最低標原則辦理。這樣說對嗎？",
+      ask: "達公告金額的勞務採購，具異質性時是否可採最有利標？",
     });
     assert.match(prompt, /決標方式判斷/);
+    assert.match(prompt, /勞務/);
+    assert.match(prompt, /達公告金額/);
+    assert.match(prompt, /具異質性/);
     assert.match(prompt, /最低標/);
-    assert.match(prompt, /是否含稅：是/);
+    assert.match(prompt, /想請教：/);
   });
 });

@@ -15,6 +15,11 @@ export type GuidedSlotField = {
   placeholder?: string;
   /** 預設值 */
   defaultValue?: string;
+  /**
+   * 以「chip 按鈕群」取代下拉選單顯示（適合選項 ≤6 的必填欄位）
+   * select 類型才有效
+   */
+  chipGroup?: boolean;
 };
 
 export type GuidedScenario = {
@@ -71,27 +76,49 @@ const AWARD_OPTIONS: GuidedSlotOption[] = [
   { value: "尚未決定", label: "尚未決定" },
 ];
 
+const SPEC_TYPE_OPTIONS: GuidedSlotOption[] = [
+  { value: "規格明確（可訂定詳細規格）", label: "規格明確" },
+  { value: "具異質性（服務品質差異大）", label: "具異質性" },
+  { value: "不確定", label: "不確定" },
+];
+
 export const GUIDED_SCENARIOS: GuidedScenario[] = [
   {
     id: "award-method",
     title: "決標方式判斷",
     description: "最低標、最有利標、複數決標該怎麼選？",
     slots: [
-      { key: "subject", label: "採購標的", type: "select", options: SUBJECT_OPTIONS, required: true },
       {
-        key: "amountWan",
-        label: "採購金額（萬元）",
-        type: "amount",
+        key: "subject",
+        label: "採購類別",
+        type: "select",
+        options: SUBJECT_OPTIONS,
         required: true,
-        placeholder: "例：250",
+        chipGroup: true,
       },
-      { key: "taxIncluded", label: "是否含稅", type: "select", options: YES_NO, defaultValue: "是" },
+      {
+        key: "amountTier",
+        label: "預算金額級距",
+        type: "select",
+        options: AMOUNT_TIER_OPTIONS,
+        required: true,
+        chipGroup: true,
+        defaultValue: "尚不清楚",
+      },
+      {
+        key: "specType",
+        label: "標的特性",
+        type: "select",
+        options: SPEC_TYPE_OPTIONS,
+        required: true,
+        chipGroup: true,
+        defaultValue: "不確定",
+      },
       {
         key: "awardPrinciple",
         label: "目前傾向決標原則",
         type: "select",
         options: AWARD_OPTIONS,
-        required: true,
         defaultValue: "尚未決定",
       },
       {
@@ -103,8 +130,9 @@ export const GUIDED_SCENARIOS: GuidedScenario[] = [
       },
     ],
     template: `【決標方式判斷】
-採購標的：（工程／財物／勞務；若為資訊服務請註明）
-採購金額：（     ）元（是否含稅：是／否）
+採購類別：（工程／財物／勞務；若為資訊服務請註明）
+預算金額級距：（未達公告金額／達公告未達查核／達查核未達巨額／巨額）
+標的特性：（規格明確／具異質性）
 目前傾向決標原則：（最低標／最有利標／複數決標／尚未決定）
 是否屬專業／技術／資訊／社福／文創服務：（是／否）
 
@@ -436,8 +464,9 @@ export function assembleGuidedPrompt(params: {
   switch (scenario.id) {
     case "award-method":
       lines.push(
-        `採購標的：${v("subject")}`,
-        `採購金額：${formatAmountLine(values.amountWan, values.taxIncluded)}`,
+        `採購類別：${v("subject")}`,
+        `預算金額級距：${v("amountTier")}`,
+        `標的特性：${v("specType")}`,
         `目前傾向決標原則：${v("awardPrinciple")}`,
         `是否屬專業／技術／資訊／社福／文創服務：${v("specialService")}`,
       );
