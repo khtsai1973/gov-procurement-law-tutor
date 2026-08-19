@@ -1,0 +1,301 @@
+/* ========================================================
+   Citation Sidebar（右側抽屜）
+   ======================================================== */
+
+/* 遮罩 */
+.citation-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(1px);
+}
+.citation-sidebar-backdrop--open {
+  display: block;
+}
+
+/* 側邊欄本體 */
+.citation-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  width: min(100vw, 26rem);
+  background: #fff;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  outline: none;
+}
+.citation-sidebar--open {
+  transform: translateX(0);
+}
+
+/* 標頭 */
+.citation-sidebar-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #eff6ff, #fff);
+  flex-shrink: 0;
+}
+
+.citation-sidebar-chip {
+  display: inline-block;
+  margin-bottom: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: #0ea5e9;
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.citation-sidebar-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0c4a6e;
+  line-height: 1.35;
+}
+
+.citation-sidebar-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: #0369a1;
+}
+
+.citation-sidebar-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+}
+.citation-sidebar-close:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+/* meta 列 */
+.citation-sidebar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f0f9ff;
+  border-bottom: 1px solid #e0f2fe;
+  flex-shrink: 0;
+}
+
+.citation-sidebar-tier {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+}
+
+.citation-sidebar-version {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* 原文區（捲動） */
+.citation-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.citation-sidebar-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.citation-sidebar-content {
+  white-space: pre-wrap;
+  font-size: 0.875rem;
+  line-height: 1.8;
+  color: #1f2937;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.875rem 1rem;
+}
+
+/* 底部連結 */
+.citation-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.citation-sidebar-link {
+  font-size: 0.8125rem;
+  text-decoration: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  text-align: center;
+  transition: opacity 0.1s;
+}
+.citation-sidebar-link:hover {
+  opacity: 0.85;
+}
+.citation-sidebar-link--primary {
+  background: #0ea5e9;
+  color: #fff;
+  font-weight: 600;
+}
+.citation-sidebar-link--secondary {
+  background: #f1f5f9;
+  color: #1d4ed8;
+  border: 1px solid #e2e8f0;
+}
+
+/* ========================================================
+   Citation Chips（底部卡片列）
+   ======================================================== */
+
+.citation-chips-bar {
+  margin-top: 1rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.citation-chips-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.625rem;
+}
+
+.citation-chips-scroll {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  padding-bottom: 0.375rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.citation-chips-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.citation-chips-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.citation-chips-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+/* 單張 chip 卡片 */
+.citation-chip {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1875rem;
+  width: 11rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  background: #f8fafc;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.citation-chip:hover {
+  border-color: #7dd3fc;
+  background: #f0f9ff;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.12);
+}
+.citation-chip--active {
+  border-color: #0ea5e9;
+  background: #e0f2fe;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
+}
+
+.citation-chip-index {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #0ea5e9;
+  letter-spacing: 0.03em;
+}
+
+.citation-chip-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0c4a6e;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.citation-chip-article {
+  font-size: 0.75rem;
+  color: #0369a1;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.citation-chip-tier {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  margin-top: 0.125rem;
+}
+
+/* ========================================================
+   Inline [片段N] chip（回答正文內）
+   ======================================================== */
+
+.citation-inline-chip {
+  display: inline;
+  margin: 0 0.125rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  border: 1px solid #7dd3fc;
+  background: #e0f2fe;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #0369a1;
+  cursor: pointer;
+  vertical-align: baseline;
+  transition: background 0.1s, border-color 0.1s;
+  line-height: 1.6;
+}
+.citation-inline-chip:hover {
+  background: #bae6fd;
+  border-color: #38bdf8;
+}

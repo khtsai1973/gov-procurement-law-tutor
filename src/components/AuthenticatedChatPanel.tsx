@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerFeedback } from "@/components/AnswerFeedback";
 import { CitationAnswer } from "@/components/CitationAnswer";
+import { CitationChips } from "@/components/CitationChips";
+import { CitationSidebar } from "@/components/CitationSidebar";
 import type { CitationSource } from "@/lib/citations";
 import {
   getGuidedScenario,
@@ -27,6 +29,7 @@ export function AuthenticatedChatPanel() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sidebarSource, setSidebarSource] = useState<CitationSource | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
@@ -184,6 +187,8 @@ export function AuthenticatedChatPanel() {
   }
 
   return (
+    <>
+    <CitationSidebar source={sidebarSource} onClose={() => setSidebarSource(null)} />
     <section className="chat-panel-tech rounded-xl border border-[var(--border)] p-6 shadow-sm">
       <div className="chat-block-header rounded-lg p-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -407,32 +412,25 @@ export function AuthenticatedChatPanel() {
         <div ref={answerRef} className="chat-block-answer mt-6 space-y-4 rounded-lg p-5">
           <h2 className="text-base font-semibold">回答</h2>
           {sources && sources.length > 0 ? (
-            <CitationAnswer answer={answer} sources={sources} />
+            <CitationAnswer
+              answer={answer}
+              sources={sources}
+              onOpenSidebar={setSidebarSource}
+            />
           ) : (
             <div className="whitespace-pre-wrap text-sm leading-relaxed">{answer}</div>
           )}
           {sources && sources.length > 0 ? (
-            <div>
-              <h3 className="text-sm font-semibold text-[var(--muted)]">
-                可追溯引文（點擊回答中的「片段N」可查看原文與版本）
-              </h3>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                {sources.map((s) => (
-                  <li key={`${s.chunkId}-${s.index}`}>
-                    【片段{s.index}】{s.title}
-                    {s.articleKey ? `｜${s.articleKey}` : ""}
-                    <span className="text-[var(--muted)]">（{s.tier}）</span>
-                    {s.versionLabel ? (
-                      <span className="text-[var(--muted)]">｜{s.versionLabel}</span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <CitationChips
+              sources={sources}
+              activeIndex={sidebarSource?.index ?? null}
+              onOpen={setSidebarSource}
+            />
           ) : null}
           {questionId ? <AnswerFeedback key={questionId} questionId={questionId} /> : null}
         </div>
       ) : null}
     </section>
+    </>
   );
 }
