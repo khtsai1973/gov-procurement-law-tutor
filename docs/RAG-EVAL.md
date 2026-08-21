@@ -33,7 +33,7 @@ npm run ttfb:check
 ## 金標案例
 
 - **CI smoke**：`data/rag-eval/cases.json`（門檻數字、小額、金額認定、監辦、決標原則、離題拒答、公開招標三家、第22條第9款範圍等）。
-- **研究用 Golden Dataset（50／100）**：見 [`docs/RAG-GOLDEN.md`](./RAG-GOLDEN.md) 與 `data/rag-eval/golden/dataset.json`。
+- **研究用 Golden Dataset（200 題 ready）**：見 [`docs/RAG-GOLDEN.md`](./RAG-GOLDEN.md) 與 `data/rag-eval/golden/dataset.json`。
 
 ```bash
 npm run test:rag-golden
@@ -42,6 +42,10 @@ npm run rag:eval:golden
 # FRC 三指標專項
 npm run test:rag-frc
 npm run rag:eval:frc
+
+# 期末報告總表（Golden＋FRC＋策略比較）
+npm run test:rag-benchmark
+npm run rag:benchmark
 
 # Live 子集（真實檢索＋生成，需 DATABASE_URL、OPENAI_API_KEY）
 RAG_FRC_MODE=live RAG_FRC_LIMIT=15 npm run rag:eval:frc
@@ -54,7 +58,7 @@ npm run test:rag-compare
 npm run rag:eval:compare
 ```
 
-詳見 [`docs/RAG-FRC.md`](./RAG-FRC.md)、[`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)、[`docs/RAG-LIVE-SUITE.md`](./RAG-LIVE-SUITE.md)。
+詳見 [`docs/RAG-BENCHMARK.md`](./RAG-BENCHMARK.md)、[`docs/RAG-FRC.md`](./RAG-FRC.md)、[`docs/RAG-COMPARE.md`](./RAG-COMPARE.md)、[`docs/RAG-LIVE-SUITE.md`](./RAG-LIVE-SUITE.md)。
 
 ## 與 Ragas 的對應
 

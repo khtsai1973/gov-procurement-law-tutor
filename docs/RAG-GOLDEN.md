@@ -48,9 +48,12 @@
 npm run test:rag-golden
 npm run rag:eval:golden
 npm run rag:eval:frc
+
+# 期末報告總表（含策略比較）
+npm run rag:benchmark
 ```
 
-離線模式以 `gold_answer` 自評（FRC／faithfulness）；線上模式需 `DATABASE_URL`。
+離線模式以 `gold_answer` 自評（FRC／faithfulness）；線上模式需 `DATABASE_URL`。詳見 [`docs/RAG-BENCHMARK.md`](./RAG-BENCHMARK.md)。
 
 ## 建議管線比較
 
