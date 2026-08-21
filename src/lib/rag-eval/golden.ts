@@ -10,6 +10,7 @@ import {
   GOLDEN_CATEGORIES,
   type GoldenDatasetFile,
   type GoldenItem,
+  type GoldenPhase,
 } from "@/lib/rag-eval/golden-types";
 
 const DEFAULT_PATH = path.join(process.cwd(), "data/rag-eval/golden/dataset.json");
@@ -21,15 +22,35 @@ export function loadGoldenDataset(filePath?: string): GoldenDatasetFile {
   return raw;
 }
 
+/** All ready items used by automatic golden / FRC evaluation. */
 export function listReadyGoldenItems(ds?: GoldenDatasetFile): GoldenItem[] {
   const data = ds ?? loadGoldenDataset();
-  return data.items.filter((i) => i.status === "ready" && i.phase === 1);
+  return data.items.filter((i) => i.status === "ready");
+}
+
+export function listGoldenItemsByPhase(
+  phase: GoldenPhase,
+  ds?: GoldenDatasetFile,
+): GoldenItem[] {
+  const data = ds ?? loadGoldenDataset();
+  return data.items.filter((i) => i.phase === phase);
 }
 
 export function validateGoldenDataset(ds: GoldenDatasetFile): void {
   if (!ds.meta || !Array.isArray(ds.items)) {
     throw new Error("golden dataset: missing meta or items");
   }
+  if (ds.meta.target_total !== 200) {
+    throw new Error(
+      `meta.target_total must be 200, got ${ds.meta.target_total}`,
+    );
+  }
+  if (ds.items.length !== ds.meta.target_total) {
+    throw new Error(
+      `items.length ${ds.items.length} != meta.target_total ${ds.meta.target_total}`,
+    );
+  }
+
   const ids = new Set<string>();
   for (const item of ds.items) {
     if (!/^G\d{3}$/.test(item.id)) {
@@ -40,17 +61,59 @@ export function validateGoldenDataset(ds: GoldenDatasetFile): void {
     if (!GOLDEN_CATEGORIES.includes(item.category)) {
       throw new Error(`${item.id}: bad category ${item.category}`);
     }
+    if (![1, 2, 3].includes(item.phase)) {
+      throw new Error(`${item.id}: invalid phase ${item.phase}`);
+    }
     if (item.status === "ready") {
       if (!item.question?.trim()) throw new Error(`${item.id}: empty question`);
       if (!item.gold_answer?.trim()) throw new Error(`${item.id}: empty gold_answer`);
-      if (!item.expected_behavior) throw new Error(`${item.id}: missing expected_behavior`);
+      if (!item.expected_behavior) {
+        throw new Error(`${item.id}: missing expected_behavior`);
+      }
     }
   }
+
   const ready = ds.items.filter((i) => i.status === "ready");
-  if (ready.length !== ds.meta.phase1_count) {
+  if (ready.length !== ds.meta.ready_count) {
     throw new Error(
-      `ready count ${ready.length} != meta.phase1_count ${ds.meta.phase1_count}`,
+      `ready count ${ready.length} != meta.ready_count ${ds.meta.ready_count}`,
     );
+  }
+
+  const phase1 = ds.items.filter((i) => i.phase === 1);
+  const phase2 = ds.items.filter((i) => i.phase === 2);
+  const phase3 = ds.items.filter((i) => i.phase === 3);
+  if (phase1.length !== ds.meta.phase1_count) {
+    throw new Error(
+      `phase1 count ${phase1.length} != meta.phase1_count ${ds.meta.phase1_count}`,
+    );
+  }
+  if (phase2.length !== ds.meta.phase2_count) {
+    throw new Error(
+      `phase2 count ${phase2.length} != meta.phase2_count ${ds.meta.phase2_count}`,
+    );
+  }
+  if (phase3.length !== ds.meta.phase3_count) {
+    throw new Error(
+      `phase3 count ${phase3.length} != meta.phase3_count ${ds.meta.phase3_count}`,
+    );
+  }
+
+  for (const cat of GOLDEN_CATEGORIES) {
+    const plan = ds.meta.category_plan[cat];
+    if (!plan) throw new Error(`missing category_plan for ${cat}`);
+    const inCat = ds.items.filter((i) => i.category === cat);
+    if (inCat.length !== plan.total) {
+      throw new Error(
+        `category ${cat}: items ${inCat.length} != plan.total ${plan.total}`,
+      );
+    }
+    const sum = plan.phase1 + plan.phase2 + plan.phase3;
+    if (sum !== plan.total) {
+      throw new Error(
+        `category ${cat}: phase1+2+3 (${sum}) != total ${plan.total}`,
+      );
+    }
   }
 }
 
@@ -101,7 +164,6 @@ function deriveMustInclude(item: GoldenItem): string[] {
     const m = a.match(/第\s*\d+\s*條/);
     if (m) out.push(m[0].replace(/\s+/g, " "));
   }
-  // 從 gold_answer 取短關鍵詞較不可靠；至少保留條號與類別詞
   if (item.category.includes("門檻") || item.category.includes("金額")) {
     for (const t of ["公告金額", "查核金額", "萬"]) {
       if (item.gold_answer.includes(t)) out.push(t);
@@ -117,7 +179,10 @@ function relevanceFromItem(item: GoldenItem): string[] {
 
   if (item.must_include?.length) {
     for (const m of item.must_include) {
-      if (answer.includes(m) || answer.replace(/\s+/g, "").includes(m.replace(/\s+/g, ""))) {
+      if (
+        answer.includes(m) ||
+        answer.replace(/\s+/g, "").includes(m.replace(/\s+/g, ""))
+      ) {
         out.push(m);
       }
     }
@@ -126,12 +191,14 @@ function relevanceFromItem(item: GoldenItem): string[] {
   for (const a of item.expected_articles) {
     const m = a.match(/第\s*\d+\s*條/);
     if (m && answer.includes(m[0].replace(/\s+/g, " "))) out.push(m[0]);
-    else if (m && answer.replace(/\s+/g, "").includes(m[0].replace(/\s+/g, ""))) {
+    else if (
+      m &&
+      answer.replace(/\s+/g, "").includes(m[0].replace(/\s+/g, ""))
+    ) {
       out.push(m[0]);
     }
   }
 
-  // 自問題擷取 2～6 字詞，且須出現在 gold_answer（避免無關噪音）
   const q = item.question.replace(/\s+/g, "");
   const candidates = [
     "公告金額",
@@ -167,12 +234,14 @@ export function summarizeGoldenCoverage(ds?: GoldenDatasetFile): {
   ready: number;
   planned: number;
   byCategory: Record<string, { ready: number; planned: number }>;
+  byPhase: Record<string, number>;
 } {
   const data = ds ?? loadGoldenDataset();
   const byCategory: Record<string, { ready: number; planned: number }> = {};
   for (const c of GOLDEN_CATEGORIES) {
     byCategory[c] = { ready: 0, planned: 0 };
   }
+  const byPhase: Record<string, number> = { "1": 0, "2": 0, "3": 0 };
   let ready = 0;
   let planned = 0;
   for (const item of data.items) {
@@ -185,6 +254,7 @@ export function summarizeGoldenCoverage(ds?: GoldenDatasetFile): {
       bucket.planned += 1;
     }
     byCategory[item.category] = bucket;
+    byPhase[String(item.phase)] = (byPhase[String(item.phase)] ?? 0) + 1;
   }
-  return { ready, planned, byCategory };
+  return { ready, planned, byCategory, byPhase };
 }
