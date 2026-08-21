@@ -12,10 +12,11 @@
  *   RAG_COMPARE_GENERATE=1 npm run rag:eval:compare
  *
  * Env:
- *   RAG_COMPARE_STRATEGIES=baseline,contextual,parent_contextual
+ *   RAG_COMPARE_STRATEGIES=baseline,contextual,parent_contextual,combined
  *   RAG_COMPARE_LIMIT=50   # 0=全部 ready
- *   RAG_COMPARE_ENABLE_GRAPH=0
+ *   RAG_COMPARE_ENABLE_GRAPH=0  # Parent 欄是否開 Graph；Combined 一律開
  *   RAG_COMPARE_TOP_K=8
+ *   RAG_COMPARE_GENERATE=1  # 產出 Faithfulness／Citation（無 OpenAI 時走摘錄 fallback）
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -26,6 +27,7 @@ import {
   parseStrategies,
   scoreRetrievedAgainstGolden,
   selectGoldenForCompare,
+  strategyUsesGraph,
   summarizeStrategy,
   type CompareCaseRow,
   type CompareReport,
@@ -172,7 +174,7 @@ async function runFixtureCompare(params: {
         allChunks: all,
         hasHierarchy: true,
         topK: params.topK,
-        enableGraph: params.enableGraph && strategy === "parent_contextual",
+        enableGraph: strategyUsesGraph(strategy, params.enableGraph),
       });
       const latency_ms = Date.now() - t0;
       const scored = scoreRetrievedAgainstGolden({
@@ -207,7 +209,7 @@ async function runFixtureCompare(params: {
     notes: [
       "本報告為 fixture 模式：用精簡母法／細則片段模擬策略展開，驗證 Hit Rate 與策略差異；非正式 Production 語料全量結果。",
       "正式比較請設定 DATABASE_URL 後執行 live 模式（可加 RAG_COMPARE_GENERATE=1）。",
-      "三方比較預設關閉 GraphRAG，以免 parent_contextual 雙重加分。",
+      "四策略中 Combined＝Parent＋GraphRAG；Parent 欄預設關 Graph 以免與 Combined 重疊。",
     ],
   };
 }
@@ -243,7 +245,7 @@ async function runLiveCompare(params: {
 
       const { chunks, mode } = await retrieveForRag(item.question, params.topK, {
         strategy,
-        enableGraph: params.enableGraph && strategy === "parent_contextual",
+        enableGraph: strategyUsesGraph(strategy, params.enableGraph),
       });
       let answer: string | null = null;
       if (params.generate) {
@@ -281,8 +283,12 @@ async function runLiveCompare(params: {
     summary: params.strategies.map((s) => summarizeStrategy(s, rows)),
     cases: rows,
     notes: [
-      "Live 模式使用資料庫現行 Parent-Child 語料；Child 內容已含 ingest 時 Contextual 前綴（三種策略共用索引）。",
+      "Live 模式使用資料庫現行 Parent-Child 語料；Child 內容已含 ingest 時 Contextual 前綴（策略共用索引）。",
       "若需「無前綴 Baseline」消融，需另建扁平 ingest，本報告已於注意事項揭露此限制。",
+      "Combined＝Parent-Document＋Contextual 展開＋GraphRAG；Parent 欄預設關 Graph。",
+      params.generate
+        ? "已生成回答（含 OpenAI 或 OPENAI_DISABLED 摘錄 fallback），故有 Faithfulness／Relevance／Citation。"
+        : "未生成回答：Citation／Faithfulness／Relevance 為空；請設 RAG_COMPARE_GENERATE=1。",
     ],
   };
 }

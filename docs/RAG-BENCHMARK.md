@@ -41,7 +41,7 @@ RAG_BENCHMARK_COMPARE_MODE=live RAG_COMPARE_GENERATE=1 DATABASE_URL=... OPENAI_A
 | `RAG_BENCHMARK_COMPARE_MODE` | `fixture`／`live`（未設則有 DB 走 live） |
 | `RAG_BENCHMARK_FAIL_FAST` | 預設 `1` |
 | `RAG_COMPARE_GENERATE` | 傳給 compare（`0`／`1`） |
-| `RAG_COMPARE_ENABLE_GRAPH` | 傳給 compare（公平三方建議 `0`） |
+| `RAG_COMPARE_ENABLE_GRAPH` | 傳給 compare（僅 Parent；Combined 一律開 Graph） |
 
 ## 與其他腳本的關係
 

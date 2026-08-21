@@ -168,7 +168,7 @@ async function main() {
       compareMode === "fixture"
         ? "Compare 為 fixture：驗證策略展開與 Hit Rate 管線，非正式全量語料結果。"
         : "Compare 為 live：使用資料庫現行 Parent-Child 語料。",
-      "三方策略比較預設關閉 GraphRAG，以免 parent_contextual 雙重加分。",
+      "四策略比較：Parent 預設關 Graph；Combined＝Parent＋GraphRAG。",
       "詳見 docs/RAG-BENCHMARK.md、docs/RAG-COMPARE.md、docs/RAG-FRC.md。",
     ],
   });

@@ -50,7 +50,8 @@ describe("compare-metrics", () => {
 
   it("parses strategies", () => {
     assert.deepEqual(parseStrategies("baseline,contextual"), ["baseline", "contextual"]);
-    assert.equal(parseStrategies("").length, 3);
+    assert.equal(parseStrategies("").length, 4);
+    assert.ok(parseStrategies("").includes("combined"));
   });
 });
 
@@ -81,7 +82,15 @@ describe("applyRetrievalStrategy", () => {
     title: "施行細則",
     tier: "REGULATION",
   });
-  const all = [parent, child, enf];
+  const parent22 = chunk({
+    id: "p22",
+    slug: "government-procurement-act",
+    chunkRole: "PARENT",
+    articleKey: "第 22 條",
+    content: "### 第 22 條\n限制性招標",
+    title: "政府採購法",
+  });
+  const all = [parent, child, enf, parent22];
   const byId = new Map(all.map((c) => [c.id, c]));
 
   it("baseline returns children only", () => {
@@ -126,6 +135,20 @@ describe("applyRetrievalStrategy", () => {
     });
     assert.ok(r.chunks.some((c) => c.id === "p1"));
     assert.ok(r.strategyTags.some((t) => t.includes("parent_contextual")));
+  });
+
+  it("combined expands parent and may add graph neighbors", () => {
+    const r = applyRetrievalStrategy({
+      strategy: "combined",
+      childHits: [child],
+      byId,
+      allChunks: all,
+      hasHierarchy: true,
+      topK: 8,
+      enableGraph: false,
+    });
+    assert.ok(r.chunks.some((c) => c.id === "p1"));
+    assert.ok(r.strategyTags.some((t) => t.includes("combined")));
   });
 });
 
