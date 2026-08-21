@@ -13,7 +13,7 @@
  *
  * Env:
  *   RAG_COMPARE_STRATEGIES=baseline,contextual,parent_contextual
- *   RAG_COMPARE_LIMIT=50
+ *   RAG_COMPARE_LIMIT=50   # 0=全部 ready
  *   RAG_COMPARE_ENABLE_GRAPH=0
  *   RAG_COMPARE_TOP_K=8
  */
@@ -289,7 +289,11 @@ async function runLiveCompare(params: {
 
 async function main() {
   const strategies = parseStrategies(process.env.RAG_COMPARE_STRATEGIES);
-  const limit = Number(process.env.RAG_COMPARE_LIMIT ?? "50");
+  const limitRaw = process.env.RAG_COMPARE_LIMIT;
+  const limit =
+    limitRaw === undefined || limitRaw === ""
+      ? 50
+      : Number(limitRaw);
   const topK = Number(process.env.RAG_COMPARE_TOP_K ?? "8");
   const enableGraph =
     process.env.RAG_COMPARE_ENABLE_GRAPH === "1" ||
@@ -301,7 +305,10 @@ async function main() {
   const hasDb = Boolean(process.env.DATABASE_URL?.trim());
   const mode = forced === "fixture" || forced === "live" ? forced : hasDb ? "live" : "fixture";
 
-  const items = selectGoldenForCompare(Number.isFinite(limit) ? limit : 50);
+  // 0 或負數 = 全部 ready（供 rag:benchmark 全量跑）
+  const items = selectGoldenForCompare(
+    Number.isFinite(limit) && limit > 0 ? limit : 0,
+  );
   console.error(
     `RAG compare mode=${mode} strategies=${strategies.join(",")} n=${items.length} generate=${generate} graph=${enableGraph}`,
   );

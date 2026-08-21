@@ -16,8 +16,10 @@ RAG_LIVE_SUITE_GENERATE=1 npm run rag:eval:live
 
 - `docs/evidence/rag-live-suite-latest.{md,json}` — 整輪摘要
 - `rag-eval-latest.*` — smoke（`data/rag-eval/cases.json`）
-- `rag-compare-latest.*` — 策略比較（Golden 50）
+- `rag-compare-latest.*` — 策略比較（預設 Golden 50；Benchmark 可全量 200）
 - `rag-frc-latest.*` — FRC 三指標
+
+離線期末總表請用 [`RAG-BENCHMARK.md`](./RAG-BENCHMARK.md)（`npm run rag:benchmark`）。
 
 ## 步驟說明
 

@@ -1,7 +1,7 @@
 /**
  * RAG Golden Dataset 型別（期末報告／管線比較用）
  *
- * 規劃：100 題（phase1 正式 50＋phase2 擴充 50）
+ * 規劃：200 題（phase1 50＋phase2 50＋phase3 100），皆 ready 可跑自動評測
  */
 
 export const GOLDEN_CATEGORIES = [
@@ -24,7 +24,8 @@ export type GoldenDifficulty = "Easy" | "Medium" | "Hard";
 /** answer=正常作答；correct=糾正錯誤前提；refuse=拒答／離題 */
 export type GoldenExpectedBehavior = "answer" | "correct" | "refuse";
 
-export type GoldenPhase = 1 | 2;
+/** 1 = baseline 50, 2 = expand to 100, 3 = expand to 200 */
+export type GoldenPhase = 1 | 2 | 3;
 
 export type GoldenItem = {
   id: string;
@@ -41,8 +42,14 @@ export type GoldenItem = {
   /** 評測輔助：答案應涵蓋之關鍵詞（Faithfulness／Hit Rate） */
   must_include?: string[];
   phase: GoldenPhase;
-  /** phase2 尚未定稿時為 planned */
   status: "ready" | "planned";
+};
+
+export type GoldenCategoryPlan = {
+  total: number;
+  phase1: number;
+  phase2: number;
+  phase3: number;
 };
 
 export type GoldenDatasetMeta = {
@@ -50,9 +57,11 @@ export type GoldenDatasetMeta = {
   version: string;
   description: string;
   target_total: number;
+  ready_count: number;
   phase1_count: number;
   phase2_count: number;
-  category_plan: Record<GoldenCategory, { total: number; phase1: number; phase2: number }>;
+  phase3_count: number;
+  category_plan: Record<GoldenCategory, GoldenCategoryPlan>;
   metrics: string[];
 };
 

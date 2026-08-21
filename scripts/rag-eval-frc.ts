@@ -2,7 +2,7 @@
 /**
  * Faithfulness + Relevance + Citation Accuracy（FRC）專項評測
  *
- * 預設：Golden Phase1，以 gold_answer 離線自洽評分（驗證標註與指標）。
+ * 預設：Golden 全部 ready（目前 200），以 gold_answer 離線自洽評分（驗證標註與指標）。
  *
  *   npm run rag:eval:frc
  *   RAG_FRC_LIMIT=20 npm run rag:eval:frc
@@ -190,8 +190,8 @@ async function main() {
 
   const modeLabel =
     mode === "live"
-      ? "Golden Phase1 真實檢索＋生成"
-      : "Golden Phase1 gold_answer 自洽";
+      ? "Golden 全部 ready 真實檢索＋生成"
+      : "Golden 全部 ready gold_answer 自洽";
 
   const md = [
     "# Faithfulness + Relevance + Citation Accuracy（FRC）",

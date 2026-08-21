@@ -1,6 +1,8 @@
 # Baseline / Contextual / Parent-Document RAG 比較
 
-期末報告用策略消融實驗：在同一 Golden Dataset（Phase1 50 題）上比較三種檢索策略。
+期末報告用策略消融實驗：在同一 Golden Dataset（預設 50 題；`RAG_COMPARE_LIMIT=0` 可跑全部 ready，目前 200）上比較三種檢索策略。
+
+完整期末總表請用 [`docs/RAG-BENCHMARK.md`](./RAG-BENCHMARK.md)（`npm run rag:benchmark`）。
 
 ## 策略定義（本站實作）
 
@@ -44,7 +46,7 @@ npm run test:rag-compare
 
 - `RAG_COMPARE_MODE=live|fixture`
 - `RAG_COMPARE_STRATEGIES=baseline,contextual,parent_contextual`
-- `RAG_COMPARE_LIMIT=50`
+- `RAG_COMPARE_LIMIT=50`（`0`＝全部 ready）
 - `RAG_COMPARE_ENABLE_GRAPH=0`（預設關）
 - `RAG_COMPARE_GENERATE=0|1`
 - `RAG_COMPARE_TOP_K=8`

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Golden Dataset 離線評測（Phase1 50 題）— 含 FRC
+ * Golden Dataset 離線評測（全部 ready 題，目前 200）— 含 FRC
  *
  * - 預設：以 gold_answer 自洽評分
  * - GOLDEN_EVAL_MODE=modules：優先走既有確定性模組

@@ -1,61 +1,73 @@
 {
   "meta": {
     "title": "政府採購法 RAG Golden Dataset",
-    "version": "1.0.0-phase1",
-    "description": "期末報告用 RAG 評測金標集：第一階段 50 題正式測試（人工對照語料），第二階段預留 50 題擴充槽位。可用於比較 Baseline／Contextual／Parent-Document＋Contextual RAG。",
-    "target_total": 100,
+    "version": "2.0.1-200",
+    "description": "期末報告用 RAG 評測金標集：共 200 題正式測試（G001–G200 皆 ready）。含法條、門檻、招標／決標、第22條、履約、情境、跨文件、錯誤前提與離題拒答。可用於比較 Baseline／Contextual／Parent-Document＋Contextual RAG，並跑 FRC 自動評測。",
+    "target_total": 200,
+    "ready_count": 200,
     "phase1_count": 50,
     "phase2_count": 50,
+    "phase3_count": 100,
     "category_plan": {
       "法條直接查詢": {
-        "total": 15,
+        "total": 30,
         "phase1": 8,
-        "phase2": 7
+        "phase2": 7,
+        "phase3": 15
       },
       "採購金額／門檻判斷": {
-        "total": 10,
+        "total": 20,
         "phase1": 5,
-        "phase2": 5
+        "phase2": 5,
+        "phase3": 10
       },
       "招標方式": {
-        "total": 10,
+        "total": 20,
         "phase1": 5,
-        "phase2": 5
+        "phase2": 5,
+        "phase3": 10
       },
       "決標方式": {
-        "total": 10,
+        "total": 20,
         "phase1": 5,
-        "phase2": 5
+        "phase2": 5,
+        "phase3": 10
       },
       "限制性招標／第22條": {
-        "total": 10,
+        "total": 20,
         "phase1": 5,
-        "phase2": 5
+        "phase2": 5,
+        "phase3": 10
       },
       "履約／驗收": {
-        "total": 10,
+        "total": 20,
         "phase1": 5,
-        "phase2": 5
+        "phase2": 5,
+        "phase3": 10
       },
       "情境案例題": {
-        "total": 15,
+        "total": 30,
         "phase1": 7,
-        "phase2": 8
+        "phase2": 8,
+        "phase3": 15
       },
       "跨條文／跨文件題": {
-        "total": 10,
+        "total": 20,
         "phase1": 5,
-        "phase2": 5
+        "phase2": 5,
+        "phase3": 10
       },
       "錯誤前提題": {
-        "total": 5,
+        "total": 10,
         "phase1": 3,
-        "phase2": 2
+        "phase2": 2,
+        "phase3": 5
       },
       "Out-of-domain": {
-        "total": 5,
+        "total": 10,
         "phase1": 2,
-        "phase2": 3
+        "phase2": 3,
+        "phase3": 5
       }
     },
     "metrics": [
@@ -64,7 +76,8 @@
       "Citation Accuracy",
       "Retrieval Hit Rate",
       "拒答正確率",
-      "Latency"
+      "Latency",
+      "FRC mean"
     ]
   },
   "items": [
@@ -96,7 +109,7 @@
       "category": "法條直接查詢",
       "difficulty": "Easy",
       "question": "採購之招標方式分為哪三種？各自定義為何？",
-      "gold_answer": "依第18條分為公開招標、選擇性招標及限制性招標。公開招標以公告邀請不特定廠商；選擇性招標先資格審查再邀請合格廠商；限制性招標不經公告，邀請二家以上比價或一家議價。",
+      "gold_answer": "依政府採購法，依第18條分為公開招標、選擇性招標及限制性招標。公開招標以公告邀請不特定廠商；選擇性招標先資格審查再邀請合格廠商；限制性招標不經公告，邀請二家以上比價或一家議價。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -119,7 +132,7 @@
       "category": "法條直接查詢",
       "difficulty": "Easy",
       "question": "公告金額以上採購原則上應採何種招標方式？",
-      "gold_answer": "依第19條，機關辦理公告金額以上之採購，除依第20條（選擇性招標）及第22條（限制性招標）辦理者外，應公開招標。",
+      "gold_answer": "依政府採購法，依第19條，機關辦理公告金額以上之採購，除依第20條（選擇性招標）及第22條（限制性招標）辦理者外，應公開招標。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -142,7 +155,7 @@
       "category": "法條直接查詢",
       "difficulty": "Easy",
       "question": "政府採購法第48條關於開標的合格廠商家數規定為何？",
-      "gold_answer": "機關依規定辦理招標，除法定不予開標決標情形外，有三家以上合格廠商投標，即應依招標文件所定時間開標決標。第一次開標因未滿三家而流標者，第二次得縮短等標期，並得不受三家限制。",
+      "gold_answer": "依政府採購法，依第48條，機關依規定辦理招標，除法定不予開標決標情形外，有三家以上合格廠商投標，即應依招標文件所定時間開標決標。第一次開標因未滿三家而流標者，第二次得縮短等標期，並得不受三家限制。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -164,7 +177,7 @@
       "category": "法條直接查詢",
       "difficulty": "Medium",
       "question": "採購法第52條規定的決標原則有哪些？",
-      "gold_answer": "第52條第1項規定應依下列原則之一辦理並載明於招標文件：（一）訂有底價之最低標；（二）未訂底價、標價合理且在預算內之最低標；（三）最有利標；（四）複數決標。第2項並規定公告金額以上專業／技術／資訊／社福／文創服務，以不訂底價之最有利標為原則。",
+      "gold_answer": "依政府採購法，第52條第1項規定應依下列原則之一辦理並載明於招標文件：（一）訂有底價之最低標；（二）未訂底價、標價合理且在預算內之最低標；（三）最有利標；（四）複數決標。第2項並規定公告金額以上專業／技術／資訊／社福／文創服務，以不訂底價之最有利標為原則。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -188,7 +201,7 @@
       "category": "法條直接查詢",
       "difficulty": "Easy",
       "question": "機關辦理工程、財物採購之驗收，主驗人如何指派？承辦採購人員可否主驗？",
-      "gold_answer": "依第71條，驗收時應由機關首長或其授權人員指派適當人員主驗，並通知接管或使用單位會驗。機關承辦採購單位之人員不得為所辦採購之主驗人或樣品及材料之檢驗人。勞務採購準用之。",
+      "gold_answer": "依政府採購法，依第71條，驗收時應由機關首長或其授權人員指派適當人員主驗，並通知接管或使用單位會驗。機關承辦採購單位之人員不得為所辦採購之主驗人或樣品及材料之檢驗人。勞務採購準用之。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -210,7 +223,7 @@
       "category": "法條直接查詢",
       "difficulty": "Medium",
       "question": "投標廠商有哪些情形，機關於開標前發現應不予開標？",
-      "gold_answer": "依第50條第1項，例如未依招標文件投標、文件不符規定、借用冒用名義證件、以不實文件投標、不同廠商投標文件重大異常關聯、有第103條第1項不得參加投標情形、其他影響採購公正之違法行為等。開標後發現者應不決標予該廠商。",
+      "gold_answer": "依政府採購法，依第50條第1項，例如未依招標文件投標、文件不符規定、借用冒用名義證件、以不實文件投標、不同廠商投標文件重大異常關聯、有第103條第1項不得參加投標情形、其他影響採購公正之違法行為等。開標後發現者應不決標予該廠商。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -232,7 +245,7 @@
       "category": "法條直接查詢",
       "difficulty": "Medium",
       "question": "採購法第56條對最有利標評選有何程序要求？",
-      "gold_answer": "決標依第52條第1項第3款者，應依招標文件評審標準就技術、品質、功能、商業條款或價格等作綜合評選；未列入項目不得作評選參考。無法評定時得協商後再評選，綜合評選不得逾三次；仍無法評定應廢標。採最有利標應先報上級機關核准。",
+      "gold_answer": "依政府採購法，依第56條，決標依第52條第1項第3款者，應依招標文件評審標準就技術、品質、功能、商業條款或價格等作綜合評選；未列入項目不得作評選參考。無法評定時得協商後再評選，綜合評選不得逾三次；仍無法評定應廢標。採最有利標應先報上級機關核准。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -278,7 +291,7 @@
       "category": "採購金額／門檻判斷",
       "difficulty": "Easy",
       "question": "中央機關小額採購金額門檻是多少？",
-      "gold_answer": "中央機關小額採購為新臺幣15萬元以下（公告金額150萬之十分之一以下）。地方機關另定，不得逾公告金額十分之一。",
+      "gold_answer": "依第47條，中央機關小額採購為新臺幣15萬元以下（公告金額150萬之十分之一以下）。地方機關另定，不得逾公告金額十分之一。",
       "expected_sources": [
         "pcc-procurement-amount-thresholds"
       ],
@@ -293,7 +306,8 @@
         "15",
         "萬",
         "小額",
-        "十分之一"
+        "十分之一",
+        "第47條"
       ]
     },
     {
@@ -325,7 +339,7 @@
       "category": "採購金額／門檻判斷",
       "difficulty": "Medium",
       "question": "新臺幣250萬元的資訊服務採購，屬哪一級距？",
-      "gold_answer": "資訊服務屬勞務（第7條）。勞務公告金額150萬、查核金額1,000萬，故250萬屬達公告金額、未達查核金額之勞務採購。",
+      "gold_answer": "依政府採購法，資訊服務屬勞務（第7條）。勞務公告金額150萬、查核金額1,000萬，故250萬屬達公告金額、未達查核金額之勞務採購。",
       "expected_sources": [
         "pcc-procurement-amount-thresholds",
         "government-procurement-act"
@@ -370,7 +384,7 @@
       "category": "招標方式",
       "difficulty": "Easy",
       "question": "什麼情況下公告金額以上採購得採選擇性招標？",
-      "gold_answer": "依第20條，符合經常性採購、投標文件審查費時長久、準備投標需高額費用、廠商資格條件複雜、或研究發展事項之一者，得採選擇性招標。",
+      "gold_answer": "依政府採購法，依第20條，符合經常性採購、投標文件審查費時長久、準備投標需高額費用、廠商資格條件複雜、或研究發展事項之一者，得採選擇性招標。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -391,7 +405,7 @@
       "category": "招標方式",
       "difficulty": "Medium",
       "question": "限制性招標與公開招標在程序上最大差異是什麼？",
-      "gold_answer": "依第18條，公開招標以公告邀請不特定廠商；限制性招標不經公告程序，邀請二家以上比價或僅邀請一家議價。公告金額以上採限制性招標須符合第22條各款情形。",
+      "gold_answer": "依政府採購法，依第18條，公開招標以公告邀請不特定廠商；限制性招標不經公告程序，邀請二家以上比價或僅邀請一家議價。公告金額以上採限制性招標須符合第22條各款情形。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -414,7 +428,7 @@
       "category": "招標方式",
       "difficulty": "Medium",
       "question": "未達公告金額之採購，招標方式如何規範？",
-      "gold_answer": "依第23條，未達公告金額之招標方式，中央由主管機關定之，地方由直轄市或縣（市）政府定之；地方未定者比照中央。中央實務上另依《中央機關未達公告金額採購招標辦法》辦理（例如公開取得書面報價或企劃書等）。",
+      "gold_answer": "依政府採購法，依第23條，未達公告金額之招標方式，中央由主管機關定之，地方由直轄市或縣（市）政府定之；地方未定者比照中央。中央實務上另依《中央機關未達公告金額採購招標辦法》辦理（例如公開取得書面報價或企劃書等）。",
       "expected_sources": [
         "government-procurement-act",
         "below-threshold-bidding-rules"
@@ -458,7 +472,7 @@
       "category": "招標方式",
       "difficulty": "Hard",
       "question": "機關得否以統包方式辦理招標？統包所指為何？",
-      "gold_answer": "依第24條，機關基於效率及品質要求，得以統包辦理招標。統包指將工程或財物採購中之設計與施工、供應、安裝或一定期間維修等併於同一採購契約辦理招標；實施辦法由主管機關定之。",
+      "gold_answer": "依政府採購法，依第24條，機關基於效率及品質要求，得以統包辦理招標。統包指將工程或財物採購中之設計與施工、供應、安裝或一定期間維修等併於同一採購契約辦理招標；實施辦法由主管機關定之。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -480,7 +494,7 @@
       "category": "決標方式",
       "difficulty": "Medium",
       "question": "最有利標和最低標有什麼不同？",
-      "gold_answer": "最低標（第52條第1項第1、2款）以合於招標文件且價格條件（底價內或預算內標價合理）之最低者得標；最有利標（第1項第3款、第56條）依評審標準就技術、品質、功能、商業條款或價格等綜合評選。二者擇一載明於招標文件，並非金額達標即必須最低標。",
+      "gold_answer": "依政府採購法，最低標（第52條第1項第1、2款）以合於招標文件且價格條件（底價內或預算內標價合理）之最低者得標；最有利標（第1項第3款、第56條）依評審標準就技術、品質、功能、商業條款或價格等綜合評選。二者擇一載明於招標文件，並非金額達標即必須最低標。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -504,7 +518,7 @@
       "category": "決標方式",
       "difficulty": "Medium",
       "question": "公告金額以上之資訊服務採購，決標原則有何特別規定？",
-      "gold_answer": "依第52條第2項，機關辦理公告金額以上之專業服務、技術服務、資訊服務、社會福利服務或文化創意服務者，以不訂底價之最有利標為原則。",
+      "gold_answer": "依政府採購法，依第52條第2項，機關辦理公告金額以上之專業服務、技術服務、資訊服務、社會福利服務或文化創意服務者，以不訂底價之最有利標為原則。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -526,7 +540,7 @@
       "category": "決標方式",
       "difficulty": "Medium",
       "question": "採最有利標決標是否須報上級機關核准？",
-      "gold_answer": "依第56條第3項，機關採最有利標決標者，應先報經上級機關核准。評選辦法由主管機關定之。",
+      "gold_answer": "依政府採購法，依第56條第3項，機關採最有利標決標者，應先報經上級機關核准。評選辦法由主管機關定之。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -548,7 +562,7 @@
       "category": "決標方式",
       "difficulty": "Hard",
       "question": "什麼是複數決標？應符合什麼競標精神？",
-      "gold_answer": "依第52條第1項第4款，機關得於招標文件公告保留採購項目或數量選擇之組合權利，採複數決標，但應合於最低價格或最有利標之競標精神。",
+      "gold_answer": "依政府採購法，依第52條第1項第4款，機關得於招標文件公告保留採購項目或數量選擇之組合權利，採複數決標，但應合於最低價格或最有利標之競標精神。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -569,7 +583,7 @@
       "category": "決標方式",
       "difficulty": "Medium",
       "question": "以公開招標或選擇性招標辦理時，是否得不論金額採最有利標？",
-      "gold_answer": "依最有利標作業手冊說明，以公開招標或選擇性招標辦理採購，得不論採購金額大小，視個案依第52條第1項第3款以最有利標決標（並應遵守評選／核准等相關程序）。",
+      "gold_answer": "依政府採購法，依最有利標作業手冊說明，以公開招標或選擇性招標辦理採購，得不論採購金額大小，視個案依第52條第1項第3款以最有利標決標（並應遵守評選／核准等相關程序）。",
       "expected_sources": [
         "most-advantageous-tender-operations-manual",
         "government-procurement-act"
@@ -592,7 +606,7 @@
       "category": "限制性招標／第22條",
       "difficulty": "Medium",
       "question": "公告金額以上採購是否一定要公開招標？",
-      "gold_answer": "不一定。依第19條原則應公開招標，但符合第20條得採選擇性招標，符合第22條所定情形者得採限制性招標。",
+      "gold_answer": "依政府採購法，不一定。依第19條原則應公開招標，但符合第20條得採選擇性招標，符合第22條所定情形者得採限制性招標。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -616,7 +630,7 @@
       "category": "限制性招標／第22條",
       "difficulty": "Medium",
       "question": "第22條第1項第9款公開評選限制性招標適用哪些服務？是否適用財物採購？",
-      "gold_answer": "第9款適用委託專業服務、技術服務、資訊服務或社會福利服務，經公開客觀評選為優勝者。屬勞務範疇，不適用財物採購，亦不適用工程採購。",
+      "gold_answer": "依政府採購法，依第22條第1項第9款，第9款適用委託專業服務、技術服務、資訊服務或社會福利服務，經公開客觀評選為優勝者。屬勞務範疇，不適用財物採購，亦不適用工程採購。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -631,7 +645,8 @@
         "專業服務",
         "資訊服務",
         "不適用",
-        "財物"
+        "財物",
+        "第22條第1項第9款"
       ]
     },
     {
@@ -639,7 +654,7 @@
       "category": "限制性招標／第22條",
       "difficulty": "Hard",
       "question": "依第22條第1項第9款辦理公開評選之限制性招標，第一次開標是否也要三家合格廠商？",
-      "gold_answer": "否。施行細則第55條說明第48條「三家以上合格廠商」係指公開招標；依第22條第1項第9款公開評選之限制性招標，第一次開標不適用該三家規定，有一家合格廠商投標即得開標。",
+      "gold_answer": "依政府採購法，否。施行細則第55條說明第48條「三家以上合格廠商」係指公開招標；依第22條第1項第9款公開評選之限制性招標，第一次開標不適用該三家規定，有一家合格廠商投標即得開標。",
       "expected_sources": [
         "gpa-enforcement-rules",
         "government-procurement-act"
@@ -665,7 +680,7 @@
       "category": "限制性招標／第22條",
       "difficulty": "Medium",
       "question": "因相容性必須向原廠採購後續維修零配件，可能依哪一款採限制性招標？",
-      "gold_answer": "可能依第22條第1項第4款：原有採購之後續維修、零配件供應、更換或擴充，因相容或互通性之需要，必須向原供應廠商採購者。",
+      "gold_answer": "依政府採購法，可能依第22條第1項第4款：原有採購之後續維修、零配件供應、更換或擴充，因相容或互通性之需要，必須向原供應廠商採購者。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -687,7 +702,7 @@
       "category": "限制性招標／第22條",
       "difficulty": "Hard",
       "question": "追加契約外工程得依第22條第1項第6款限制性招標的金額上限是什麼？",
-      "gold_answer": "第6款規定追加契約以外之工程須符合要件，且未逾原主契約金額百分之五十者，始得洽原訂約廠商以限制性招標辦理。",
+      "gold_answer": "依政府採購法，依第22條第1項第6款，第6款規定追加契約以外之工程須符合要件，且未逾原主契約金額百分之五十者，始得洽原訂約廠商以限制性招標辦理。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -702,7 +717,8 @@
         "百分之五十",
         "50",
         "追加",
-        "第6款"
+        "第6款",
+        "第22條第1項第6款"
       ]
     },
     {
@@ -710,7 +726,7 @@
       "category": "履約／驗收",
       "difficulty": "Medium",
       "question": "公告金額以上採購之開標、決標及驗收，監辦規定為何？",
-      "gold_answer": "依第13條第1項，機關辦理公告金額以上採購之開標、比價、議價、決標及驗收，除有特殊情形者外，應由其主（會）計及有關單位會同監辦。",
+      "gold_answer": "依政府採購法，依第13條第1項，機關辦理公告金額以上採購之開標、比價、議價、決標及驗收，除有特殊情形者外，應由其主（會）計及有關單位會同監辦。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -732,7 +748,7 @@
       "category": "履約／驗收",
       "difficulty": "Medium",
       "question": "未達公告金額採購何時應通知派員監辦？",
-      "gold_answer": "依《中央機關未達公告金額採購監辦辦法》：未達公告金額而逾公告金額十分之一者，開標、比價、議價、決標及驗收時應通知派員監辦；公告金額十分之一以下得不通知。",
+      "gold_answer": "依第2條、第5條，依《中央機關未達公告金額採購監辦辦法》：未達公告金額而逾公告金額十分之一者，開標、比價、議價、決標及驗收時應通知派員監辦；公告金額十分之一以下得不通知。",
       "expected_sources": [
         "below-threshold-supervision-rules"
       ],
@@ -746,7 +762,9 @@
       "status": "ready",
       "must_include": [
         "十分之一",
-        "監辦"
+        "監辦",
+        "第2條",
+        "第5條"
       ]
     },
     {
@@ -754,7 +772,7 @@
       "category": "履約／驗收",
       "difficulty": "Medium",
       "question": "驗收結果與契約規定不符時，機關可以怎麼處理？",
-      "gold_answer": "依第72條，應通知廠商限期改善、拆除、重作、退貨或換貨。不符部分非屬重要且其他部分能先行使用並經檢討必要者，得經核准就其他部分驗收並支付部分價金。不妨礙安全使用且無減少效用者，必要時得減價收受（查核金額以上須報上級核准）。",
+      "gold_answer": "依政府採購法，依第72條，應通知廠商限期改善、拆除、重作、退貨或換貨。不符部分非屬重要且其他部分能先行使用並經檢討必要者，得經核准就其他部分驗收並支付部分價金。不妨礙安全使用且無減少效用者，必要時得減價收受（查核金額以上須報上級核准）。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -776,7 +794,7 @@
       "category": "履約／驗收",
       "difficulty": "Easy",
       "question": "工程採購驗收完畢後應作成什麼文件？",
-      "gold_answer": "依第73條，工程、財物採購經驗收完畢後，應由驗收及監驗人員於結算驗收證明書上分別簽認；勞務驗收準用之。",
+      "gold_answer": "依政府採購法，依第73條，工程、財物採購經驗收完畢後，應由驗收及監驗人員於結算驗收證明書上分別簽認；勞務驗收準用之。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -797,7 +815,7 @@
       "category": "履約／驗收",
       "difficulty": "Medium",
       "question": "機關對廠商履約過程得否辦理分段查驗？",
-      "gold_answer": "依第70條第2項，機關於廠商履約過程得辦理分段查驗，其結果並得供驗收之用。工程採購並應明訂品質管理、環安衛責任及重點檢查程序。",
+      "gold_answer": "依政府採購法，依第70條第2項，機關於廠商履約過程得辦理分段查驗，其結果並得供驗收之用。工程採購並應明訂品質管理、環安衛責任及重點檢查程序。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -818,7 +836,7 @@
       "category": "情境案例題",
       "difficulty": "Hard",
       "question": "某機關辦理預算250萬元資訊系統維運（資訊服務），擬依第22條第1項第9款公開評選限制性招標。第一次開標有1家合格廠商，可否開標？決標原則應如何考量？",
-      "gold_answer": "可以開標：第9款限制性招標第一次開標不適用公開招標三家規定（施行細則第55條對照）。本案屬公告金額以上資訊服務，依第52條第2項以不訂底價之最有利標為原則，並應遵守評選及上級核准等規定。",
+      "gold_answer": "依政府採購法，依第22條第1項第9款，可以開標：第9款限制性招標第一次開標不適用公開招標三家規定（施行細則第55條對照）。本案屬公告金額以上資訊服務，依第52條第2項以不訂底價之最有利標為原則，並應遵守評選及上級核准等規定。",
       "expected_sources": [
         "government-procurement-act",
         "gpa-enforcement-rules"
@@ -835,7 +853,8 @@
       "must_include": [
         "一家",
         "最有利標",
-        "資訊服務"
+        "資訊服務",
+        "第22條第1項第9款"
       ]
     },
     {
@@ -843,7 +862,7 @@
       "category": "情境案例題",
       "difficulty": "Hard",
       "question": "某機關辦理4,800萬元財物採購，承辦人主張依第22條第1項第9款公開評選、第一次開標只需1家。此主張是否正確？",
-      "gold_answer": "不正確。第22條第1項第9款僅適用專業／技術／資訊／社福等勞務服務，不適用財物。財物案不得套用第9款「一家即可」；應依實際招標方式適用規則（若公開招標則第一次原則需三家以上合格廠商）。",
+      "gold_answer": "依政府採購法，依第48條，不正確。第22條第1項第9款僅適用專業／技術／資訊／社福等勞務服務，不適用財物。財物案不得套用第9款「一家即可」；應依實際招標方式適用規則（若公開招標則第一次原則需三家以上合格廠商）。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -858,7 +877,8 @@
       "must_include": [
         "不正確",
         "不適用",
-        "財物"
+        "財物",
+        "第48條"
       ]
     },
     {
@@ -866,7 +886,7 @@
       "category": "情境案例題",
       "difficulty": "Medium",
       "question": "中央機關辦理80萬元工程採購，屬哪一級距？招標方式主要依何規範？",
-      "gold_answer": "工程公告金額150萬，80萬屬未達公告金額（且高於小額15萬）。招標方式依第23條及《中央機關未達公告金額採購招標辦法》等規定辦理，而非逕依公告金額以上之第19條公開招標原則。",
+      "gold_answer": "依政府採購法，工程公告金額150萬，80萬屬未達公告金額（且高於小額15萬）。招標方式依第23條及《中央機關未達公告金額採購招標辦法》等規定辦理，而非逕依公告金額以上之第19條公開招標原則。",
       "expected_sources": [
         "pcc-procurement-amount-thresholds",
         "government-procurement-act",
@@ -890,7 +910,7 @@
       "category": "情境案例題",
       "difficulty": "Hard",
       "question": "公開招標第一次開標僅2家合格廠商而流標，第二次招標開標家數是否仍受三家限制？",
-      "gold_answer": "依第48條，第一次開標因未滿三家而流標者，第二次招標之等標期間得予縮短，並得不受前項三家廠商之限制。",
+      "gold_answer": "依政府採購法，依第48條，第一次開標因未滿三家而流標者，第二次招標之等標期間得予縮短，並得不受前項三家廠商之限制。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -913,7 +933,7 @@
       "category": "情境案例題",
       "difficulty": "Hard",
       "question": "機關辦理查核金額以上採購之開標決標驗收，除機關內部監辦外，還有何上級監辦義務？",
-      "gold_answer": "依第12條，辦理查核金額以上採購之開標、比價、議價、決標及驗收時，應於規定期限內檢送相關文件報請上級機關派員監辦；上級得訂授權條件由機關自行辦理。",
+      "gold_answer": "依政府採購法，依第12條，辦理查核金額以上採購之開標、比價、議價、決標及驗收時，應於規定期限內檢送相關文件報請上級機關派員監辦；上級得訂授權條件由機關自行辦理。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -935,7 +955,7 @@
       "category": "情境案例題",
       "difficulty": "Medium",
       "question": "廠商投標文件內容不符合招標文件規定，機關於開標後發現，應如何處理？",
-      "gold_answer": "依第50條第1項，於開標後發現者，應不決標予該廠商。若因此致採購程序無法繼續進行，機關得宣布廢標。",
+      "gold_answer": "依政府採購法，依第50條第1項，於開標後發現者，應不決標予該廠商。若因此致採購程序無法繼續進行，機關得宣布廢標。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -956,7 +976,7 @@
       "category": "情境案例題",
       "difficulty": "Hard",
       "question": "某勞務採購預算1,200萬元，屬哪一級距？若採最有利標，程序上應注意什麼？",
-      "gold_answer": "勞務查核金額1,000萬、巨額2,000萬，故1,200萬屬達查核金額、未達巨額之勞務。若採最有利標，須依第52、56條辦理評選，並應先報上級機關核准；若屬公告金額以上專業／技術／資訊／社福／文創服務，原則不訂底價之最有利標。",
+      "gold_answer": "依政府採購法，依第52條、第56條，勞務查核金額1,000萬、巨額2,000萬，故1,200萬屬達查核金額、未達巨額之勞務。若採最有利標，須依第52、56條辦理評選，並應先報上級機關核准；若屬公告金額以上專業／技術／資訊／社福／文創服務，原則不訂底價之最有利標。",
       "expected_sources": [
         "pcc-procurement-amount-thresholds",
         "government-procurement-act"
@@ -972,7 +992,9 @@
       "must_include": [
         "查核金額",
         "最有利標",
-        "核准"
+        "核准",
+        "第52條",
+        "第56條"
       ]
     },
     {
@@ -980,7 +1002,7 @@
       "category": "跨條文／跨文件題",
       "difficulty": "Hard",
       "question": "請說明公開招標「三家以上合格廠商」的法源，以及其是否適用第22條第1項第9款限制性招標。",
-      "gold_answer": "母法第48條規定三家以上合格廠商投標應開標決標；施行細則第55條明示該「三家」係指公開招標。故第22條第1項第9款公開評選限制性招標不適用該三家限制。",
+      "gold_answer": "依政府採購法，母法第48條規定三家以上合格廠商投標應開標決標；施行細則第55條明示該「三家」係指公開招標。故第22條第1項第9款公開評選限制性招標不適用該三家限制。",
       "expected_sources": [
         "government-procurement-act",
         "gpa-enforcement-rules"
@@ -1006,7 +1028,7 @@
       "category": "跨條文／跨文件題",
       "difficulty": "Hard",
       "question": "未達公告金額監辦與公告金額以上會同監辦，法源與門檻有何不同？",
-      "gold_answer": "公告金額以上依採購法第13條由主（會）計及有關單位會同監辦。未達公告金額則依第13條第2項授權，中央適用《中央機關未達公告金額採購監辦辦法》，以是否逾公告金額十分之一區分應通知／得不通知派員監辦。兩者不可混用。",
+      "gold_answer": "依政府採購法，依第2條、第5條，公告金額以上依採購法第13條由主（會）計及有關單位會同監辦。未達公告金額則依第13條第2項授權，中央適用《中央機關未達公告金額採購監辦辦法》，以是否逾公告金額十分之一區分應通知／得不通知派員監辦。兩者不可混用。",
       "expected_sources": [
         "government-procurement-act",
         "below-threshold-supervision-rules"
@@ -1023,7 +1045,9 @@
       "must_include": [
         "第13條",
         "十分之一",
-        "會同監辦"
+        "會同監辦",
+        "第2條",
+        "第5條"
       ]
     },
     {
@@ -1031,7 +1055,7 @@
       "category": "跨條文／跨文件題",
       "difficulty": "Medium",
       "question": "決標原則寫在哪一條？最有利標評選程序又在哪一條？兩者如何銜接？",
-      "gold_answer": "決標原則在第52條（四原則擇一載明）；採第52條第1項第3款最有利標時，評選程序依第56條辦理（綜合評選、協商、核准等）。",
+      "gold_answer": "依政府採購法，決標原則在第52條（四原則擇一載明）；採第52條第1項第3款最有利標時，評選程序依第56條辦理（綜合評選、協商、核准等）。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -1054,7 +1078,7 @@
       "category": "跨條文／跨文件題",
       "difficulty": "Hard",
       "question": "如何判斷一筆「資訊服務」採購的金額級距，並說明可能的招標／決標路徑？",
-      "gold_answer": "先依第7條認定資訊服務為勞務，再對照工程會勞務門檻（公告150萬、查核1,000萬、巨額2,000萬）定級距。若達公告金額，原則公開招標（第19條），亦可能符合第22條第1項第9款公開評選限制性招標；決標則依第52條第2項以不訂底價最有利標為原則。",
+      "gold_answer": "依政府採購法，先依第7條認定資訊服務為勞務，再對照工程會勞務門檻（公告150萬、查核1,000萬、巨額2,000萬）定級距。若達公告金額，原則公開招標（第19條），亦可能符合第22條第1項第9款公開評選限制性招標；決標則依第52條第2項以不訂底價最有利標為原則。",
       "expected_sources": [
         "government-procurement-act",
         "pcc-procurement-amount-thresholds"
@@ -1103,7 +1127,7 @@
       "category": "錯誤前提題",
       "difficulty": "Medium",
       "question": "100萬元以上的採購應依最低標原則辦理。",
-      "gold_answer": "不正確。第52條是四原則擇一並載明於招標文件，並非逾100萬或達公告金額一律最低標。亦可能採最有利標或複數決標；公告金額以上特定服務並以不訂底價最有利標為原則。現行公告金額為150萬，100萬亦非第52條所定決標門檻。",
+      "gold_answer": "依政府採購法，不正確。第52條是四原則擇一並載明於招標文件，並非逾100萬或達公告金額一律最低標。亦可能採最有利標或複數決標；公告金額以上特定服務並以不訂底價最有利標為原則。現行公告金額為150萬，100萬亦非第52條所定決標門檻。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -1126,7 +1150,7 @@
       "category": "錯誤前提題",
       "difficulty": "Medium",
       "question": "公開招標和限制性招標第一次開標都一定要三家合格廠商才可以開標。",
-      "gold_answer": "不正確。第48條三家以上規定，依施行細則第55條係針對公開招標。限制性招標（例如第22條第1項第9款公開評選）第一次開標不適用該三家限制。",
+      "gold_answer": "依政府採購法，不正確。第48條三家以上規定，依施行細則第55條係針對公開招標。限制性招標（例如第22條第1項第9款公開評選）第一次開標不適用該三家限制。",
       "expected_sources": [
         "government-procurement-act",
         "gpa-enforcement-rules"
@@ -1150,7 +1174,7 @@
       "category": "錯誤前提題",
       "difficulty": "Easy",
       "question": "公告金額以上採購一律必須公開招標，沒有例外。",
-      "gold_answer": "不正確。第19條雖以公開招標為原則，但符合第20條得採選擇性招標，符合第22條得採限制性招標。",
+      "gold_answer": "依政府採購法，不正確。第19條雖以公開招標為原則，但符合第20條得採選擇性招標，符合第22條得採限制性招標。",
       "expected_sources": [
         "government-procurement-act"
       ],
@@ -1205,651 +1229,3239 @@
       "id": "G051",
       "category": "法條直接查詢",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "政府採購法之主管機關為何？本法適用於哪些機關？",
+      "gold_answer": "依政府採購法第1條、第2條及相關規定，本法以促進採購效率與公平為目的；所稱機關指政府機關、公立學校、公營事業。主管機關為行政院公共工程委員會（工程會）。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第1條",
+        "第2條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "基本適用範圍",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "主管機關",
+        "公共工程委員會",
+        "機關"
+      ]
     },
     {
       "id": "G052",
       "category": "法條直接查詢",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "廠商對招標、審標、決標之異議與申訴時限大致如何規定？",
+      "gold_answer": "依政府採購法第75條、第76條，廠商認為招標、審標、決標違反法令或招標文件致損害其權利義務，得於規定期間內以書面向招標機關提出異議；不服異議處理結果或機關逾期不為處理者，得向採購申訴審議委員會提出申訴。具體日數須依條文及招標文件計算。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第75條",
+        "第76條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "救濟程序入口",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "異議",
+        "申訴",
+        "第75條"
+      ]
     },
     {
       "id": "G053",
       "category": "法條直接查詢",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "投標廠商應繳納之押標金、保證金，法源在哪？可否免收？",
+      "gold_answer": "依政府採購法第30條，機關辦理招標，應於招標文件中規定投標廠商須繳納押標金及保證金。有同條第1項各款情形者，得免收押標金、保證金。細節另依工程會押標金保證金暨其他擔保作業辦法。",
+      "expected_sources": [
+        "government-procurement-act",
+        "bid-bond-guarantee-operations-rules"
+      ],
+      "expected_articles": [
+        "第30條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "押標金／保證金",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "押標金",
+        "保證金",
+        "第30條"
+      ]
     },
     {
       "id": "G054",
       "category": "法條直接查詢",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "採購法第50條「不予開標或不予決標」與第48條「流標」有何不同？",
+      "gold_answer": "依政府採購法，第48條規範開標時合格廠商家數不足等「流標／不予開標」情事及再招標；第50條則列舉投標文件不符、虛偽、圍標等情形，機關於開標前發現應不予開標、於開標後發現應不決標予該廠商。兩者事由與時點不同。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第48條",
+        "第50條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "流標 vs 不予開標／決標",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第48條",
+        "第50條"
+      ]
     },
     {
       "id": "G055",
       "category": "法條直接查詢",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "共同投標是否允許？法源為何？",
+      "gold_answer": "依政府採購法第25條，機關得於招標文件中規定允許一定家數內之廠商共同投標。共同投標廠商應負連帶責任。細節依共同投標辦法。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第25條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "共同投標",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "共同投標",
+        "第25條"
+      ]
     },
     {
       "id": "G056",
       "category": "法條直接查詢",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "採購法第34條對招標文件之保密與公告有何要求？",
+      "gold_answer": "依政府採購法，依第34條，機關辦理採購，其招標文件於公告前應予保密；但可公開之招標資料，不在此限。開標後，除有特殊情形外，應將開標結果通知投標廠商。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第34條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "招標保密",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第34條",
+        "保密"
+      ]
     },
     {
       "id": "G057",
       "category": "法條直接查詢",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Easy",
+      "question": "採購契約應以書面為之嗎？法源？",
+      "gold_answer": "依政府採購法第63條，各類採購契約之要項，由主管機關參考國際及國內慣例定之。實務上採購契約原則應作成書面；細節並應注意契約要項規定。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-contract-essentials"
+      ],
+      "expected_articles": [
+        "第63條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "契約要項",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "契約",
+        "第63條"
+      ]
     },
     {
       "id": "G058",
       "category": "採購金額／門檻判斷",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "勞務採購之公告金額與查核金額各是多少？",
+      "gold_answer": "依工程會採購金額門檻公告，勞務之公告金額為新臺幣100萬元；查核金額為新臺幣1,000萬元。實際適用應以最新工程會公告為準。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "勞務門檻",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "勞務",
+        "公告金額",
+        "查核金額",
+        "100萬",
+        "1,000萬"
+      ]
     },
     {
       "id": "G059",
       "category": "採購金額／門檻判斷",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "工程採購之公告金額與查核金額各是多少？",
+      "gold_answer": "依工程會採購金額門檻公告，工程之公告金額為新臺幣100萬元；查核金額為新臺幣5,000萬元。實際適用應以最新工程會公告為準。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "工程門檻",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "工程",
+        "公告金額",
+        "查核金額"
+      ]
     },
     {
       "id": "G060",
       "category": "採購金額／門檻判斷",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "財物採購之公告金額與查核金額各是多少？",
+      "gold_answer": "依工程會採購金額門檻公告，財物之公告金額為新臺幣100萬元；查核金額為新臺幣5,000萬元。實際適用應以最新工程會公告為準。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "財物門檻",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "財物",
+        "公告金額",
+        "查核金額"
+      ]
     },
     {
       "id": "G061",
       "category": "採購金額／門檻判斷",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "採購金額未達公告金額時，是否完全不受政府採購法拘束？",
+      "gold_answer": "依第23條，否。未達公告金額之採購仍適用政府採購法；僅招標方式等得依「中央機關未達公告金額採購招標辦法」等特別規範辦理，並非排除整部採購法。",
+      "expected_sources": [
+        "government-procurement-act",
+        "below-threshold-bidding-rules"
+      ],
+      "expected_articles": [
+        "第23條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "未達公告仍適用本法",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "未達公告金額",
+        "招標辦法",
+        "政府採購法",
+        "第23條"
+      ]
     },
     {
       "id": "G062",
       "category": "採購金額／門檻判斷",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "巨額採購除金額門檻外，還有哪些特別程序要注意？",
+      "gold_answer": "巨額採購除適用較高金額門檻外，常涉及上級機關監辦、巨額採購通報等特別規定（如巨額採購通報及公告辦法）。辦理前應確認工程、財物、勞務各自巨額門檻與通報義務。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "mega-procurement-reporting-rules"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "巨額＋通報",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "巨額",
+        "通報"
+      ]
     },
     {
       "id": "G063",
       "category": "招標方式",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "選擇性招標與公開招標在廠商參與上有何不同？",
+      "gold_answer": "依政府採購法，公開招標以不特定廠商為對象；選擇性招標則就符合資格之廠商加以邀請。依採購法第18條、第20條、第21條，選擇性招標適用於經常性採購、複雜特殊案件或研究發展等情形。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第18條",
+        "第20條",
+        "第21條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "選擇性招標",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "選擇性招標",
+        "公開招標"
+      ]
     },
     {
       "id": "G064",
       "category": "招標方式",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "未達公告金額得採公開取得報價單或企劃書時，適用條件為何？",
+      "gold_answer": "依中央機關未達公告金額採購招標辦法，機關於一定金額以上未達公告金額之採購，得公開取得報價單或企劃書，並以符合需要者議價或比價。具體門檻與程序以該辦法為準。",
+      "expected_sources": [
+        "below-threshold-bidding-rules"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "公開取得報價單",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "未達公告金額",
+        "報價單"
+      ]
     },
     {
       "id": "G065",
       "category": "招標方式",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "difficulty": "Hard",
+      "question": "等標期不足時，開標效力如何？法源？",
+      "gold_answer": "依政府採購法，等標期應依「招標期限標準」及採購法相關規定辦理。等標期不足原則上屬招標程序瑕疵，可能構成異議／申訴事由，嚴重時影響決標效力；機關應於招標前正確計算等標期。",
+      "expected_sources": [
+        "government-procurement-act",
+        "bidding-deadline-standards"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "等標期瑕疵",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "等標期",
+        "招標期限"
+      ]
     },
     {
       "id": "G066",
       "category": "招標方式",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "第二次招標之等標期可否縮短？",
+      "gold_answer": "依招標期限標準，第一次招標因投標廠商家數不足流標而辦理第二次招標者，等標期得予縮短，但仍不得短於該標準所定下限。實際日數依金額級距與招標方式而定。",
+      "expected_sources": [
+        "bidding-deadline-standards"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "第二次招標等標期",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第二次招標",
+        "等標期"
+      ]
     },
     {
       "id": "G067",
       "category": "招標方式",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Easy",
+      "question": "限制性招標的定義是什麼？",
+      "gold_answer": "依政府採購法第18條，限制性招標指不經公告程序，邀請二家以上廠商比價或僅邀請一家廠商議價。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第18條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "限制性招標定義",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "限制性招標",
+        "第18條",
+        "議價"
+      ]
     },
     {
       "id": "G068",
       "category": "決標方式",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "最低標決標時，底價與決標有何關係？",
+      "gold_answer": "依政府採購法第46條、第52條，機關辦理採購除有特殊情形外應訂定底價；採最低標決標時，應以合於招標文件規定且在底價以內之最低標為得標廠商。未訂底價之情形另有規定。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第46條",
+        "第52條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "最低標與底價",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "最低標",
+        "底價",
+        "第52條"
+      ]
     },
     {
       "id": "G069",
       "category": "決標方式",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "最有利標評選委員會如何組成？",
+      "gold_answer": "依政府採購法，依採購法第94條及採購評選委員會組織準則，機關辦理評選，應成立評選委員會。委員人數、外聘比例與迴避等應依準則辦理，不得由採購單位逕自評定取代評選程序。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-evaluation-committee-organization-rules"
+      ],
+      "expected_articles": [
+        "第94條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "評選委員會",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "評選委員會",
+        "第94條"
+      ]
     },
     {
       "id": "G070",
       "category": "決標方式",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "決標結果是否應公告？",
+      "gold_answer": "依政府採購法第61條，機關辦理公告金額以上採購之決標，應於決標後一定期間內將決標結果之公告刊登於政府採購公報，並以書面通知各投標廠商。未達公告金額者依相關辦法辦理。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第61條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "決標公告",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "決標",
+        "公告",
+        "第61條"
+      ]
     },
     {
       "id": "G071",
       "category": "決標方式",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "採最有利標時，價格是否完全不評？",
+      "gold_answer": "依政府採購法，依第56條，不一定。最有利標得就技術、品質、功能、商業條款或價格等項目，依招標文件所定評審項目、配分或權重綜合評選。價格可為評選項目之一，亦可採固定價格或價格納入評比，端視招標文件。",
+      "expected_sources": [
+        "government-procurement-act",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "expected_articles": [
+        "第56條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "最有利標與價格",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "最有利標",
+        "評選",
+        "價格",
+        "第56條"
+      ]
     },
     {
       "id": "G072",
       "category": "決標方式",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "異質採購與最有利標有何關聯？",
+      "gold_answer": "依政府採購法，當採購標的具異質性（品質、功能、技術等難以用統一規格完全描述或服務品質差異大）時，實務上較常考量最有利標，以便就非價格因素綜合評選。是否「必須」採最有利標仍應回歸採購法第52條、第56條及招標文件，而非僅以異質性口號取代法條。",
+      "expected_sources": [
+        "government-procurement-act",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "expected_articles": [
+        "第52條",
+        "第56條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "異質性與決標",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "異質",
+        "最有利標"
+      ]
     },
     {
       "id": "G073",
       "category": "限制性招標／第22條",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "第22條第1項有幾款情形得採限制性招標？請舉例兩款。",
+      "gold_answer": "政府採購法第22條第1項列舉多款得不經公開招標或選擇性招標程序、改採限制性招標之情形，例如：屬專屬權利、獨家製造或供應（相關款次）、原有採購之後續維修擴充且無其他合適替代標的、依法律或條約應採限制性招標、公開招標或選擇性招標二次流標等。適用時必須嚴格對應款次要件。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "第22條款次概覽",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第22條",
+        "限制性招標"
+      ]
     },
     {
       "id": "G074",
       "category": "限制性招標／第22條",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "公開招標或選擇性招標辦理結果，無廠商投標或無合格標，得否改限制性招標？",
+      "gold_answer": "依政府採購法第22條第1項相關款次，公開招標或選擇性招標辦理結果，有每次均無廠商投標或無合格標，且確有調整招標文件仍無廠商投標或無合格標之情形者，得採限制性招標。機關不得僅因一次流標即任意改採限制性招標，仍須符合法定要件。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "流標後改限制性",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第22條",
+        "流標",
+        "限制性招標"
+      ]
     },
     {
       "id": "G075",
       "category": "限制性招標／第22條",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "緊急情況得採限制性招標的要件是什麼？",
+      "gold_answer": "依政府採購法第22條第1項相關緊急採購款次，須屬遇緊急性事故或天然災害等，亟需取得標的，且確有不及依公開招標或選擇性招標辦理之情形。不得以「趕工」「行政方便」空泛主張緊急。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "緊急限制性招標",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "緊急",
+        "第22條"
+      ]
     },
     {
       "id": "G076",
       "category": "限制性招標／第22條",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "第22條第1項第9款「公開評選」與一般最有利標公開招標差在哪？",
+      "gold_answer": "依政府採購法，依第56條，第22條第1項第9款係就專業服務、技術服務、資訊服務、社會福利服務或文化創意服務等，以公開客觀評選方式擇定廠商後，再依限制性招標程序議價；屬限制性招標路徑。一般最有利標多配合公開招標或選擇性招標，評選後決標，法源與程序階段不同。",
+      "expected_sources": [
+        "government-procurement-act",
+        "professional-service-selection-billing-rules",
+        "technical-service-selection-billing-rules",
+        "it-service-selection-billing-rules"
+      ],
+      "expected_articles": [
+        "第22條",
+        "第56條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "第9款 vs 最有利標",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第22條",
+        "第9款",
+        "公開評選",
+        "第56條"
+      ]
     },
     {
       "id": "G077",
       "category": "限制性招標／第22條",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "僅邀請一家議價的限制性招標，是否仍要製作招標文件？",
+      "gold_answer": "依政府採購法，依第18條、第22條，是。限制性招標仍應依採購法及相關規定製作招標文件、辦理議價或比價，並保存紀錄。僅邀請一家並不免除程序義務與書面資料。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第18條",
+        "第22條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "一家議價仍要文件",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "限制性招標",
+        "議價",
+        "招標文件",
+        "第18條",
+        "第22條"
+      ]
     },
     {
       "id": "G078",
       "category": "履約／驗收",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "驗收時發現廠商履約與契約不符，減價收受的條件？",
+      "gold_answer": "依政府採購法第72條，驗收結果與契約、圖說、貨樣不符者，應通知廠商限期改善、拆除、重作、退貨或換貨。其不符非屬重要，而其他部分能先行使用，並經機關檢討認為確有減價收受之必要者，得減價收受。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第72條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "減價收受",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第72條",
+        "減價收受",
+        "驗收"
+      ]
     },
     {
       "id": "G079",
       "category": "履約／驗收",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Easy",
+      "question": "採購法第71條對驗收人員有何基本要求？",
+      "gold_answer": "依政府採購法，依第71條，機關辦理工程、財物採購之驗收，應由機關首長或其授權人員指派適當人員主驗，通知接管單位或使用單位會驗。承辦採購單位之人員不得為主驗人。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第71條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "主驗人",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第71條",
+        "主驗",
+        "承辦採購"
+      ]
     },
     {
       "id": "G080",
       "category": "履約／驗收",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "部分驗收或分段查驗的法源？",
+      "gold_answer": "依政府採購法，依第71條、第72條，機關得視需要辦理分段查驗，分段查驗結果並得供驗收之用（採購法相關條文及契約約定）。部分驗收於契約有約定或法規允許且標的可分時，得就已完成且可使用部分辦理。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-contract-essentials"
+      ],
+      "expected_articles": [
+        "第71條",
+        "第72條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "分段查驗",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "分段查驗",
+        "驗收",
+        "第71條",
+        "第72條"
+      ]
     },
     {
       "id": "G081",
       "category": "履約／驗收",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "廠商逾期履約，違約金與契約終止如何處理？",
+      "gold_answer": "依政府採購法，廠商未依契約規定期限履約者，機關得依契約請求違約金或終止／解除契約。具體計算方式、上限與是否併罰應依招標文件及契約；涉及重大違約時並可能依採購法第101條辦理停權相關程序。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-contract-essentials"
+      ],
+      "expected_articles": [
+        "第101條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "逾期與違約",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "逾期",
+        "違約金",
+        "契約"
+      ]
     },
     {
       "id": "G082",
       "category": "履約／驗收",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "會同監辦與內部監辦在未達公告金額時如何適用？",
+      "gold_answer": "依政府採購法，公告金額以上之開標、決標、驗收，應依採購法第13條通知機關主會計及有關單位會同監辦。未達公告金額則依「機關主會計單位會同監辦採購辦法」等，於一定情形通知監辦或得免監辦。二者門檻與密度不同。",
+      "expected_sources": [
+        "government-procurement-act",
+        "below-threshold-supervision-rules"
+      ],
+      "expected_articles": [
+        "第13條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "監辦門檻差",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "監辦",
+        "第13條",
+        "未達公告金額"
+      ]
     },
     {
       "id": "G083",
       "category": "情境案例題",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
-      "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "difficulty": "Hard",
+      "question": "某機關辦理預算90萬元勞務採購，承辦人主張「未達公告金額故完全不適用採購法」。此主張是否正確？",
+      "gold_answer": "依第23條，不正確。未達公告金額仍適用政府採購法；僅招標方式等得依未達公告金額招標辦法等特別規定。不得主張整部採購法不適用。",
+      "expected_sources": [
+        "government-procurement-act",
+        "below-threshold-bidding-rules"
+      ],
+      "expected_articles": [
+        "第23條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "糾正未達公告排除說",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "不正確",
+        "未達公告金額",
+        "政府採購法",
+        "第23條"
+      ]
     },
     {
       "id": "G084",
       "category": "情境案例題",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "中央機關辦理150萬元財物公開招標，等標期應至少幾日（公告金額以上未達查核）？",
+      "gold_answer": "依招標期限標準，公告金額以上未達查核金額之公開招標，等標期至少為14日（實際以最新標準及是否電子領標等情形為準）。150萬元財物屬公告金額以上未達查核金額級距。",
+      "expected_sources": [
+        "bidding-deadline-standards",
+        "pcc-procurement-amount-thresholds"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "等標期案例",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "等標期",
+        "14",
+        "公告金額"
+      ]
     },
     {
       "id": "G085",
       "category": "情境案例題",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "機關以「規格已寫得很細」為由，對具高度專業服務性質之勞務一律採最低標。可能有何風險？",
+      "gold_answer": "依政府採購法，若標的實際上具異質性或屬專業／技術／資訊服務，僅因規格文字繁瑣即排除最有利標或公開評選路徑，可能無法適正評選品質與經驗，甚至衍生圖利最低價劣質廠商爭議。應依採購法第52條、第56條及第22條第1項第9款等評估適正決標／招標方式。",
+      "expected_sources": [
+        "government-procurement-act",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "expected_articles": [
+        "第52條",
+        "第56條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "異質服務最低標風險",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "最有利標",
+        "異質",
+        "專業"
+      ]
     },
     {
       "id": "G086",
       "category": "情境案例題",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "公開招標開標時發現某廠商資格文件缺漏，機關應如何處理？",
+      "gold_answer": "依政府採購法，依招標文件及採購法第50條等，投標文件內容不符合招標文件規定者，機關於開標後發現，應不決標予該廠商；屬重大瑕疵者亦不應以補正取代資格審查結論。細節依招標文件「不足件處理」條款。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第50條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "資格缺漏",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第50條",
+        "不決標"
+      ]
     },
     {
       "id": "G087",
       "category": "情境案例題",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "某工程查核金額以上採購，開標時機關主會計未到場監辦即逕行開標，效力上有何問題？",
+      "gold_answer": "依政府採購法，依採購法第13條，查核金額以上之開標、決標及驗收，除有特殊情形外，應由其上級機關派員監辦。未依法監辦屬程序重大瑕疵，可能影響開標／決標效力並構成監督與救濟爭議。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第13條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "上級監辦缺失",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第13條",
+        "監辦",
+        "查核金額"
+      ]
     },
     {
       "id": "G088",
       "category": "情境案例題",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "機關辦理統包工程，招標文件應特別注意什麼？",
+      "gold_answer": "依政府採購法，依採購法及統包實施辦法，統包指將工程或財物採購中之設計與施工、供應、安裝等併於同一採購契約辦理。招標文件應明確界定工作範圍、介面、驗收基準與廠商資格，避免範圍不清導致履約爭議。",
+      "expected_sources": [
+        "government-procurement-act",
+        "turnkey-procurement-notice"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "統包注意",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "統包",
+        "設計",
+        "施工"
+      ]
     },
     {
       "id": "G089",
       "category": "情境案例題",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "廠商於決標後、簽約前要求大幅修改招標文件已定之契約條款，機關可否同意？",
+      "gold_answer": "依政府採購法，決標後原則應依招標文件與決標條件訂約。若允許得標廠商任意變更實質條件，可能違反公平競標及採購法第6條公正原則，亦可能構成圖利或不正利益。僅於法規允許之契約變更／補充情形且不影響原決標公平性時始得審慎辦理。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-contract-essentials"
+      ],
+      "expected_articles": [
+        "第6條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "決標後改約",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "決標",
+        "契約",
+        "公平"
+      ]
     },
     {
       "id": "G090",
       "category": "情境案例題",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
+      "question": "未達公告金額採購採限制性招標邀請二家比價，僅一家到場，可否改議價？",
+      "gold_answer": "依未達公告金額採購招標辦法，比價以二家以上廠商為之；僅一家廠商投標或到場時，得改以議價方式辦理（須符合該辦法規定）。機關仍應作成紀錄並符合授權程序。",
+      "expected_sources": [
+        "below-threshold-bidding-rules"
+      ],
       "expected_articles": [],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "比價變議價",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "比價",
+        "議價",
+        "未達公告金額"
+      ]
     },
     {
       "id": "G091",
       "category": "跨條文／跨文件題",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "請串連說明：金額門檻公告、未達公告招標辦法、採購法第23條之間的關係。",
+      "gold_answer": "依政府採購法，工程會「採購金額門檻」公告決定公告／查核／巨額等金額；採購法第23條授權對未達公告金額採購訂定招標辦法；「中央機關未達公告金額採購招標辦法」即依此就招標方式為特別規定。門檻定級距，第23條給授權，招標辦法定程序。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "below-threshold-bidding-rules",
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第23條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "門檻－授權－辦法",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "公告金額",
+        "第23條",
+        "招標辦法"
+      ]
     },
     {
       "id": "G092",
       "category": "跨條文／跨文件題",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "第48條三家規定與第50條不予決標，在開標現場如何分工適用？",
+      "gold_answer": "依政府採購法，先確認合格廠商家數是否達第48條開標門檻；達門檻而開標後，再就個別廠商投標文件依第50條等審查，不符者不予決標予該廠商。家數門檻與個別廠商資格／文件審查是不同層次。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第48條",
+        "第50條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "家數 vs 個別審查",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第48條",
+        "第50條",
+        "合格廠商"
+      ]
     },
     {
       "id": "G093",
       "category": "跨條文／跨文件題",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "最有利標（第56條）與評選委員會（第94條）如何銜接？",
+      "gold_answer": "依政府採購法，機關決定採最有利標後，應依第56條辦理評選，並依第94條及評選委員會組織準則組成評選委員會，按招標文件之評審項目綜合評選。缺委員會或程序不符，評選結果效力存有重大風險。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-evaluation-committee-organization-rules",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "expected_articles": [
+        "第56條",
+        "第94條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "評選程序銜接",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "第56條",
+        "第94條",
+        "評選委員會"
+      ]
     },
     {
       "id": "G094",
       "category": "跨條文／跨文件題",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "question": "異議（第75條）與申訴（第76條）的先後關係？",
+      "gold_answer": "依政府採購法，廠商應先向招標機關提異議（第75條）；不服異議處理結果或機關逾期不處理，始得向採購申訴審議委員會申訴（第76條）。原則上異議是申訴的前置程序。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第75條",
+        "第76條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "異議前置",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "異議",
+        "申訴",
+        "第75條",
+        "第76條"
+      ]
     },
     {
       "id": "G095",
       "category": "跨條文／跨文件題",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
+      "difficulty": "Hard",
+      "question": "資訊服務採購：如何同時用金額門檻、第22條第9款與最有利標評估路徑？",
+      "gold_answer": "依政府採購法，依第52條、第56條，先依門檻公告判定金額級距；若屬資訊服務且符合第22條第1項第9款，得公開評選後限制性招標議價；亦可評估公開招標／選擇性招標搭配最有利標（第52、56條）。路徑選擇須符合服務性質、金額與競爭需求，並在招標文件載明。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "it-service-selection-billing-rules",
+        "government-procurement-act",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "expected_articles": [
+        "第22條",
+        "第52條",
+        "第56條"
+      ],
       "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "資訊服務多路徑",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "資訊服務",
+        "第22條",
+        "最有利標",
+        "第52條",
+        "第56條"
+      ]
     },
     {
       "id": "G096",
       "category": "錯誤前提題",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
-      "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "question": "未達公告金額的採購不用簽契約，口頭約定即可。",
+      "gold_answer": "依政府採購法，依第63條，此說法不正確。未達公告金額仍建議／原則作成書面契約或書面合意，並依採購法及會計程序留存；口頭約定難以舉證且不利爭議處理與審計。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-contract-essentials"
+      ],
+      "expected_articles": [
+        "第63條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "糾正口頭契約說",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "不正確",
+        "書面",
+        "契約",
+        "第63條"
+      ]
     },
     {
       "id": "G097",
       "category": "錯誤前提題",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
-      "expected_sources": [],
-      "expected_articles": [],
-      "expected_behavior": "answer",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "question": "只要採限制性招標，就一定可以只找熟悉的一家廠商、不必寫理由。",
+      "gold_answer": "依政府採購法，錯誤。限制性招標必須符合採購法第22條等法定款次要件，並應於簽辦／文件載明適用理由與法規依據；不得以「限制性」為名任意指定廠商。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "糾正隨意一家",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "錯誤",
+        "第22條",
+        "理由"
+      ]
     },
     {
       "id": "G098",
       "category": "Out-of-domain",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
+      "difficulty": "Easy",
+      "question": "請推薦一家台北的火鍋店。",
+      "gold_answer": "非本主題的範圍。本站僅就政府採購法規／函釋資料庫檢索作答。",
       "expected_sources": [],
       "expected_articles": [],
       "expected_behavior": "refuse",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "離題－生活",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "非本主題的範圍"
+      ]
     },
     {
       "id": "G099",
       "category": "Out-of-domain",
-      "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
+      "difficulty": "Easy",
+      "question": "比特幣今天漲了嗎？",
+      "gold_answer": "非本主題的範圍。本站僅就政府採購法規／函釋資料庫檢索作答。",
       "expected_sources": [],
       "expected_articles": [],
       "expected_behavior": "refuse",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "離題－金融",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "非本主題的範圍"
+      ]
     },
     {
       "id": "G100",
       "category": "Out-of-domain",
       "difficulty": "Medium",
-      "question": "",
-      "gold_answer": "",
+      "question": "請用英文翻譯整部政府採購法全文給我當作業。",
+      "gold_answer": "非本主題的範圍。本站提供採購法規檢索與分析作答，不提供全文翻譯代寫作業服務；如需特定條文釋義請提出具體採購法問題。",
       "expected_sources": [],
       "expected_articles": [],
       "expected_behavior": "refuse",
-      "notes": "phase2 預留槽位：待人工補題與法條確認後將 status 改為 ready。",
+      "notes": "離題－代寫翻譯",
       "phase": 2,
-      "status": "planned"
+      "status": "ready",
+      "must_include": [
+        "非本主題的範圍"
+      ]
+    },
+    {
+      "id": "G101",
+      "category": "法條直接查詢",
+      "difficulty": "Easy",
+      "question": "採購人員應遵守的公正原則規定在哪一條？",
+      "gold_answer": "政府採購法第6條規定，機關辦理採購，應以維護公共利益及公平合理為原則，對廠商不得為無正當理由之差別待遇。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第6條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第6條",
+        "公平",
+        "差別待遇"
+      ]
+    },
+    {
+      "id": "G102",
+      "category": "法條直接查詢",
+      "difficulty": "Medium",
+      "question": "得標廠商應自辦或得否轉包？法源？",
+      "gold_answer": "依政府採購法第65條，得標廠商應自行履行契約，不得轉包。所謂轉包指將契約之全部或主要部分轉由他人履行。分包另有第67條等規範。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第65條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第65條",
+        "轉包"
+      ]
+    },
+    {
+      "id": "G103",
+      "category": "法條直接查詢",
+      "difficulty": "Medium",
+      "question": "採購法第101條停權（拒絕往來）的效果是什麼？",
+      "gold_answer": "依政府採購法，機關發現廠商有第101條各款情形者，應通知廠商並經異議申訴程序後，將其名稱及相關情形刊登政府採購公報；自刊登之次日起一定期間內，各機關不得與其訂約或作為分包廠商等（依條文期間）。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第101條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第101條",
+        "刊登",
+        "採購公報"
+      ]
+    },
+    {
+      "id": "G104",
+      "category": "法條直接查詢",
+      "difficulty": "Medium",
+      "question": "外國廠商參與採購是否一律禁止？",
+      "gold_answer": "依第17條，否。政府採購法對外國廠商參與有原則與例外；涉及我國締結之條約協定採購，應依相關規定開放。非條約協定採購則依「非條約協定國家廠商參與採購辦法」等辦理。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第17條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "外國廠商",
+        "條約",
+        "第17條"
+      ]
+    },
+    {
+      "id": "G105",
+      "category": "法條直接查詢",
+      "difficulty": "Easy",
+      "question": "採購法第9條對上級機關之定義為何？",
+      "gold_answer": "依政府採購法，依第9條，上級機關指辦理採購機關之上級機關；其層級於採購法及相關規定有定義，涉及監辦、核准等權責劃分。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第9條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "上級機關",
+        "第9條"
+      ]
+    },
+    {
+      "id": "G106",
+      "category": "法條直接查詢",
+      "difficulty": "Hard",
+      "question": "採購法第31條對押標金發還與不發還有何規定？",
+      "gold_answer": "依政府採購法，依第31條，機關對於廠商所繳納之押標金，應於決標後無息發還未得標廠商；得標廠商之押標金得轉為履約保證金或發還。有撤銷投標、得標後拒不簽約等情形者，押標金不予發還。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第31條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "押標金",
+        "發還",
+        "第31條"
+      ]
+    },
+    {
+      "id": "G107",
+      "category": "法條直接查詢",
+      "difficulty": "Medium",
+      "question": "招標文件是否允許廠商請求釋疑？",
+      "gold_answer": "依政府採購法，依第41條，是。廠商得依招標文件規定期限請求釋疑；機關應答復並視需要修正招標文件、延長等標期。法源含採購法及招標文件規定。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第41條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "釋疑",
+        "招標文件",
+        "第41條"
+      ]
+    },
+    {
+      "id": "G108",
+      "category": "法條直接查詢",
+      "difficulty": "Medium",
+      "question": "開標應公開為之嗎？有無例外？",
+      "gold_answer": "依政府採購法第45條，公開招標及選擇性招標之開標應依招標文件公告之時間及地點公開為之。有特殊情形依規定辦理。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第45條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "開標",
+        "公開",
+        "第45條"
+      ]
+    },
+    {
+      "id": "G109",
+      "category": "法條直接查詢",
+      "difficulty": "Hard",
+      "question": "採購法第73條對驗收證明有何規定？",
+      "gold_answer": "依政府採購法，依第73條，工程、財物採購經驗收完畢後，應由驗收人員於結算驗收證明書上分別簽認。勞務採購準用之。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第73條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "驗收",
+        "結算驗收證明書",
+        "第73條"
+      ]
+    },
+    {
+      "id": "G110",
+      "category": "法條直接查詢",
+      "difficulty": "Medium",
+      "question": "採購法第58條對廢標後再行招標有何關係？",
+      "gold_answer": "依政府採購法，依第58條，決標依規定必須廢標者，得另行招標。廢標事由與再招標程序應符合採購法及招標文件。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第58條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "廢標",
+        "招標",
+        "第58條"
+      ]
+    },
+    {
+      "id": "G111",
+      "category": "法條直接查詢",
+      "difficulty": "Easy",
+      "question": "何謂主管機關依採購法得訂定之標準、辦法？",
+      "gold_answer": "依政府採購法，依第4條，採購法多處授權主管機關（工程會）訂定辦法、準則、標準，例如招標期限標準、評選委員會組織準則、各類服務招標辦法等，與母法併同適用。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第4條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "主管機關",
+        "辦法",
+        "第4條"
+      ]
+    },
+    {
+      "id": "G112",
+      "category": "法條直接查詢",
+      "difficulty": "Medium",
+      "question": "採購法第26條對技術規格有何限制？",
+      "gold_answer": "依政府採購法，依第26條，招標文件所定技術規格，不得要求或提及特定之商標或商名、專利、設計或型式、特定來源地、生產者或供應者；除非無法精確描述且已註明同等品。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第26條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "技術規格",
+        "同等品",
+        "第26條"
+      ]
+    },
+    {
+      "id": "G113",
+      "category": "法條直接查詢",
+      "difficulty": "Hard",
+      "question": "採購法第70條對工程採購之品質管理有何要求？",
+      "gold_answer": "依政府採購法，依第70條，機關辦理工程採購，應明訂廠商施工管理、品質管理等責任；必要時得委託專案管理。細節依招標文件與相關要點。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第70條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "工程",
+        "品質管理",
+        "第70條"
+      ]
+    },
+    {
+      "id": "G114",
+      "category": "法條直接查詢",
+      "difficulty": "Medium",
+      "question": "合於招標文件規定之投標廠商僅一家時，公開招標可否決標？",
+      "gold_answer": "依政府採購法，依採購法第48條等，公開招標開標後合於招標文件規定之投標廠商僅一家者，得定期再行招標或採限制性招標等，原則上不得逕以一家決標（有特別規定者除外）。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第48條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "一家",
+        "第48條",
+        "再行招標"
+      ]
+    },
+    {
+      "id": "G115",
+      "category": "法條直接查詢",
+      "difficulty": "Easy",
+      "question": "採購法所稱「公告」主要刊登何處？",
+      "gold_answer": "依政府採購法，政府採購相關公告應刊登於政府採購公報，並得公開於資訊網路。法源含採購法第27條等。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第27條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "採購公報",
+        "公告",
+        "第27條"
+      ]
+    },
+    {
+      "id": "G116",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Medium",
+      "question": "地方機關小額採購門檻是否一定與中央相同？",
+      "gold_answer": "小額採購金額由工程會訂定或授權；地方機關可能依自治或授權另有規定，實務仍多參照工程會門檻公告。回答應註明以最新工程會公告及該地方規定為準。（參施行細則。）",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "小額採購",
+        "門檻"
+      ]
+    },
+    {
+      "id": "G117",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Hard",
+      "question": "採購金額估計錯誤導致應用錯誤招標方式，效力如何？",
+      "gold_answer": "若因低估金額而規避公告金額以上程序，可能違反採購法強制規定，招標／決標效力與相關人員責任均有風險。金額應依施行細則據實估計。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "採購金額",
+        "公告金額",
+        "估計"
+      ]
+    },
+    {
+      "id": "G118",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Medium",
+      "question": "一年期勞務承攬，採購金額是否以全年合計？",
+      "gold_answer": "是。採購金額之計算應依採購法施行細則，將採購項目之預算金額或預估金額據實計算；經常性／持續性服務通常以契約期間總金額認定級距。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "採購金額",
+        "勞務",
+        "施行細則"
+      ]
+    },
+    {
+      "id": "G119",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Medium",
+      "question": "財物採購含運費、安裝費時如何計入金額？",
+      "gold_answer": "採購金額原則包含為取得標的所支付之價金；運費、安裝若為契約價金一部分應一併計入。稅捐計算依施行細則及招標文件。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "採購金額",
+        "價金"
+      ]
+    },
+    {
+      "id": "G120",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Easy",
+      "question": "公告金額的功能是什麼？",
+      "gold_answer": "公告金額是區分是否應依採購法較完整招標程序（如原則公開招標）、決標公告、監辦密度等的重要門檻。（參施行細則。）",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "公告金額"
+      ]
+    },
+    {
+      "id": "G121",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Easy",
+      "question": "查核金額的功能是什麼？",
+      "gold_answer": "查核金額以上採購，上級機關監辦、等標期、部分程序要求較嚴，用以加強監督較大金額案件。（參施行細則。）",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "查核金額",
+        "監辦"
+      ]
+    },
+    {
+      "id": "G122",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Hard",
+      "question": "共同供應契約採購如何認定金額級購？",
+      "gold_answer": "透過共同供應契約叫用時，金額認定與程序應依共同供應契約相關要點；不以「化整為零」規避門檻。個別叫用金額仍應據實。（參施行細則。）",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "共同供應契約",
+        "金額"
+      ]
+    },
+    {
+      "id": "G123",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Medium",
+      "question": "工程採購巨額門檻與勞務巨額門檻為何不同？",
+      "gold_answer": "工程會門檻公告對工程、財物、勞務訂有不同巨額金額，反映標的特性與風險差異。適用時不得混用他類門檻。（參施行細則。）",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "巨額",
+        "工程",
+        "勞務"
+      ]
+    },
+    {
+      "id": "G124",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Medium",
+      "question": "新臺幣99萬元之勞務採購屬哪一級距？",
+      "gold_answer": "勞務公告金額為100萬元，故99萬元屬未達公告金額（可能仍高於小額門檻，須再對照小額標準）。（參施行細則。）",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "未達公告金額",
+        "勞務",
+        "99萬"
+      ]
+    },
+    {
+      "id": "G125",
+      "category": "採購金額／門檻判斷",
+      "difficulty": "Hard",
+      "question": "後續擴充選擇權未確定行使時，金額如何估？",
+      "gold_answer": "依施行細則，採購金額應計入選擇權／後續擴充之金額。即使行使與否未定，估價時仍應納入以正確判定級距。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "後續擴充",
+        "採購金額",
+        "施行細則"
+      ]
+    },
+    {
+      "id": "G126",
+      "category": "招標方式",
+      "difficulty": "Medium",
+      "question": "公開招標的定義？",
+      "gold_answer": "依政府採購法，依採購法第18條，公開招標指以公告方式邀請不特定廠商投標。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第18條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "公開招標",
+        "第18條"
+      ]
+    },
+    {
+      "id": "G127",
+      "category": "招標方式",
+      "difficulty": "Easy",
+      "question": "招標方式三種以外，還有「公開取得」嗎？",
+      "gold_answer": "公開取得報價單或企劃書主要見於未達公告金額招標辦法，屬未達公告金額之程序選項，與法第18條三種招標方式並陳於實務。",
+      "expected_sources": [
+        "below-threshold-bidding-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "公開取得",
+        "未達公告金額"
+      ]
+    },
+    {
+      "id": "G128",
+      "category": "招標方式",
+      "difficulty": "Hard",
+      "question": "選擇性招標之廠商資格審查何時辦理？",
+      "gold_answer": "依政府採購法，選擇性招標得先辦理資格審查建立合格名單，再邀請投標；或於招標文件訂明資格並邀請符合者。應依採購法第21條等辦理。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第21條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "選擇性招標",
+        "資格"
+      ]
+    },
+    {
+      "id": "G129",
+      "category": "招標方式",
+      "difficulty": "Medium",
+      "question": "電子領標是否影響等標期計算？",
+      "gold_answer": "招標期限標準對電子領標等情形訂有等標期計算方式；採電子領標時可能適用較短下限，但仍不得低於標準規定。",
+      "expected_sources": [
+        "bidding-deadline-standards"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "等標期",
+        "電子領標"
+      ]
+    },
+    {
+      "id": "G130",
+      "category": "招標方式",
+      "difficulty": "Medium",
+      "question": "招標文件訂定廠商資格不得過苛的法理？",
+      "gold_answer": "依政府採購法，資格條件應與履約能力相關，不得以不當條件限制競爭，並符合採購法第37條及廠商資格基準等規定。",
+      "expected_sources": [
+        "government-procurement-act",
+        "vendor-qualification-standards"
+      ],
+      "expected_articles": [
+        "第37條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "資格",
+        "競爭"
+      ]
+    },
+    {
+      "id": "G131",
+      "category": "招標方式",
+      "difficulty": "Hard",
+      "question": "分段開標（資格／規格／價格）是否允許？",
+      "gold_answer": "依政府採購法，機關於招標文件訂明時，得採分段開標。各段合格始進入次段；程序應於招標文件明確。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "分段開標"
+      ]
+    },
+    {
+      "id": "G132",
+      "category": "招標方式",
+      "difficulty": "Easy",
+      "question": "邀請招標是不是就是限制性招標？",
+      "gold_answer": "依政府採購法，口語「邀請」常對應限制性招標或選擇性招標之邀請符合資格廠商；法律上仍應使用法第18條用語並對應正確程序。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第18條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "限制性招標",
+        "選擇性招標"
+      ]
+    },
+    {
+      "id": "G133",
+      "category": "招標方式",
+      "difficulty": "Medium",
+      "question": "公告刊登於採購公報後，等標期起算如何算？",
+      "gold_answer": "等標期自公開標示或公告之次日起算為原則，細節依招標期限標準。",
+      "expected_sources": [
+        "bidding-deadline-standards"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "等標期",
+        "公告"
+      ]
+    },
+    {
+      "id": "G134",
+      "category": "招標方式",
+      "difficulty": "Hard",
+      "question": "機關可否於招標文件規定「決標後尚須經上級核准始生效」？",
+      "gold_answer": "依政府採購法，涉及法定應報核准事項者，應依法辦理；不得藉模糊條款規避採購法強制規定或使競標條件不明。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "核准",
+        "招標文件"
+      ]
+    },
+    {
+      "id": "G135",
+      "category": "招標方式",
+      "difficulty": "Medium",
+      "question": "流標後辦理第二次招標，招標文件可否大幅修改？",
+      "gold_answer": "依政府採購法，依第48條，第二次招標得檢討修正招標文件，但若變更致影響廠商權益重大，應注意等標期與公平；不得藉機量身訂作。",
+      "expected_sources": [
+        "government-procurement-act",
+        "bidding-deadline-standards"
+      ],
+      "expected_articles": [
+        "第48條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第二次招標",
+        "招標文件",
+        "第48條"
+      ]
+    },
+    {
+      "id": "G136",
+      "category": "決標方式",
+      "difficulty": "Easy",
+      "question": "決標原則主要規定在哪一條？",
+      "gold_answer": "政府採購法第52條。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第52條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第52條",
+        "決標原則"
+      ]
+    },
+    {
+      "id": "G137",
+      "category": "決標方式",
+      "difficulty": "Medium",
+      "question": "最低標但投標價格異常偏低時怎麼辦？",
+      "gold_answer": "依政府採購法，機關得依採購法第58條等規定，限期通知廠商提出說明；說明不足得不決標予該廠商。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第58條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "偏低",
+        "說明",
+        "第58條"
+      ]
+    },
+    {
+      "id": "G138",
+      "category": "決標方式",
+      "difficulty": "Medium",
+      "question": "最有利標是否等於評分最高即必得標？",
+      "gold_answer": "依政府採購法，依第56條，原則上依招標文件綜合評選結果擇最有利者；若文件訂有價格談判／議價程序，尚須完成該等程序。以招標文件為準。",
+      "expected_sources": [
+        "government-procurement-act",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "expected_articles": [
+        "第56條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "最有利標",
+        "評選",
+        "第56條"
+      ]
+    },
+    {
+      "id": "G139",
+      "category": "決標方式",
+      "difficulty": "Hard",
+      "question": "複數決標如何避免排擠競爭？",
+      "gold_answer": "依政府採購法，採複數決標應符合採購法第52條精神，招標文件預先載明決標項次、數量分配與決標方式，維持充分競爭，不得事后任意切割。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第52條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "複數決標",
+        "競爭"
+      ]
+    },
+    {
+      "id": "G140",
+      "category": "決標方式",
+      "difficulty": "Medium",
+      "question": "決標後發現得標廠商資格不實，如何處理？",
+      "gold_answer": "依政府採購法，依採購法第50條、第101條等，得撤銷決標、終止契約，並可能辦理停權刊登。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第50條",
+        "第101條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "撤銷決標",
+        "資格"
+      ]
+    },
+    {
+      "id": "G141",
+      "category": "決標方式",
+      "difficulty": "Easy",
+      "question": "可否同時規定最低標與最有利標兩套決標，開標後再選？",
+      "gold_answer": "依政府採購法，依第52條，不可。決標原則應事先於招標文件確定，不得於開標後任意改採對特定廠商有利之原則。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第52條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "招標文件",
+        "決標原則",
+        "第52條"
+      ]
+    },
+    {
+      "id": "G142",
+      "category": "決標方式",
+      "difficulty": "Hard",
+      "question": "固定費用（不評價格）的最有利標適用情境？",
+      "gold_answer": "依第56條，機關於招標文件規定服務費用固定或依標準計算時，得就技術與品質項目評選最有利標。常見於部分專業服務。",
+      "expected_sources": [
+        "most-advantageous-tender-operations-manual",
+        "professional-service-selection-billing-rules"
+      ],
+      "expected_articles": [
+        "第56條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "固定",
+        "最有利標",
+        "第56條"
+      ]
+    },
+    {
+      "id": "G143",
+      "category": "決標方式",
+      "difficulty": "Medium",
+      "question": "決標議價程序適用於哪些招標方式？",
+      "gold_answer": "依政府採購法，依第18條，限制性招標常以議價或比價為之；公開招標／選擇性招標於法規允許之協商、減價等情形依規定辦理，不得任意議價破壞競標。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第18條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "議價",
+        "限制性招標",
+        "第18條"
+      ]
+    },
+    {
+      "id": "G144",
+      "category": "決標方式",
+      "difficulty": "Medium",
+      "question": "得標廠商拒絕簽約，機關可如何處理？",
+      "gold_answer": "依政府採購法，依第31條，得依規定不發還押標金，並得依序以次低標或次有利標決標，或重新招標；並可能觸及第101條。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第31條",
+        "第101條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "拒絕簽約",
+        "押標金",
+        "第31條"
+      ]
+    },
+    {
+      "id": "G145",
+      "category": "決標方式",
+      "difficulty": "Hard",
+      "question": "評選委員與採購承辦利益衝突如何處理？",
+      "gold_answer": "依第94條，應依評選委員會組織準則及迴避規定辦理；有應迴避事由者不得參與評選，以確保公平。",
+      "expected_sources": [
+        "procurement-evaluation-committee-organization-rules"
+      ],
+      "expected_articles": [
+        "第94條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "迴避",
+        "評選",
+        "第94條"
+      ]
+    },
+    {
+      "id": "G146",
+      "category": "限制性招標／第22條",
+      "difficulty": "Medium",
+      "question": "第22條與第23條有何不同？",
+      "gold_answer": "依政府採購法，第22條規範公告金額以上得採限制性招標之例外；第23條規範未達公告金額之招標辦法授權。適用主體級距不同。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條",
+        "第23條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第22條",
+        "第23條"
+      ]
+    },
+    {
+      "id": "G147",
+      "category": "限制性招標／第22條",
+      "difficulty": "Hard",
+      "question": "原廠相容性限制性招標常引用哪一款？注意什麼？",
+      "gold_answer": "依政府採購法，實務常對應第22條第1項關於原供應之後續維修、相容零配件等款次。必須證明確無其他合適替代、具相容必要，並備妥理由，避免泛稱原廠。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "相容",
+        "原廠",
+        "第22條"
+      ]
+    },
+    {
+      "id": "G148",
+      "category": "限制性招標／第22條",
+      "difficulty": "Medium",
+      "question": "研究發展採購得否限制性招標？",
+      "gold_answer": "依政府採購法，採購法對研究發展等有相關例外或特別程序可能；是否逕依第22條須核對現行款次與專案性質，並遵守研發服務相關作業要點。",
+      "expected_sources": [
+        "government-procurement-act",
+        "rd-commission-operations-rules"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "研究發展"
+      ]
+    },
+    {
+      "id": "G149",
+      "category": "限制性招標／第22條",
+      "difficulty": "Easy",
+      "question": "限制性招標是否還要公告？",
+      "gold_answer": "依政府採購法，依第18條、第61條，限制性招標原則不經公開招標之公告邀請不特定廠商；但決標結果等仍可能有公告義務（如公告金額以上決標公告）。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第18條",
+        "第61條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "限制性招標",
+        "公告",
+        "第18條",
+        "第61條"
+      ]
+    },
+    {
+      "id": "G150",
+      "category": "限制性招標／第22條",
+      "difficulty": "Hard",
+      "question": "第22條第1項第6款追加契約外工程的核心限制？",
+      "gold_answer": "依政府採購法，依第22條，追加契約外之工程須因施工中無法預見之情形，且總金額有法定上限（常見為原契約金額一定比例），不得藉追加規避招標。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "追加",
+        "契約外",
+        "第22條"
+      ]
+    },
+    {
+      "id": "G151",
+      "category": "限制性招標／第22條",
+      "difficulty": "Medium",
+      "question": "文化創意服務是否可能走第22條第9款？",
+      "gold_answer": "依政府採購法，是。第22條第1項第9款明文包含文化創意服務等，得以公開評選方式辦理。",
+      "expected_sources": [
+        "government-procurement-act",
+        "cultural-arts-services-operations-rules"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "文化創意",
+        "第9款"
+      ]
+    },
+    {
+      "id": "G152",
+      "category": "限制性招標／第22條",
+      "difficulty": "Medium",
+      "question": "社會福利服務適用第9款時應注意？",
+      "gold_answer": "依政府採購法，依第22條，應依社會福利服務提供採購特約等相關規定辦理公開評選與計費，不可僅貼「社福」標籤即略過評選程序。",
+      "expected_sources": [
+        "government-procurement-act",
+        "social-welfare-service-selection-billing-rules"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "社會福利",
+        "公開評選",
+        "第22條"
+      ]
+    },
+    {
+      "id": "G153",
+      "category": "限制性招標／第22條",
+      "difficulty": "Hard",
+      "question": "二次招標流標後改限制性招標，邀請對象如何定？",
+      "gold_answer": "依政府採購法，應依第22條該款要件，得邀請前次招標曾投標或合格之廠商等，但仍須符合競爭與公平，並作成書面理由。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "流標",
+        "限制性招標"
+      ]
+    },
+    {
+      "id": "G154",
+      "category": "限制性招標／第22條",
+      "difficulty": "Medium",
+      "question": "設計競賽與第22條公開評選差異？",
+      "gold_answer": "依政府採購法，設計競賽有其作業要點／計費辦法；第22條第9款公開評選則是限制性招標前之評選程序。二者目的與合約型態可能不同。",
+      "expected_sources": [
+        "government-procurement-act",
+        "design-competition-selection-billing-rules"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "設計競賽",
+        "公開評選"
+      ]
+    },
+    {
+      "id": "G155",
+      "category": "限制性招標／第22條",
+      "difficulty": "Easy",
+      "question": "機關主張「只有一家能做」就逕行限制性招標，是否足夠？",
+      "gold_answer": "依政府採購法，不足。須符合第22條具體款次（如專屬權利、獨家供應等）並具備佐證，而非主觀認定。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "獨家",
+        "第22條",
+        "佐證"
+      ]
+    },
+    {
+      "id": "G156",
+      "category": "履約／驗收",
+      "difficulty": "Easy",
+      "question": "驗收不符時，機關第一步通常是什麼？",
+      "gold_answer": "依政府採購法，通知廠商限期改善、拆除、重作、退貨或換貨（第72條）。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第72條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第72條",
+        "改善"
+      ]
+    },
+    {
+      "id": "G157",
+      "category": "履約／驗收",
+      "difficulty": "Medium",
+      "question": "保固金與履約保證金有何不同？",
+      "gold_answer": "依政府採購法，依第30條，履約保證金擔保履約階段；保固保證金／保留款擔保保固責任。依招標文件及押標金保證金辦法辦理。",
+      "expected_sources": [
+        "government-procurement-act",
+        "bid-bond-guarantee-operations-rules"
+      ],
+      "expected_articles": [
+        "第30條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "保固",
+        "履約保證金",
+        "第30條"
+      ]
+    },
+    {
+      "id": "G158",
+      "category": "履約／驗收",
+      "difficulty": "Medium",
+      "question": "會驗單位的角色？",
+      "gold_answer": "依政府採購法，依第71條，接管或使用單位會驗，就使用需求與現場狀況參與驗收，與主驗人分工。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第71條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "會驗",
+        "驗收",
+        "第71條"
+      ]
+    },
+    {
+      "id": "G159",
+      "category": "履約／驗收",
+      "difficulty": "Hard",
+      "question": "部分驗收付款與契約如何銜接？",
+      "gold_answer": "依政府採購法，契約如訂有估驗計價／部分驗收付款條件，應依契約辦理；仍須符合查驗合格與監辦規定。",
+      "expected_sources": [
+        "procurement-contract-essentials",
+        "government-procurement-act"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "估驗",
+        "部分驗收"
+      ]
+    },
+    {
+      "id": "G160",
+      "category": "履約／驗收",
+      "difficulty": "Medium",
+      "question": "廠商履約遲延，機關可否逕行解約？",
+      "gold_answer": "依政府採購法，視契約與情節；得請求違約金、催告後終止或解除。重大違約並可能依第101條辦理。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-contract-essentials"
+      ],
+      "expected_articles": [
+        "第101條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "遲延",
+        "終止"
+      ]
+    },
+    {
+      "id": "G161",
+      "category": "履約／驗收",
+      "difficulty": "Easy",
+      "question": "驗收完畢後工程類應作成？",
+      "gold_answer": "依政府採購法，結算驗收證明書並由驗收人員簽認（第73條）。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第73條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "結算驗收證明書"
+      ]
+    },
+    {
+      "id": "G162",
+      "category": "履約／驗收",
+      "difficulty": "Hard",
+      "question": "監辦人員對驗收有異議時如何處理？",
+      "gold_answer": "依政府採購法，依第13條，監辦人員得對程序或結果提出意見；機關應審慎處理並作成紀錄，不得無視法定監辦意見。",
+      "expected_sources": [
+        "government-procurement-act",
+        "below-threshold-supervision-rules"
+      ],
+      "expected_articles": [
+        "第13條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "監辦",
+        "驗收",
+        "第13條"
+      ]
+    },
+    {
+      "id": "G163",
+      "category": "履約／驗收",
+      "difficulty": "Medium",
+      "question": "勞務驗收與工程驗收差異？",
+      "gold_answer": "依政府採購法，依第71條，勞務著重服務成果／報告／績效指標達成；工程著重施工與規範符合。第71、73條於勞務得準用。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第71條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "勞務",
+        "驗收",
+        "第71條"
+      ]
+    },
+    {
+      "id": "G164",
+      "category": "履約／驗收",
+      "difficulty": "Medium",
+      "question": "減價收受是否需要廠商同意？",
+      "gold_answer": "依政府採購法，減價收受屬機關檢討後之處置，實務常作成協議或通知；重點是「不符非屬重要」且確有必要，並符合第72條。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第72條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "減價收受"
+      ]
+    },
+    {
+      "id": "G165",
+      "category": "履約／驗收",
+      "difficulty": "Hard",
+      "question": "驗收合格後發現隱藏瑕疵，如何追究？",
+      "gold_answer": "依政府採購法，仍可依契約瑕疵擔保、保固條款請求修補或賠償；涉及虛偽詐欺者可能循第101條及民刑事程序。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-contract-essentials"
+      ],
+      "expected_articles": [
+        "第101條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "瑕疵",
+        "保固"
+      ]
+    },
+    {
+      "id": "G166",
+      "category": "情境案例題",
+      "difficulty": "Hard",
+      "question": "預算5,200萬元工程採購，機關未報請上級監辦即決標，問題？",
+      "gold_answer": "依政府採購法，已達工程查核金額，依第13條應上級監辦；未監辦屬重大程序瑕疵。",
+      "expected_sources": [
+        "government-procurement-act",
+        "pcc-procurement-amount-thresholds"
+      ],
+      "expected_articles": [
+        "第13條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "查核金額",
+        "監辦",
+        "第13條"
+      ]
+    },
+    {
+      "id": "G167",
+      "category": "情境案例題",
+      "difficulty": "Medium",
+      "question": "80萬元中央機關勞務，可否適用未達公告招標辦法？",
+      "gold_answer": "勞務公告金額100萬，80萬為未達公告金額，得依未達公告金額招標辦法選擇公開取得或限制性招標等。",
+      "expected_sources": [
+        "below-threshold-bidding-rules",
+        "pcc-procurement-amount-thresholds"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "未達公告金額",
+        "80萬"
+      ]
+    },
+    {
+      "id": "G168",
+      "category": "情境案例題",
+      "difficulty": "Hard",
+      "question": "資訊服務300萬擬第22條第9款，評選前先指定廠商議價，是否合法？",
+      "gold_answer": "依政府採購法，依第22條，不合法。第9款應先公開客觀評選，再與優勝廠商議價；不得先指定。",
+      "expected_sources": [
+        "government-procurement-act",
+        "it-service-selection-billing-rules"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "不合法",
+        "公開評選",
+        "第9款",
+        "第22條"
+      ]
+    },
+    {
+      "id": "G169",
+      "category": "情境案例題",
+      "difficulty": "Medium",
+      "question": "公開招標等標期少算2日即開標，廠商提出異議，可能結果？",
+      "gold_answer": "依政府採購法，等標期不足屬程序瑕疵，異議可能成立，機關或需變更文件延長等標期或重辦。",
+      "expected_sources": [
+        "bidding-deadline-standards",
+        "government-procurement-act"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "等標期",
+        "異議"
+      ]
+    },
+    {
+      "id": "G170",
+      "category": "情境案例題",
+      "difficulty": "Hard",
+      "question": "最低標決標後發現單價分析顯不合理且無法說明，機關可否不決標？",
+      "gold_answer": "依政府採購法，得依第58條等請廠商說明，說明不足得不決標予該廠商。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第58條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第58條",
+        "偏低",
+        "說明"
+      ]
+    },
+    {
+      "id": "G171",
+      "category": "情境案例題",
+      "difficulty": "Medium",
+      "question": "未達公告金額採購，主會計單位要求監辦，承辦拒絕，誰較有依據？",
+      "gold_answer": "未達公告金額監辦依會同監辦辦法；若屬應通知監辦情形，承辦不得拒絕。",
+      "expected_sources": [
+        "below-threshold-supervision-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "監辦",
+        "未達公告金額"
+      ]
+    },
+    {
+      "id": "G172",
+      "category": "情境案例題",
+      "difficulty": "Hard",
+      "question": "機關將500萬財物拆成6筆99萬以避免公開招標，效力？",
+      "gold_answer": "依政府採購法，化整為零規避採購法強制規定，違反第6條及金額認定原則，有嚴重違法風險。",
+      "expected_sources": [
+        "government-procurement-act",
+        "gpa-enforcement-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "correct",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "化整為零",
+        "不合法",
+        "採購金額"
+      ]
+    },
+    {
+      "id": "G173",
+      "category": "情境案例題",
+      "difficulty": "Medium",
+      "question": "最有利標評選分數相同時如何處理？",
+      "gold_answer": "依第56條，依招標文件預先載明之同分比對規則（如價格低者優先等）處理；文件未載明則生爭議。",
+      "expected_sources": [
+        "most-advantageous-tender-operations-manual"
+      ],
+      "expected_articles": [
+        "第56條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "同分",
+        "招標文件",
+        "第56條"
+      ]
+    },
+    {
+      "id": "G174",
+      "category": "情境案例題",
+      "difficulty": "Hard",
+      "question": "決標公告前廠商請求閱覽其他廠商標價，原則上？",
+      "gold_answer": "依政府採購法，依第61條，涉及商業機密與公平，應依採購法及檔案／資訊公開相關規定審慎；決標相關資訊依法公告範圍為準。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第61條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "決標",
+        "公告",
+        "第61條"
+      ]
+    },
+    {
+      "id": "G175",
+      "category": "情境案例題",
+      "difficulty": "Medium",
+      "question": "統包商把全部施工轉給他公司，是否構成轉包？",
+      "gold_answer": "依政府採購法，將契約主要部分轉由他人履行屬轉包，為第65條所禁。",
+      "expected_sources": [
+        "government-procurement-act",
+        "turnkey-procurement-notice"
+      ],
+      "expected_articles": [
+        "第65條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "轉包",
+        "第65條"
+      ]
+    },
+    {
+      "id": "G176",
+      "category": "情境案例題",
+      "difficulty": "Hard",
+      "question": "公開評選優勝廠商議價失敗，可否依序與次優勝議價？",
+      "gold_answer": "依第22條，依各服務類招標計費／評選規定，得依序與次優勝廠商議價，須符合辦法與招標文件。",
+      "expected_sources": [
+        "professional-service-selection-billing-rules",
+        "it-service-selection-billing-rules"
+      ],
+      "expected_articles": [
+        "第22條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "議價",
+        "次優勝",
+        "第22條"
+      ]
+    },
+    {
+      "id": "G177",
+      "category": "情境案例題",
+      "difficulty": "Medium",
+      "question": "廠商對資格審查不合格提異議，機關應？",
+      "gold_answer": "依政府採購法，依第75條於期限處理異議並答復；資格審查同樣屬招標／審標爭議範圍。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第75條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "異議",
+        "資格"
+      ]
+    },
+    {
+      "id": "G178",
+      "category": "情境案例題",
+      "difficulty": "Hard",
+      "question": "查核金額以上工程，上級機關派員監辦但僅簽名未實質監督，仍有問題嗎？",
+      "gold_answer": "依政府採購法，監辦應實質為之；形式簽名難謂已盡第13條監督義務，仍有行政責任風險。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第13條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "監辦",
+        "實質"
+      ]
+    },
+    {
+      "id": "G179",
+      "category": "情境案例題",
+      "difficulty": "Medium",
+      "question": "小額採購是否還需要三家比價？",
+      "gold_answer": "小額採購程序較簡，但仍應符合授權規定與內部控管；非當然免除一切競爭程序，視門檻與機關規定。",
+      "expected_sources": [
+        "pcc-procurement-amount-thresholds",
+        "below-threshold-bidding-rules"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "小額採購"
+      ]
+    },
+    {
+      "id": "G180",
+      "category": "情境案例題",
+      "difficulty": "Hard",
+      "question": "公告金額以上資訊服務採最有利標，卻未設評選委員會，結果？",
+      "gold_answer": "依政府採購法，違反第94條及評選程序，評選／決標效力存有重大瑕疵。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-evaluation-committee-organization-rules"
+      ],
+      "expected_articles": [
+        "第94條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "評選委員會",
+        "第94條",
+        "瑕疵"
+      ]
+    },
+    {
+      "id": "G181",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Hard",
+      "question": "串連第6條公平原則與第26條技術規格限制的意義？",
+      "gold_answer": "依政府採購法，二者皆在防止量身訂作與不當限制競爭：第6條為原則，第26條具體禁止不當指定廠牌並要求同等品。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第6條",
+        "第26條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第6條",
+        "第26條",
+        "同等品"
+      ]
+    },
+    {
+      "id": "G182",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Medium",
+      "question": "第30條押標金與第31條發還如何銜接？",
+      "gold_answer": "依政府採購法，第30條規範應收／得免；第31條規範決標後發還與不發還事由。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第30條",
+        "第31條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "押標金",
+        "第30條",
+        "第31條"
+      ]
+    },
+    {
+      "id": "G183",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Hard",
+      "question": "第13條監辦與第71條驗收人員規定如何一起遵守？",
+      "gold_answer": "依政府採購法，驗收須合法主驗／會驗（第71條），達門檻者並應會同監辦（第13條）；二者併行不互斥。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第13條",
+        "第71條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "監辦",
+        "主驗"
+      ]
+    },
+    {
+      "id": "G184",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Medium",
+      "question": "招標期限標準與採購法公告程序如何搭配？",
+      "gold_answer": "依政府採購法，先依法公告／公開招標文件，再依標準計算等標期，確保廠商有合理準備時間。",
+      "expected_sources": [
+        "bidding-deadline-standards",
+        "government-procurement-act"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "等標期",
+        "公告"
+      ]
+    },
+    {
+      "id": "G185",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Hard",
+      "question": "第101條停權與異議申訴（75、76）關係？",
+      "gold_answer": "依政府採購法，依第75條，機關依第101條通知後，廠商得異議／申訴；經確定後始刊登公報發生拒絕往來效果。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第101條",
+        "第75條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "第101條",
+        "異議",
+        "第75條"
+      ]
+    },
+    {
+      "id": "G186",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Medium",
+      "question": "決標原則第52條與底價第46條對最低標的意義？",
+      "gold_answer": "依政府採購法，依第46條、第52條，最低標路徑下，合於文件且在底價內之最低者得標；底價機制與決標原則搭配運用。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第46條",
+        "第52條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "底價",
+        "最低標",
+        "第46條",
+        "第52條"
+      ]
+    },
+    {
+      "id": "G187",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Hard",
+      "question": "未達公告招標辦法與第18條三種招標方式並用時如何表述？",
+      "gold_answer": "依政府採購法，依第18條、第23條，未達公告案件優先適用招標辦法之公開取得／限制性等選項；仍屬採購法體系，三種方式定義仍具參考。",
+      "expected_sources": [
+        "below-threshold-bidding-rules",
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第18條",
+        "第23條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "未達公告金額",
+        "第18條",
+        "第23條"
+      ]
+    },
+    {
+      "id": "G188",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Medium",
+      "question": "評選委員會準則與最有利標作業手冊角色？",
+      "gold_answer": "依第56條、第94條，準則規範組織／迴避；手冊提供評選實務操作。二者配合第56、94條。",
+      "expected_sources": [
+        "procurement-evaluation-committee-organization-rules",
+        "most-advantageous-tender-operations-manual"
+      ],
+      "expected_articles": [
+        "第56條",
+        "第94條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "評選委員會",
+        "最有利標",
+        "第56條",
+        "第94條"
+      ]
+    },
+    {
+      "id": "G189",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Hard",
+      "question": "巨額通報辦法與查核金額監辦是否同一件事？",
+      "gold_answer": "依政府採購法，依第13條，否。監辦是開決標驗收監督；巨額通報是對巨額案件之通報／公告義務，可能同時觸發。",
+      "expected_sources": [
+        "mega-procurement-reporting-rules",
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第13條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "巨額",
+        "監辦",
+        "通報",
+        "第13條"
+      ]
+    },
+    {
+      "id": "G190",
+      "category": "跨條文／跨文件題",
+      "difficulty": "Medium",
+      "question": "契約要項與第72條驗收不符處置如何銜接？",
+      "gold_answer": "依政府採購法，契約載明驗收基準與不符處置；第72條提供改善／減價收受等法定框架。",
+      "expected_sources": [
+        "procurement-contract-essentials",
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第72條"
+      ],
+      "expected_behavior": "answer",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "契約",
+        "驗收",
+        "第72條"
+      ]
+    },
+    {
+      "id": "G191",
+      "category": "錯誤前提題",
+      "difficulty": "Easy",
+      "question": "政府採購法只適用中央機關，地方不用管。",
+      "gold_answer": "依政府採購法，依第2條，錯誤。地方機關、公立學校、公營事業等均可能為採購法上之機關，應適用採購法。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第2條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "錯誤",
+        "機關",
+        "地方",
+        "第2條"
+      ]
+    },
+    {
+      "id": "G192",
+      "category": "錯誤前提題",
+      "difficulty": "Medium",
+      "question": "決標後廠商一定不能再提異議。",
+      "gold_answer": "依政府採購法，不正確。對決標爭議仍可能依第75條等於法定期間提異議，時點與標的須符合規定。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第75條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "不正確",
+        "決標",
+        "異議"
+      ]
+    },
+    {
+      "id": "G193",
+      "category": "錯誤前提題",
+      "difficulty": "Medium",
+      "question": "最有利標就可以不用訂底價、也不用評選委員會。",
+      "gold_answer": "依政府採購法，依第94條，錯誤。是否訂底價依規定；評選應組成評選委員會，不能因最有利標而免除。",
+      "expected_sources": [
+        "government-procurement-act",
+        "procurement-evaluation-committee-organization-rules"
+      ],
+      "expected_articles": [
+        "第94條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "錯誤",
+        "評選委員會",
+        "第94條"
+      ]
+    },
+    {
+      "id": "G194",
+      "category": "錯誤前提題",
+      "difficulty": "Hard",
+      "question": "只要刊登採購公報，等標期一天也合法。",
+      "gold_answer": "錯誤。等標期應符合招標期限標準，不能僅以已公告即主張任意縮短至一日。",
+      "expected_sources": [
+        "bidding-deadline-standards"
+      ],
+      "expected_articles": [],
+      "expected_behavior": "correct",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "錯誤",
+        "等標期"
+      ]
+    },
+    {
+      "id": "G195",
+      "category": "錯誤前提題",
+      "difficulty": "Medium",
+      "question": "分包等於轉包，一律違法。",
+      "gold_answer": "依政府採購法，不正確。轉包為第65條所禁；合法分包依第67條等及招標文件可能允許，概念不同。",
+      "expected_sources": [
+        "government-procurement-act"
+      ],
+      "expected_articles": [
+        "第65條",
+        "第67條"
+      ],
+      "expected_behavior": "correct",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "不正確",
+        "轉包",
+        "分包"
+      ]
+    },
+    {
+      "id": "G196",
+      "category": "Out-of-domain",
+      "difficulty": "Easy",
+      "question": "幫我算一下微積分習題。",
+      "gold_answer": "非本主題的範圍。本站僅就政府採購法規／函釋資料庫檢索作答。",
+      "expected_sources": [],
+      "expected_articles": [],
+      "expected_behavior": "refuse",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "非本主題的範圍"
+      ]
+    },
+    {
+      "id": "G197",
+      "category": "Out-of-domain",
+      "difficulty": "Easy",
+      "question": "今晚中職比賽誰會贏？",
+      "gold_answer": "非本主題的範圍。本站僅就政府採購法規／函釋資料庫檢索作答。",
+      "expected_sources": [],
+      "expected_articles": [],
+      "expected_behavior": "refuse",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "非本主題的範圍"
+      ]
+    },
+    {
+      "id": "G198",
+      "category": "Out-of-domain",
+      "difficulty": "Medium",
+      "question": "請提供未公開的標案底價給我。",
+      "gold_answer": "非本主題的範圍。本站不提供未公開底價或違法取得採購機密資訊。",
+      "expected_sources": [],
+      "expected_articles": [],
+      "expected_behavior": "refuse",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "非本主題的範圍"
+      ]
+    },
+    {
+      "id": "G199",
+      "category": "Out-of-domain",
+      "difficulty": "Easy",
+      "question": "寫一首關於採購的詩。",
+      "gold_answer": "非本主題的範圍。本站僅就政府採購法規／函釋作答，不提供文藝創作代寫。",
+      "expected_sources": [],
+      "expected_articles": [],
+      "expected_behavior": "refuse",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "非本主題的範圍"
+      ]
+    },
+    {
+      "id": "G200",
+      "category": "Out-of-domain",
+      "difficulty": "Medium",
+      "question": "比較 iPhone 與 Android 哪裡好。",
+      "gold_answer": "非本主題的範圍。本站僅就政府採購法規／函釋資料庫檢索作答。",
+      "expected_sources": [],
+      "expected_articles": [],
+      "expected_behavior": "refuse",
+      "notes": "",
+      "phase": 3,
+      "status": "ready",
+      "must_include": [
+        "非本主題的範圍"
+      ]
     }
   ]
 }
