@@ -12,22 +12,26 @@ import { GOLDEN_CATEGORIES } from "./golden-types";
 import { scoreCase } from "./run";
 
 describe("golden dataset", () => {
-  it("loads and validates phase1 ready count", () => {
+  it("loads and validates 200 ready items", () => {
     const ds = loadGoldenDataset();
     validateGoldenDataset(ds);
+    assert.equal(ds.meta.target_total, 200);
+    assert.equal(ds.meta.ready_count, 200);
     assert.equal(ds.meta.phase1_count, 50);
-    assert.equal(ds.meta.target_total, 100);
+    assert.equal(ds.meta.phase2_count, 50);
+    assert.equal(ds.meta.phase3_count, 100);
     const ready = listReadyGoldenItems(ds);
-    assert.equal(ready.length, 50);
+    assert.equal(ready.length, 200);
     const cov = summarizeGoldenCoverage(ds);
-    assert.equal(cov.ready, 50);
-    assert.equal(cov.planned, 50);
+    assert.equal(cov.ready, 200);
+    assert.equal(cov.planned, 0);
+    assert.equal(cov.byPhase["1"], 50);
+    assert.equal(cov.byPhase["2"], 50);
+    assert.equal(cov.byPhase["3"], 100);
     for (const cat of GOLDEN_CATEGORIES) {
       assert.ok(cov.byCategory[cat]);
-      assert.equal(
-        cov.byCategory[cat]!.ready,
-        ds.meta.category_plan[cat].phase1,
-      );
+      assert.equal(cov.byCategory[cat]!.ready, ds.meta.category_plan[cat].total);
+      assert.equal(cov.byCategory[cat]!.planned, 0);
     }
   });
 
@@ -45,11 +49,16 @@ describe("golden dataset", () => {
     const refuse = goldenToRagEvalCase(ood!);
     assert.equal(refuse.kind, "off_topic");
     assert.deepEqual(refuse.contexts, []);
+
+    const phase3 = ready.find((i) => i.id === "G150");
+    assert.ok(phase3);
+    assert.equal(phase3!.phase, 3);
+    assert.ok(phase3!.question.trim());
   });
 
   it("offline scores on gold answers stay high for key cases", () => {
     const ready = listReadyGoldenItems();
-    for (const id of ["G009", "G024", "G046", "G049"]) {
+    for (const id of ["G009", "G024", "G046", "G049", "G100", "G200"]) {
       const item = ready.find((i) => i.id === id);
       assert.ok(item, id);
       const c = goldenToRagEvalCase(item!);
