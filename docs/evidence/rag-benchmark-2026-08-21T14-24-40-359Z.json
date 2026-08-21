@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-08-21T14:24:40.359Z",
+  "framework": "rag-benchmark",
+  "dataset": {
+    "ready_count": 200,
+    "target_total": 200,
+    "version": "2.0.1-200"
+  },
+  "mode": {
+    "golden": "gold",
+    "frc": "golden-offline",
+    "compare": "fixture"
+  },
+  "steps": [
+    {
+      "name": "golden",
+      "ok": true,
+      "exitCode": 0,
+      "summary": "pass FRC=0.967"
+    },
+    {
+      "name": "frc",
+      "ok": true,
+      "exitCode": 0,
+      "summary": "n=200 FRC=0.967 pass=true"
+    },
+    {
+      "name": "compare",
+      "ok": true,
+      "exitCode": 0,
+      "summary": "fixture strategies=3 limit=0"
+    }
+  ],
+  "golden": {
+    "n": 200,
+    "faithfulness_mean": 0.967,
+    "answer_relevance_mean": 0.98,
+    "citation_accuracy_mean": 0.963,
+    "frc_mean": 0.967,
+    "refuse_accuracy": 1,
+    "pass": true
+  },
+  "frc": {
+    "n": 200,
+    "faithfulness_mean": 0.967,
+    "relevance_mean": 0.98,
+    "citation_accuracy_mean": 0.963,
+    "frc_mean": 0.967,
+    "pass": true
+  },
+  "compare": {
+    "mode": "fixture",
+    "generate_answers": false,
+    "enable_graph": false,
+    "strategies": [
+      {
+        "strategy": "baseline",
+        "n": 200,
+        "retrieval_hit_rate_mean": 0.45,
+        "citation_accuracy_mean": null,
+        "faithfulness_mean": 1,
+        "answer_relevance_mean": 1,
+        "refuse_accuracy": 1,
+        "latency_p50": 0,
+        "latency_p95": 0
+      },
+      {
+        "strategy": "contextual",
+        "n": 200,
+        "retrieval_hit_rate_mean": 0.45,
+        "citation_accuracy_mean": null,
+        "faithfulness_mean": 1,
+        "answer_relevance_mean": 1,
+        "refuse_accuracy": 1,
+        "latency_p50": 0,
+        "latency_p95": 0
+      },
+      {
+        "strategy": "parent_contextual",
+        "n": 200,
+        "retrieval_hit_rate_mean": 0.45,
+        "citation_accuracy_mean": null,
+        "faithfulness_mean": 1,
+        "answer_relevance_mean": 1,
+        "refuse_accuracy": 1,
+        "latency_p50": 0,
+        "latency_p95": 0
+      }
+    ]
+  },
+  "pass": true,
+  "notes": [
+    "Golden ready=200 planned=0（phase1=50 phase2=50 phase3=100）。",
+    "Golden／FRC 預設以 gold_answer 離線自洽，驗證標註與指標門檻。",
+    "Compare 為 fixture：驗證策略展開與 Hit Rate 管線，非正式全量語料結果。",
+    "三方策略比較預設關閉 GraphRAG，以免 parent_contextual 雙重加分。",
+    "詳見 docs/RAG-BENCHMARK.md、docs/RAG-COMPARE.md、docs/RAG-FRC.md。"
+  ]
+}

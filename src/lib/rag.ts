@@ -41,12 +41,20 @@ const RAG_ALLOWED_TIERS = new Set(["LAW", "REGULATION", "ADMIN_RULE", "INTERPRET
 
 export type ChunkWithReg = DocChunk & { regulation: Regulation };
 
-/** 期末報告／評測用檢索策略（生產預設 parent_contextual＋GraphRAG） */
-export type RagStrategy = "baseline" | "contextual" | "parent_contextual";
+/**
+ * 期末報告／評測用檢索策略。
+ * - baseline／contextual／parent_contextual：消融展開層
+ * - combined：Parent-Document＋Contextual＋GraphRAG（≈生產預設）
+ */
+export type RagStrategy =
+  | "baseline"
+  | "contextual"
+  | "parent_contextual"
+  | "combined";
 
 export type RetrieveForRagOptions = {
   strategy?: RagStrategy;
-  /** 比較實驗時可關閉 GraphRAG，避免與 Contextual 混淆 */
+  /** 比較實驗時可關閉 GraphRAG；`combined` 一律開啟 */
   enableGraph?: boolean;
 };
 
@@ -63,6 +71,7 @@ function isChildChunk(c: Pick<DocChunk, "chunkRole">): boolean {
  * - baseline：僅回傳命中的 Child（無 Parent 展開、無細則擴充、無 Graph）
  * - contextual：保留 Child，並以條號擴充關聯施行細則 Parent
  * - parent_contextual：Child→Parent 展開＋細則擴充（可選 GraphRAG）
+ * - combined：等同 parent_contextual＋GraphRAG
  */
 export function applyRetrievalStrategy(params: {
   strategy: RagStrategy;
@@ -93,19 +102,32 @@ export function applyRetrievalStrategy(params: {
 
   let chunks: ChunkWithReg[];
   const strategyTags: string[] = [];
+  const useParentExpand =
+    strategy === "parent_contextual" || strategy === "combined";
+  const useGraph =
+    strategy === "combined" ||
+    (enableGraph && strategy === "parent_contextual");
 
   if (strategy === "contextual") {
     // 不展開母法 Parent，但做細則／關聯擴充（Contextual 查詢時擴展）
     chunks = enrichWithRelatedEnforcementParents(childHits, allChunks, 2);
     strategyTags.push("+strategy=contextual");
-  } else {
+  } else if (useParentExpand) {
     chunks = expandHitsToParentContext(childHits, byId);
     chunks = enrichWithRelatedEnforcementParents(chunks, allChunks, 2);
-    strategyTags.push("+strategy=parent_contextual", "+parent-child");
+    strategyTags.push(
+      strategy === "combined"
+        ? "+strategy=combined"
+        : "+strategy=parent_contextual",
+      "+parent-child",
+    );
+  } else {
+    chunks = childHits.slice(0, topK);
+    strategyTags.push(`+strategy=${strategy}`);
   }
 
   let graphAdded = 0;
-  if (enableGraph && strategy === "parent_contextual") {
+  if (useGraph) {
     const parentNodes: GraphChunkRef[] = allChunks.filter(isParentChunk).map((c) => ({
       id: c.id,
       regulationSlug: c.regulation.slug,
@@ -584,7 +606,9 @@ export async function retrieveForRag(
   options?: RetrieveForRagOptions,
 ): Promise<{ chunks: ChunkWithReg[]; mode: string; questionBankUsed?: boolean }> {
   const strategy: RagStrategy = options?.strategy ?? "parent_contextual";
-  const enableGraph = options?.enableGraph ?? strategy === "parent_contextual";
+  const enableGraph =
+    options?.enableGraph ??
+    (strategy === "parent_contextual" || strategy === "combined");
   const { ensureDocChunkHierarchySchema } = await import(
     "@/lib/ensure-doc-chunk-hierarchy-schema"
   );
